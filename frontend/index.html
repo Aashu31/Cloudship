@@ -577,7 +577,7 @@
                     <span style="color: var(--accent-highlight);">▲</span>
                     <span>Azure (Primary)</span>
                   </div>
-                  <span class="status-pill success"><span class="status-dot"></span>Healthy</span>
+                  <span class="status-pill standby"><span class="status-dot"></span>Not Connected</span>
                 </div>
 
                 <div class="infra-service-item">
@@ -585,7 +585,7 @@
                     <span style="color: #F59E0B;">⬡</span>
                     <span>AWS (Secondary)</span>
                   </div>
-                  <span class="status-pill success"><span class="status-dot"></span>Healthy</span>
+                  <span class="status-pill standby"><span class="status-dot"></span>Not Connected</span>
                 </div>
 
                 <div class="infra-service-item">
@@ -593,7 +593,7 @@
                     <span style="color: #38BDF8;">☸</span>
                     <span>Kubernetes</span>
                   </div>
-                  <span class="status-pill success"><span class="status-dot"></span>Healthy</span>
+                  <span class="status-pill standby"><span class="status-dot"></span>Not Connected</span>
                 </div>
 
                 <div class="infra-service-item">
@@ -609,14 +609,14 @@
                     <span style="color: #A78BFA;">📡</span>
                     <span>Monitoring</span>
                   </div>
-                  <span class="status-pill success"><span class="status-dot"></span>Healthy</span>
+                  <span class="status-pill success"><span class="status-dot"></span>Active</span>
                 </div>
               </div>
 
               <!-- Bottom Stats -->
               <div class="infra-meta-strip">
                 <div><strong>3</strong> Regions</div>
-                <div><strong id="stat-services-count">12</strong> Services</div>
+                <div><strong id="stat-services-count">0</strong> Services</div>
                 <div><strong>99.9%</strong> Uptime</div>
               </div>
             </div>
@@ -632,40 +632,8 @@
             </div>
             <div class="panel-body">
               <div class="activity-list" id="activity-list">
-                <div class="activity-item">
-                  <div class="activity-left">
-                    <span class="activity-dot blue"></span>
-                    <span class="activity-action">Deployment started</span>
-                    <span class="activity-target">cloudship-frontend</span>
-                  </div>
-                  <span class="activity-time">2 min ago</span>
-                </div>
-
-                <div class="activity-item">
-                  <div class="activity-left">
-                    <span class="activity-dot green"></span>
-                    <span class="activity-action">Health check passed</span>
-                    <span class="activity-target">auth-service</span>
-                  </div>
-                  <span class="activity-time">12 min ago</span>
-                </div>
-
-                <div class="activity-item">
-                  <div class="activity-left">
-                    <span class="activity-dot blue"></span>
-                    <span class="activity-action">Auto-scaling triggered</span>
-                    <span class="activity-target">payment-service</span>
-                  </div>
-                  <span class="activity-time">18 min ago</span>
-                </div>
-
-                <div class="activity-item">
-                  <div class="activity-left">
-                    <span class="activity-dot red"></span>
-                    <span class="activity-action">Incident resolved</span>
-                    <span class="activity-target">notification-service</span>
-                  </div>
-                  <span class="activity-time">42 min ago</span>
+                <div class="empty-state" style="padding: var(--space-4) var(--space-2);">
+                  <div style="color: var(--text-dim); font-size: var(--font-caption);">No recent activity recorded</div>
                 </div>
               </div>
             </div>
