@@ -3,201 +3,426 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CloudShip — DevOps Deployment & Recovery Platform</title>
+  <title>CloudShip — Engineering Control Environment</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <!-- Top Navigation / Header -->
-  <header class="navbar">
-    <div class="brand">
-      <div class="brand-icon">CS</div>
-      <div class="brand-title">CloudShip</div>
-      <span class="brand-badge">Phase 1 Foundation</span>
+  <!-- ========================================================================
+       1. Persistent Application Shell Header
+       ======================================================================== -->
+  <header class="app-header" role="banner">
+    <div class="brand-wrapper">
+      <!-- Minimalist Vector Brand Mark: Engineered Horizon + Ascending Vessel -->
+      <svg class="brand-logo-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M2 19H22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+        <path d="M4 15L12 5L20 15H4Z" stroke="url(#cs-grad)" stroke-width="1.75" stroke-linejoin="round"/>
+        <path d="M12 9V15" stroke="#38BDF8" stroke-width="1.5" stroke-linecap="round"/>
+        <defs>
+          <linearGradient id="cs-grad" x1="4" y1="5" x2="20" y2="15" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#38BDF8"/>
+            <stop offset="1" stop-color="#0284C7"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <span class="brand-wordmark">CloudShip</span>
+      <span class="badge badge-env">LOCAL DEV</span>
     </div>
 
-    <div class="status-bar">
-      <div class="status-item">
-        <span class="status-label">Backend:</span>
-        <span id="backend-status" class="status-indicator unknown">
-          <span class="status-dot"></span>
-          <span class="status-text">CHECKING</span>
-        </span>
+    <!-- Center Command Search Trigger -->
+    <div class="header-center">
+      <button id="btn-cmd-trigger" class="cmd-trigger-btn" type="button" aria-label="Open Command Center">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <span>Search or command...</span>
+        <span class="kbd">⌘K</span>
+      </button>
+    </div>
+
+    <!-- Right Header Actions & Live Telemetry -->
+    <div class="header-actions">
+      <div class="telemetry-group" role="status" aria-live="polite">
+        <div class="telemetry-item">
+          <span class="telemetry-label">API</span>
+          <span id="backend-status" class="status-pill probing">
+            <span class="status-dot"></span>
+            <span class="status-text">PROBING</span>
+          </span>
+        </div>
+
+        <div class="telemetry-item">
+          <span class="telemetry-label">DB</span>
+          <span id="database-status" class="status-pill probing">
+            <span class="status-dot"></span>
+            <span class="status-text">CHECKING</span>
+          </span>
+        </div>
+
+        <div class="telemetry-item" style="display: none;" id="telemetry-latency-item">
+          <span class="telemetry-label">RTT</span>
+          <span id="telemetry-latency" class="badge" style="font-family: var(--font-mono);">-- ms</span>
+        </div>
       </div>
 
-      <div class="status-item">
-        <span class="status-label">Database:</span>
-        <span id="database-status" class="status-indicator unknown">
-          <span class="status-dot"></span>
-          <span class="status-text">UNKNOWN</span>
-        </span>
-      </div>
+      <button id="btn-quick-create" class="btn btn-primary btn-sm" type="button">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>New Project</span>
+        <span class="kbd" style="background: rgba(255,255,255,0.2); color:#fff; border:none;">N</span>
+      </button>
     </div>
   </header>
 
-  <!-- Main Container -->
-  <main class="container">
+  <!-- ========================================================================
+       2. Main Engineering Workspace
+       ======================================================================== -->
+  <main class="workspace" role="main">
 
-    <!-- Global Notification Banner -->
-    <div id="global-notification" class="notification"></div>
+    <!-- Workspace Header -->
+    <div class="workspace-header">
+      <div class="workspace-title-area">
+        <h1>Engineering Control Plane</h1>
+        <p>Declarative deployment orchestration, health telemetry, and automated recovery supervisory loop.</p>
+      </div>
 
-    <!-- Metrics Cards Row -->
-    <section class="metrics-grid">
+      <div class="workspace-actions">
+        <button id="btn-refresh" class="btn btn-secondary btn-sm" type="button" title="Refresh state (R)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          <span>Refresh</span>
+          <span class="kbd">R</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Precision Metrics Rail -->
+    <section class="metrics-rail" aria-label="System Metrics">
       <div class="metric-card">
-        <div class="metric-title">Registered Projects</div>
-        <div id="metric-projects-count" class="metric-value">0</div>
-        <div class="metric-subtitle">Active managed codebases</div>
+        <div class="metric-header">
+          <span class="metric-label">Managed Codebases</span>
+          <span class="badge">VCS</span>
+        </div>
+        <div id="metric-projects-count" class="metric-number">0</div>
+        <div class="metric-sub">Registered service repositories</div>
       </div>
 
       <div class="metric-card">
-        <div class="metric-title">Total Deployments</div>
-        <div id="metric-deployments-count" class="metric-value">0</div>
-        <div class="metric-subtitle">Release executions recorded</div>
+        <div class="metric-header">
+          <span class="metric-label">Recorded Deployments</span>
+          <span class="badge">RELEASES</span>
+        </div>
+        <div id="metric-deployments-count" class="metric-number">0</div>
+        <div class="metric-sub">Release pipeline executions</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-label">Telemetry RTT</span>
+          <span class="badge">HEALTH</span>
+        </div>
+        <div id="metric-latency-val" class="metric-number">--<span style="font-size: 1rem; font-weight: 500; color: var(--text-muted);">ms</span></div>
+        <div class="metric-sub">Round-trip health probe latency</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-label">Engine Mode</span>
+          <span class="badge badge-env">PHASE 1</span>
+        </div>
+        <div class="metric-number" style="font-size: 1.5rem; line-height: 1.5; color: var(--text-accent);">ONLINE</div>
+        <div class="metric-sub">Local Foundation (Azure-Ready)</div>
       </div>
     </section>
 
-    <!-- Content Split: Project List + Creation Form -->
-    <div class="content-grid">
+    <!-- Workspace View Navigation Tabs -->
+    <nav class="tabs" role="tablist" aria-label="Workspace Sections">
+      <button class="tab-item active" id="tab-btn-projects" role="tab" aria-selected="true" aria-controls="view-projects" type="button">
+        <span>Projects & Services</span>
+        <span id="tab-projects-badge" class="tab-badge">0</span>
+      </button>
+      <button class="tab-item" id="tab-btn-deployments" role="tab" aria-selected="false" aria-controls="view-deployments" type="button">
+        <span>Deployments & Pipeline</span>
+        <span id="tab-deployments-badge" class="tab-badge">0</span>
+      </button>
+    </nav>
 
-      <!-- Left Column: Projects List -->
-      <section class="card">
-        <div class="card-header">
-          <h2 class="card-title">Projects</h2>
-          <button id="btn-refresh" class="btn btn-secondary">Refresh</button>
-        </div>
-
-        <div class="table-responsive">
-          <table class="data-table" id="projects-table">
-            <thead>
-              <tr>
-                <th>Project Name</th>
-                <th>Repository URL</th>
-                <th>Deployments</th>
-                <th>Created</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="projects-table-body">
-              <!-- Dynamically populated or empty state -->
-            </tbody>
-          </table>
-        </div>
-
-        <div id="projects-empty-state" class="empty-state" style="display: none;">
-          <span class="empty-state-icon">📦</span>
-          <p>No projects registered yet.</p>
-        </div>
-      </section>
-
-      <!-- Right Column: Create Project Form -->
-      <section class="card">
-        <div class="card-header">
-          <h2 class="card-title">Create Project</h2>
-        </div>
-
-        <form id="create-project-form">
-          <div class="form-group">
-            <label for="project-name" class="form-label">Project Name *</label>
-            <input type="text" id="project-name" class="form-input" placeholder="e.g. payment-service" required maxlength="100">
-          </div>
-
-          <div class="form-group">
-            <label for="project-description" class="form-label">Description</label>
-            <textarea id="project-description" class="form-textarea" placeholder="Core payment processing microservice" maxlength="500"></textarea>
-          </div>
-
-          <div class="form-group">
-            <label for="project-repo-url" class="form-label">GitHub Repository URL *</label>
-            <input type="url" id="project-repo-url" class="form-input" placeholder="https://github.com/org/repo" required maxlength="255">
-          </div>
-
-          <button type="submit" id="btn-create-project" class="btn btn-primary" style="width: 100%;">
-            Create Project
-          </button>
-        </form>
-      </section>
-
-    </div>
-
-    <!-- Bottom Section: Recent Deployments -->
-    <section class="card">
-      <div class="card-header">
-        <h2 class="card-title">Recent Deployments</h2>
-      </div>
-
-      <div class="table-responsive">
-        <table class="data-table" id="deployments-table">
+    <!-- Tab 1: Projects Section -->
+    <section id="view-projects" role="tabpanel" aria-labelledby="tab-btn-projects">
+      <div class="table-container" id="projects-table-wrap">
+        <table class="table" id="projects-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Project</th>
-              <th>Version</th>
-              <th>Status</th>
-              <th>Triggered At</th>
+              <th scope="col">Project Name</th>
+              <th scope="col">Repository URL</th>
+              <th scope="col">Deployments</th>
+              <th scope="col">Registered</th>
+              <th scope="col" style="text-align: right;">Actions</th>
             </tr>
           </thead>
-          <tbody id="deployments-table-body">
-            <!-- Dynamically populated or empty state -->
+          <tbody id="projects-tbody">
+            <!-- Dynamically populated rows -->
           </tbody>
         </table>
       </div>
 
-      <div id="deployments-empty-state" class="empty-state">
-        <span class="empty-state-icon">🚀</span>
-        <p>No deployments yet.</p>
+      <!-- High-Fidelity Empty State -->
+      <div id="projects-empty" class="empty-state" style="display: none;">
+        <svg class="empty-state-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+        <h3 class="empty-state-title">No projects registered</h3>
+        <p class="empty-state-desc">Register a software service and repository to initialize declarative deployment pipelines and observability tracking.</p>
+        <button id="btn-empty-create" class="btn btn-primary btn-sm" type="button">Register First Project</button>
+      </div>
+    </section>
+
+    <!-- Tab 2: Deployments Section -->
+    <section id="view-deployments" role="tabpanel" aria-labelledby="tab-btn-deployments" style="display: none;">
+      <!-- Pipeline Execution Visual Rail -->
+      <div class="pipeline-rail" aria-label="Deployment Pipeline Stages">
+        <div class="pipeline-node completed">
+          <span class="status-dot"></span> Source
+        </div>
+        <div class="pipeline-connector"></div>
+        <div class="pipeline-node completed">
+          <span class="status-dot"></span> Build
+        </div>
+        <div class="pipeline-connector"></div>
+        <div class="pipeline-node completed">
+          <span class="status-dot"></span> Test
+        </div>
+        <div class="pipeline-connector"></div>
+        <div class="pipeline-node active">
+          <span class="status-dot"></span> Container
+        </div>
+        <div class="pipeline-connector"></div>
+        <div class="pipeline-node">
+          <span class="status-dot"></span> Registry
+        </div>
+        <div class="pipeline-connector"></div>
+        <div class="pipeline-node">
+          <span class="status-dot"></span> Deploy
+        </div>
+        <div class="pipeline-connector"></div>
+        <div class="pipeline-node">
+          <span class="status-dot"></span> Live
+        </div>
+      </div>
+
+      <div class="table-container" id="deployments-table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Execution ID</th>
+              <th scope="col">Target Project</th>
+              <th scope="col">Version / Tag</th>
+              <th scope="col">Status</th>
+              <th scope="col">Triggered At</th>
+            </tr>
+          </thead>
+          <tbody id="deployments-tbody">
+            <!-- Dynamically populated or empty -->
+          </tbody>
+        </table>
+      </div>
+
+      <div id="deployments-empty" class="empty-state">
+        <svg class="empty-state-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+        <h3 class="empty-state-title">No deployments recorded</h3>
+        <p class="empty-state-desc">Continuous delivery pipelines will record build packages, container tags, and rollout histories here in Phase 2 & 3.</p>
       </div>
     </section>
 
   </main>
 
-  <!-- Project Details Modal -->
-  <div id="project-details-modal" class="modal-overlay">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 id="modal-project-name" class="card-title">Project Details</h3>
-        <button id="modal-close-btn" class="modal-close">&times;</button>
+  <!-- ========================================================================
+       3. Create Project Slide-Over Drawer
+       ======================================================================== -->
+  <div id="create-drawer-backdrop" class="drawer-backdrop" role="dialog" aria-modal="true" aria-labelledby="create-drawer-title">
+    <div class="drawer-panel">
+      <div class="drawer-header">
+        <h2 id="create-drawer-title" class="drawer-title">Register Service Project</h2>
+        <button id="btn-close-create-drawer" class="btn btn-ghost btn-icon" type="button" aria-label="Close drawer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
       </div>
 
-      <div class="modal-body">
-        <div class="detail-row">
-          <span class="detail-label">Project ID:</span>
-          <span id="modal-project-id" class="detail-value">-</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Description:</span>
-          <span id="modal-project-desc" class="detail-value">-</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Repository:</span>
-          <span class="detail-value"><a id="modal-project-repo" href="#" target="_blank" class="project-url">-</a></span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Created At:</span>
-          <span id="modal-project-created" class="detail-value">-</span>
+      <form id="drawer-create-form" class="drawer-body">
+        <div class="form-group">
+          <label for="input-project-name" class="form-label">PROJECT NAME *</label>
+          <input type="text" id="input-project-name" class="form-input" placeholder="e.g. payment-service" required maxlength="100" autocomplete="off">
+          <div id="err-project-name" class="form-error"></div>
+          <p class="form-hint">Unique alphanumeric identifier for your microservice or application.</p>
         </div>
 
-        <h4 style="margin: 1.5rem 0 0.75rem 0; font-size: 1rem; color: var(--text-primary);">Deployment History</h4>
-        <div class="table-responsive">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Version</th>
-                <th>Status</th>
-                <th>Created At</th>
-              </tr>
-            </thead>
-            <tbody id="modal-deployments-body">
-              <!-- Populated or empty state -->
-            </tbody>
-          </table>
+        <div class="form-group">
+          <label for="input-project-desc" class="form-label">DESCRIPTION</label>
+          <textarea id="input-project-desc" class="form-textarea" placeholder="Core payment processing service handling transactions and settlements." maxlength="500"></textarea>
+          <p class="form-hint">Optional functional description for platform operators.</p>
         </div>
-        <div id="modal-deployments-empty" class="empty-state" style="padding: 1.5rem; display: none;">
-          <p>No deployments yet.</p>
+
+        <div class="form-group">
+          <label for="input-project-repo" class="form-label">GITHUB REPOSITORY URL *</label>
+          <input type="url" id="input-project-repo" class="form-input" placeholder="https://github.com/Aashu31/payment-service" required maxlength="255" autocomplete="off">
+          <div id="err-project-repo" class="form-error"></div>
+          <p class="form-hint">Target repository for CI/CD build triggers and container packaging.</p>
         </div>
+      </form>
+
+      <div class="drawer-footer">
+        <button id="btn-cancel-create" class="btn btn-secondary" type="button">Cancel</button>
+        <button id="btn-submit-create" form="drawer-create-form" class="btn btn-primary" type="submit">Initialize Project</button>
       </div>
     </div>
   </div>
+
+  <!-- ========================================================================
+       4. Project Details Slide-Over Drawer
+       ======================================================================== -->
+  <div id="details-drawer-backdrop" class="drawer-backdrop" role="dialog" aria-modal="true" aria-labelledby="details-drawer-title">
+    <div class="drawer-panel">
+      <div class="drawer-header">
+        <div>
+          <h2 id="details-drawer-title" class="drawer-title">Service Details</h2>
+          <span id="details-project-id-badge" class="badge" style="margin-top: 4px;">ID #0</span>
+        </div>
+        <button id="btn-close-details-drawer" class="btn btn-ghost btn-icon" type="button" aria-label="Close drawer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="drawer-body">
+        <div style="margin-bottom: var(--space-6);">
+          <div class="detail-item">
+            <span class="detail-key">Project Slug</span>
+            <span id="details-project-name" class="detail-val">-</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-key">Description</span>
+            <span id="details-project-desc" class="detail-val" style="max-width: 60%;">-</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-key">Repository</span>
+            <span class="detail-val">
+              <a id="details-project-url" href="#" target="_blank" rel="noopener noreferrer" style="color: var(--text-accent); text-decoration: none; font-family: var(--font-mono); font-size: 0.8rem;">-</a>
+            </span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-key">Registered Date</span>
+            <span id="details-project-created" class="detail-val">-</span>
+          </div>
+        </div>
+
+        <h3 style="font-size: var(--font-title-sm); font-weight: 600; margin-bottom: var(--space-3); color: var(--text-primary);">
+          Release Execution History
+        </h3>
+
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Run ID</th>
+                <th scope="col">Version</th>
+                <th scope="col">Status</th>
+                <th scope="col">Date</th>
+              </tr>
+            </thead>
+            <tbody id="details-deployments-tbody">
+              <!-- Populated or empty -->
+            </tbody>
+          </table>
+        </div>
+        <div id="details-deployments-empty" class="empty-state" style="padding: var(--space-6); display: none;">
+          <p style="color: var(--text-muted); font-size: var(--font-caption);">No deployments executed for this service yet.</p>
+        </div>
+      </div>
+
+      <div class="drawer-footer">
+        <button id="btn-close-details-bottom" class="btn btn-secondary" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       5. Command Center / Palette (⌘K)
+       ======================================================================== -->
+  <div id="cmd-backdrop" class="cmd-backdrop" role="dialog" aria-modal="true" aria-labelledby="cmd-search-input">
+    <div class="cmd-box">
+      <div class="cmd-input-wrap">
+        <svg class="cmd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input id="cmd-search-input" class="cmd-input" type="text" placeholder="Type a command or search services..." autocomplete="off">
+        <span class="kbd">ESC</span>
+      </div>
+
+      <div class="cmd-list" id="cmd-list-items">
+        <div class="cmd-group-label">Quick Actions</div>
+        <div class="cmd-item" data-action="new-project">
+          <span class="cmd-item-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Register New Service Project
+          </span>
+          <span class="kbd">N</span>
+        </div>
+        <div class="cmd-item" data-action="refresh">
+          <span class="cmd-item-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+            Poll & Refresh Telemetry
+          </span>
+          <span class="kbd">R</span>
+        </div>
+
+        <div class="cmd-group-label">Workspace Navigation</div>
+        <div class="cmd-item" data-action="nav-projects">
+          <span class="cmd-item-title">View Projects & Workloads</span>
+          <span class="badge">TAB 1</span>
+        </div>
+        <div class="cmd-item" data-action="nav-deployments">
+          <span class="cmd-item-title">View Deployments & Pipeline</span>
+          <span class="badge">TAB 2</span>
+        </div>
+
+        <div class="cmd-group-label">System Documentation</div>
+        <div class="cmd-item" data-action="doc-design">
+          <span class="cmd-item-title">Open Permanent Design System Docs</span>
+          <span class="badge">DOCS</span>
+        </div>
+        <div class="cmd-item" data-action="doc-api">
+          <span class="cmd-item-title">Open REST API Contracts</span>
+          <span class="badge">DOCS</span>
+        </div>
+      </div>
+
+      <div class="cmd-footer">
+        <span>Use <span class="kbd">↑</span> <span class="kbd">↓</span> to navigate</span>
+        <span>Press <span class="kbd">↵</span> to execute</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Feedback Stack -->
+  <div id="toast-container" class="toast-container" role="region" aria-label="Notifications" aria-live="polite"></div>
 
   <!-- Scripts -->
   <script src="js/api.js"></script>
