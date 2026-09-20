@@ -1,0 +1,34 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:cloudship_dev}?sslmode=${DB_SSL_MODE:disable}
+    username: ${DB_USERNAME:cloudship}
+    password: ${DB_PASSWORD:cloudship_dev_password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: CloudShipHikariPool
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+      minimum-idle: 2
+      idle-timeout: 30000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.cloudship: ${LOG_LEVEL_CLOUDSHIP:DEBUG}
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN
