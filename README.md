@@ -3,8 +3,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Primary Cloud: Azure](https://img.shields.io/badge/Primary%20Cloud-Microsoft%20Azure-0078D4.svg)](docs/cloud-strategy.md)
 [![Future Cloud: AWS](https://img.shields.io/badge/Future%20Cloud-AWS%20(Phase%2013)-FF9900.svg)](docs/cloud-strategy.md)
-[![Phase](https://img.shields.io/badge/Phase-0%20(Foundation)-success.svg)](docs/roadmap.md)
-[![Status](https://img.shields.io/badge/Status-Phase%200%20Complete-brightgreen.svg)](docs/roadmap.md)
+[![Phase](https://img.shields.io/badge/Phase-1%20(Application%20Foundation)-success.svg)](docs/roadmap.md)
+[![Status](https://img.shields.io/badge/Status-Phase%201%20Complete-brightgreen.svg)](docs/roadmap.md)
 
 **CloudShip** is an intelligent DevOps deployment and recovery platform designed to demonstrate real-world continuous delivery, container orchestration, real-time health observability, and automated site reliability engineering (SRE) recovery.
 
@@ -171,7 +171,7 @@ CloudShip/
 - **PostgreSQL 15+**: Running locally or in Docker on port `5432`
 - **Git**: Verify via `git --version`
 
-### Getting Started
+### Getting Started (Phase 1 Local Foundation)
 1. **Clone the repository**:
    ```bash
    git clone https://github.com/Aashu31/Cloudship.git
@@ -180,9 +180,25 @@ CloudShip/
 2. **Configure environment settings**:
    ```bash
    cp .env.example .env
-   # Edit .env with your local PostgreSQL credentials
+   # Edit .env with your local PostgreSQL credentials (default DB_PORT=5433, SERVER_PORT=8088)
    ```
-3. Read [docs/development-setup.md](docs/development-setup.md) for detailed configuration instructions.
+3. **Start local PostgreSQL**:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File ./database/start-local-db.ps1
+   ```
+4. **Run Spring Boot backend**:
+   ```powershell
+   cd backend
+   .\mvnw spring-boot:run
+   ```
+5. **Open Frontend Dashboard**:
+   Open `frontend/index.html` in your web browser.
+
+For complete details, refer to:
+- [docs/local-development.md](docs/local-development.md) — Local development workflow
+- [docs/api.md](docs/api.md) — Complete REST API contract & endpoints
+- [docs/database.md](docs/database.md) — Schema design & Flyway migrations
+- [docs/development-setup.md](docs/development-setup.md) — Progressive tooling model
 
 ---
 
