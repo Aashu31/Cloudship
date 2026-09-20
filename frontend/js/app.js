@@ -1,582 +1,627 @@
 /**
- * CloudShip — Permanent Application Controller ("Engineered Horizon")
- * Manages Shell state, Command Palette (⌘K), Drawers, Telemetry Probes,
- * Keyboard shortcuts, and API synchronization.
+ * CloudShip — Application Controller & Command Center
+ * Master Reference: /frontend/cloudship-master-reference.png
+ * Permanent Design Constitution Implementation
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // --------------------------------------------------------------------------
-  // DOM References
-  // --------------------------------------------------------------------------
-  // Telemetry & Status
-  const backendStatusEl = document.getElementById('backend-status');
-  const databaseStatusEl = document.getElementById('database-status');
-  const latencyItemEl = document.getElementById('telemetry-latency-item');
-  const latencyBadgeEl = document.getElementById('telemetry-latency');
-  const metricLatencyVal = document.getElementById('metric-latency-val');
+  // Application State
+  const state = {
+    projects: [],
+    deployments: [],
+    health: { status: 'PROBING', database: 'CHECKING' },
+    rtt: 0,
+    activeView: 'overview',
+  };
 
-  // Metrics
-  const metricProjectsCount = document.getElementById('metric-projects-count');
-  const metricDeploymentsCount = document.getElementById('metric-deployments-count');
-  const tabProjectsBadge = document.getElementById('tab-projects-badge');
-  const tabDeploymentsBadge = document.getElementById('tab-deployments-badge');
+  // Cached DOM References
+  const elements = {
+    // Header Telemetry
+    apiDot: document.getElementById('api-dot'),
+    apiStatusText: document.getElementById('api-status-text'),
+    dbDot: document.getElementById('db-dot'),
+    dbStatusText: document.getElementById('db-status-text'),
+    rttText: document.getElementById('rtt-text'),
+    infraDbPill: document.getElementById('infra-db-pill'),
 
-  // Tabs
-  const tabBtnProjects = document.getElementById('tab-btn-projects');
-  const tabBtnDeployments = document.getElementById('tab-btn-deployments');
-  const viewProjects = document.getElementById('view-projects');
-  const viewDeployments = document.getElementById('view-deployments');
+    // Metrics Strip
+    metricActiveDeployments: document.getElementById('metric-active-deployments'),
+    metricServicesOnline: document.getElementById('metric-services-online'),
+    metricRunningPods: document.getElementById('metric-running-pods'),
+    metricIncidents: document.getElementById('metric-incidents'),
+    metricAvgResponse: document.getElementById('metric-avg-response'),
+    statServicesCount: document.getElementById('stat-services-count'),
 
-  // Projects View
-  const projectsTbody = document.getElementById('projects-tbody');
-  const projectsEmpty = document.getElementById('projects-empty');
-  const projectsTableWrap = document.getElementById('projects-table-wrap');
+    // Deployments Panel
+    deploymentsListContainer: document.getElementById('deployments-list-container'),
+    btnHeroNewDeploy: document.getElementById('btn-hero-new-deploy'),
+    btnHeroViewProjects: document.getElementById('btn-hero-view-projects'),
+    linkViewAllDeployments: document.getElementById('link-view-all-deployments'),
+    btnEmptyNewDeploy: document.getElementById('btn-empty-new-deploy'),
 
-  // Deployments View
-  const deploymentsTbody = document.getElementById('deployments-tbody');
-  const deploymentsEmpty = document.getElementById('deployments-empty');
-  const deploymentsTableWrap = document.getElementById('deployments-table-wrap');
+    // Sidebar & Navigation
+    navLinks: document.querySelectorAll('.nav-link'),
+    btnSidebarToggle: document.getElementById('btn-sidebar-toggle'),
+    appSidebar: document.getElementById('app-sidebar'),
+    navProjectsLink: document.getElementById('nav-projects-link'),
 
-  // Create Project Drawer
-  const createDrawerBackdrop = document.getElementById('create-drawer-backdrop');
-  const btnCloseCreateDrawer = document.getElementById('btn-close-create-drawer');
-  const btnCancelCreate = document.getElementById('btn-cancel-create');
-  const btnQuickCreate = document.getElementById('btn-quick-create');
-  const btnEmptyCreate = document.getElementById('btn-empty-create');
-  const drawerCreateForm = document.getElementById('drawer-create-form');
-  const inputProjectName = document.getElementById('input-project-name');
-  const inputProjectDesc = document.getElementById('input-project-desc');
-  const inputProjectRepo = document.getElementById('input-project-repo');
-  const btnSubmitCreate = document.getElementById('btn-submit-create');
+    // Slide-Over Project Drawer
+    projectDrawer: document.getElementById('project-drawer'),
+    drawerBackdrop: document.getElementById('drawer-backdrop'),
+    btnCloseDrawer: document.getElementById('btn-close-drawer'),
+    createProjectForm: document.getElementById('create-project-form'),
+    projectNameInput: document.getElementById('project-name'),
+    projectDescInput: document.getElementById('project-description'),
+    projectRepoInput: document.getElementById('project-repo'),
+    btnSubmitProject: document.getElementById('btn-submit-project'),
+    drawerProjectsCount: document.getElementById('drawer-projects-count'),
+    drawerProjectsList: document.getElementById('drawer-projects-list'),
 
-  // Project Details Drawer
-  const detailsDrawerBackdrop = document.getElementById('details-drawer-backdrop');
-  const btnCloseDetailsDrawer = document.getElementById('btn-close-details-drawer');
-  const btnCloseDetailsBottom = document.getElementById('btn-close-details-bottom');
-  const detailsProjectIdBadge = document.getElementById('details-project-id-badge');
-  const detailsProjectName = document.getElementById('details-project-name');
-  const detailsProjectDesc = document.getElementById('details-project-desc');
-  const detailsProjectUrl = document.getElementById('details-project-url');
-  const detailsProjectCreated = document.getElementById('details-project-created');
-  const detailsDeploymentsTbody = document.getElementById('details-deployments-tbody');
-  const detailsDeploymentsEmpty = document.getElementById('details-deployments-empty');
+    // Command Palette
+    btnCmdTrigger: document.getElementById('btn-cmd-trigger'),
+    cmdPaletteBackdrop: document.getElementById('cmd-palette-backdrop'),
+    cmdPaletteInput: document.getElementById('cmd-palette-input'),
+    cmdPaletteResults: document.getElementById('cmd-palette-results'),
 
-  // Command Palette
-  const cmdBackdrop = document.getElementById('cmd-backdrop');
-  const btnCmdTrigger = document.getElementById('btn-cmd-trigger');
-  const cmdSearchInput = document.getElementById('cmd-search-input');
-  const cmdListItems = document.getElementById('cmd-list-items');
+    // Notifications & Toasts
+    toastContainer: document.getElementById('toast-container'),
+    btnNotifications: document.getElementById('btn-notifications'),
+  };
 
-  // Header & Global Actions
-  const btnRefresh = document.getElementById('btn-refresh');
-  const toastContainer = document.getElementById('toast-container');
+  /* ==========================================================================
+     1. Toast Notification System
+     ========================================================================== */
+  function showToast(message, type = 'info') {
+    if (!elements.toastContainer) return;
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    let icon = 'ℹ️';
+    if (type === 'success') icon = '✓';
+    if (type === 'error') icon = '✕';
 
-  let activeProjects = [];
-  let activeDeployments = [];
+    toast.innerHTML = `
+      <span style="font-weight: 600; color: ${type === 'success' ? '#34D399' : (type === 'error' ? '#F87171' : '#38BDF8')}">${icon}</span>
+      <span>${escapeHtml(message)}</span>
+    `;
 
-  // --------------------------------------------------------------------------
-  // 1. Toast Notification Primitive
-  // --------------------------------------------------------------------------
-  function toast(message, type = 'info', duration = 3800) {
-    const el = document.createElement('div');
-    el.className = `toast ${type}`;
-    el.setAttribute('role', 'alert');
-
-    const dot = document.createElement('span');
-    dot.className = 'status-dot';
-    el.appendChild(dot);
-
-    const text = document.createElement('span');
-    text.textContent = message;
-    el.appendChild(text);
-
-    toastContainer.appendChild(el);
+    elements.toastContainer.appendChild(toast);
 
     setTimeout(() => {
-      el.style.opacity = '0';
-      el.style.transform = 'translateY(8px)';
-      el.style.transition = 'opacity 180ms ease, transform 180ms ease';
-      setTimeout(() => el.remove(), 200);
-    }, duration);
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(10px)';
+      toast.style.transition = 'all 200ms ease';
+      setTimeout(() => toast.remove(), 220);
+    }, 4000);
   }
 
-  // --------------------------------------------------------------------------
-  // 2. Health & Telemetry Probing (with RTT latency calculation)
-  // --------------------------------------------------------------------------
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  /* ==========================================================================
+     2. Live Real-Time Telemetry Probe (API, DB, RTT)
+     ========================================================================== */
   async function probeTelemetry() {
     const startTime = performance.now();
     try {
       const health = await api.getHealth();
-      const rtt = Math.round(performance.now() - startTime);
+      const endTime = performance.now();
+      const rtt = Math.round(endTime - startTime);
 
-      // Latency indicators
-      latencyBadgeEl.textContent = `${rtt} ms`;
-      latencyItemEl.style.display = 'inline-flex';
-      metricLatencyVal.innerHTML = `${rtt}<span style="font-size: 1rem; font-weight: 500; color: var(--text-muted);">ms</span>`;
+      state.health = health;
+      state.rtt = rtt;
 
-      // API status pill
+      // Update API Status
       if (health.status === 'UP') {
-        backendStatusEl.className = 'status-pill connected';
-        backendStatusEl.querySelector('.status-text').textContent = 'ONLINE';
-      } else {
-        backendStatusEl.className = 'status-pill disconnected';
-        backendStatusEl.querySelector('.status-text').textContent = 'OFFLINE';
-      }
-
-      // DB status pill
-      if (health.database === 'CONNECTED') {
-        databaseStatusEl.className = 'status-pill connected';
-        databaseStatusEl.querySelector('.status-text').textContent = 'CONNECTED';
-      } else if (health.database === 'DISCONNECTED') {
-        databaseStatusEl.className = 'status-pill disconnected';
-        databaseStatusEl.querySelector('.status-text').textContent = 'DISCONNECTED';
-      } else {
-        databaseStatusEl.className = 'status-pill degraded';
-        databaseStatusEl.querySelector('.status-text').textContent = 'UNKNOWN';
-      }
-    } catch (err) {
-      backendStatusEl.className = 'status-pill disconnected';
-      backendStatusEl.querySelector('.status-text').textContent = 'UNREACHABLE';
-      databaseStatusEl.className = 'status-pill degraded';
-      databaseStatusEl.querySelector('.status-text').textContent = 'OFFLINE';
-      metricLatencyVal.innerHTML = `--<span style="font-size: 1rem; font-weight: 500; color: var(--text-muted);">ms</span>`;
-    }
-  }
-
-  // --------------------------------------------------------------------------
-  // 3. Load & Render Projects
-  // --------------------------------------------------------------------------
-  async function loadProjects() {
-    try {
-      activeProjects = await api.getProjects();
-      const count = activeProjects ? activeProjects.length : 0;
-      metricProjectsCount.textContent = count;
-      tabProjectsBadge.textContent = count;
-
-      projectsTbody.innerHTML = '';
-      if (!activeProjects || activeProjects.length === 0) {
-        projectsTableWrap.style.display = 'none';
-        projectsEmpty.style.display = 'block';
-        return;
-      }
-
-      projectsTableWrap.style.display = 'block';
-      projectsEmpty.style.display = 'none';
-
-      const fragment = document.createDocumentFragment();
-
-      activeProjects.forEach((project) => {
-        const tr = document.createElement('tr');
-
-        // Name & Description
-        const tdName = document.createElement('td');
-        const strong = document.createElement('strong');
-        strong.style.color = 'var(--text-primary)';
-        strong.style.display = 'block';
-        strong.textContent = project.name;
-        tdName.appendChild(strong);
-
-        if (project.description) {
-          const desc = document.createElement('span');
-          desc.style.fontSize = 'var(--font-caption)';
-          desc.style.color = 'var(--text-muted)';
-          desc.textContent = project.description;
-          tdName.appendChild(desc);
+        if (elements.apiDot) elements.apiDot.style.background = 'var(--status-success-text)';
+        if (elements.apiStatusText) {
+          elements.apiStatusText.textContent = 'ONLINE';
+          elements.apiStatusText.style.color = 'var(--status-success-text)';
         }
-        tr.appendChild(tdName);
-
-        // Repo URL
-        const tdRepo = document.createElement('td');
-        const aRepo = document.createElement('a');
-        aRepo.href = project.repositoryUrl;
-        aRepo.target = '_blank';
-        aRepo.rel = 'noopener noreferrer';
-        aRepo.style.fontFamily = 'var(--font-mono)';
-        aRepo.style.fontSize = 'var(--font-caption)';
-        aRepo.style.color = 'var(--text-accent)';
-        aRepo.style.textDecoration = 'none';
-        aRepo.textContent = project.repositoryUrl;
-        tdRepo.appendChild(aRepo);
-        tr.appendChild(tdRepo);
-
-        // Deployment Count
-        const tdDeployments = document.createElement('td');
-        const badge = document.createElement('span');
-        badge.className = 'badge';
-        badge.textContent = `${project.deploymentsCount || 0} runs`;
-        tdDeployments.appendChild(badge);
-        tr.appendChild(tdDeployments);
-
-        // Created Date
-        const tdDate = document.createElement('td');
-        tdDate.style.fontSize = 'var(--font-caption)';
-        tdDate.textContent = new Date(project.createdAt).toLocaleDateString(undefined, {
-          year: 'numeric', month: 'short', day: 'numeric',
-        });
-        tr.appendChild(tdDate);
-
-        // Actions
-        const tdActions = document.createElement('td');
-        tdActions.style.textAlign = 'right';
-
-        const btnInspect = document.createElement('button');
-        btnInspect.className = 'btn btn-secondary btn-sm';
-        btnInspect.type = 'button';
-        btnInspect.textContent = 'Inspect';
-        btnInspect.addEventListener('click', () => openProjectDetails(project.id));
-        tdActions.appendChild(btnInspect);
-
-        const btnDel = document.createElement('button');
-        btnDel.className = 'btn btn-danger btn-sm';
-        btnDel.type = 'button';
-        btnDel.style.marginLeft = 'var(--space-2)';
-        btnDel.textContent = 'Delete';
-        btnDel.addEventListener('click', () => deleteProject(project.id, project.name));
-        tdActions.appendChild(btnDel);
-
-        tr.appendChild(tdActions);
-        fragment.appendChild(tr);
-      });
-
-      projectsTbody.appendChild(fragment);
-    } catch (err) {
-      toast(`Failed to load projects: ${err.message}`, 'error');
-    }
-  }
-
-  // --------------------------------------------------------------------------
-  // 4. Load & Render Deployments
-  // --------------------------------------------------------------------------
-  async function loadDeployments() {
-    try {
-      activeDeployments = await api.getAllDeployments();
-      const count = activeDeployments ? activeDeployments.length : 0;
-      metricDeploymentsCount.textContent = count;
-      tabDeploymentsBadge.textContent = count;
-
-      deploymentsTbody.innerHTML = '';
-      if (!activeDeployments || activeDeployments.length === 0) {
-        deploymentsTableWrap.style.display = 'none';
-        deploymentsEmpty.style.display = 'block';
-        return;
-      }
-
-      deploymentsTableWrap.style.display = 'block';
-      deploymentsEmpty.style.display = 'none';
-
-      const fragment = document.createDocumentFragment();
-
-      activeDeployments.forEach((dep) => {
-        const tr = document.createElement('tr');
-
-        const tdId = document.createElement('td');
-        tdId.style.fontFamily = 'var(--font-mono)';
-        tdId.textContent = `#dep-${dep.id}`;
-        tr.appendChild(tdId);
-
-        const tdProj = document.createElement('td');
-        tdProj.textContent = dep.projectName || `Project #${dep.projectId}`;
-        tr.appendChild(tdProj);
-
-        const tdVer = document.createElement('td');
-        const code = document.createElement('code');
-        code.className = 'kbd';
-        code.textContent = dep.version;
-        tdVer.appendChild(code);
-        tr.appendChild(tdVer);
-
-        const tdStatus = document.createElement('td');
-        const pill = document.createElement('span');
-        pill.className = `status-pill ${dep.status === 'SUCCESS' ? 'connected' : (dep.status === 'FAILED' ? 'disconnected' : 'degraded')}`;
-        pill.innerHTML = `<span class="status-dot"></span>${dep.status}`;
-        tdStatus.appendChild(pill);
-        tr.appendChild(tdStatus);
-
-        const tdTime = document.createElement('td');
-        tdTime.style.fontSize = 'var(--font-caption)';
-        tdTime.textContent = new Date(dep.createdAt).toLocaleString();
-        tr.appendChild(tdTime);
-
-        fragment.appendChild(tr);
-      });
-
-      deploymentsTbody.appendChild(fragment);
-    } catch (err) {
-      console.warn('Could not load deployments:', err.message);
-    }
-  }
-
-  // --------------------------------------------------------------------------
-  // 5. Drawer Controls (Create Project)
-  // --------------------------------------------------------------------------
-  function openCreateDrawer() {
-    createDrawerBackdrop.classList.add('open');
-    setTimeout(() => inputProjectName.focus(), 150);
-  }
-
-  function closeCreateDrawer() {
-    createDrawerBackdrop.classList.remove('open');
-    drawerCreateForm.reset();
-    document.getElementById('err-project-name').style.display = 'none';
-    document.getElementById('err-project-repo').style.display = 'none';
-  }
-
-  btnQuickCreate.addEventListener('click', openCreateDrawer);
-  if (btnEmptyCreate) btnEmptyCreate.addEventListener('click', openCreateDrawer);
-  btnCloseCreateDrawer.addEventListener('click', closeCreateDrawer);
-  btnCancelCreate.addEventListener('click', closeCreateDrawer);
-
-  createDrawerBackdrop.addEventListener('click', (e) => {
-    if (e.target === createDrawerBackdrop) closeCreateDrawer();
-  });
-
-  // Handle Project Creation Form
-  drawerCreateForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const name = inputProjectName.value.trim();
-    const description = inputProjectDesc.value.trim();
-    const repositoryUrl = inputProjectRepo.value.trim();
-
-    if (!name || !repositoryUrl) {
-      toast('Project name and repository URL are required.', 'error');
-      return;
-    }
-
-    btnSubmitCreate.disabled = true;
-    btnSubmitCreate.textContent = 'Initializing...';
-
-    try {
-      const created = await api.createProject({ name, description, repositoryUrl });
-      toast(`Project '${created.name}' initialized successfully!`, 'success');
-      closeCreateDrawer();
-      await loadProjects();
-    } catch (err) {
-      toast(err.message, 'error');
-    } finally {
-      btnSubmitCreate.disabled = false;
-      btnSubmitCreate.textContent = 'Initialize Project';
-    }
-  });
-
-  // --------------------------------------------------------------------------
-  // 6. Drawer Controls (Project Details)
-  // --------------------------------------------------------------------------
-  async function openProjectDetails(id) {
-    try {
-      const [project, deployments] = await Promise.all([
-        api.getProjectById(id),
-        api.getDeploymentsForProject(id).catch(() => []),
-      ]);
-
-      detailsProjectIdBadge.textContent = `ID #${project.id}`;
-      detailsProjectName.textContent = project.name;
-      detailsProjectDesc.textContent = project.description || 'No description provided';
-      detailsProjectUrl.textContent = project.repositoryUrl;
-      detailsProjectUrl.href = project.repositoryUrl;
-      detailsProjectCreated.textContent = new Date(project.createdAt).toLocaleString();
-
-      detailsDeploymentsTbody.innerHTML = '';
-      if (!deployments || deployments.length === 0) {
-        detailsDeploymentsEmpty.style.display = 'block';
       } else {
-        detailsDeploymentsEmpty.style.display = 'none';
-        deployments.forEach((dep) => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td style="font-family: var(--font-mono);">#${dep.id}</td>
-            <td><span class="kbd">${dep.version}</span></td>
-            <td>
-              <span class="status-pill ${dep.status === 'SUCCESS' ? 'connected' : (dep.status === 'FAILED' ? 'disconnected' : 'degraded')}">
-                <span class="status-dot"></span>${dep.status}
-              </span>
-            </td>
-            <td style="font-size: var(--font-caption);">${new Date(dep.createdAt).toLocaleString()}</td>
-          `;
-          detailsDeploymentsTbody.appendChild(tr);
-        });
+        if (elements.apiDot) elements.apiDot.style.background = 'var(--status-error-text)';
+        if (elements.apiStatusText) {
+          elements.apiStatusText.textContent = 'OFFLINE';
+          elements.apiStatusText.style.color = 'var(--status-error-text)';
+        }
       }
 
-      detailsDrawerBackdrop.classList.add('open');
+      // Update Database Status
+      if (health.database === 'CONNECTED') {
+        if (elements.dbDot) elements.dbDot.style.background = 'var(--status-success-text)';
+        if (elements.dbStatusText) {
+          elements.dbStatusText.textContent = 'CONNECTED';
+          elements.dbStatusText.style.color = 'var(--status-success-text)';
+        }
+        if (elements.infraDbPill) {
+          elements.infraDbPill.className = 'status-pill success';
+          elements.infraDbPill.innerHTML = '<span class="status-dot"></span>Healthy';
+        }
+      } else {
+        if (elements.dbDot) elements.dbDot.style.background = 'var(--status-error-text)';
+        if (elements.dbStatusText) {
+          elements.dbStatusText.textContent = 'DISCONNECTED';
+          elements.dbStatusText.style.color = 'var(--status-error-text)';
+        }
+        if (elements.infraDbPill) {
+          elements.infraDbPill.className = 'status-pill error';
+          elements.infraDbPill.innerHTML = '<span class="status-dot"></span>Down';
+        }
+      }
+
+      // Update RTT
+      if (elements.rttText) {
+        elements.rttText.textContent = `${rtt} ms`;
+      }
+      if (elements.metricAvgResponse) {
+        elements.metricAvgResponse.textContent = `${rtt} ms`;
+      }
+
     } catch (err) {
-      toast(err.message, 'error');
+      console.warn('Telemetry probe failed:', err);
+      if (elements.apiStatusText) elements.apiStatusText.textContent = 'UNREACHABLE';
+      if (elements.dbStatusText) elements.dbStatusText.textContent = 'UNKNOWN';
+      if (elements.rttText) elements.rttText.textContent = '-- ms';
+      if (elements.metricAvgResponse) elements.metricAvgResponse.textContent = '-- ms';
     }
   }
 
-  function closeDetailsDrawer() {
-    detailsDrawerBackdrop.classList.remove('open');
+  /* ==========================================================================
+     3. Project & Deployment Data Sync
+     ========================================================================== */
+  async function refreshData() {
+    try {
+      // 1. Fetch registered projects from Spring Boot / PostgreSQL
+      const projects = await api.getProjects();
+      state.projects = projects || [];
+
+      // Update project counters
+      if (elements.metricServicesOnline) {
+        const count = state.projects.length;
+        elements.metricServicesOnline.textContent = `${count} / ${count}`;
+      }
+      if (elements.statServicesCount) {
+        elements.statServicesCount.textContent = state.projects.length;
+      }
+      if (elements.drawerProjectsCount) {
+        elements.drawerProjectsCount.textContent = state.projects.length;
+      }
+
+      // Render drawer projects list
+      renderDrawerProjects();
+
+      // 2. Fetch recent deployments
+      const deployments = await api.getAllDeployments();
+      state.deployments = deployments || [];
+
+      // Update deployment metrics
+      if (elements.metricActiveDeployments) {
+        elements.metricActiveDeployments.textContent = state.deployments.length;
+      }
+
+      // Render Recent Deployments panel
+      renderRecentDeployments();
+
+    } catch (err) {
+      console.error('Failed to sync project and deployment data:', err);
+    }
   }
 
-  btnCloseDetailsDrawer.addEventListener('click', closeDetailsDrawer);
-  btnCloseDetailsBottom.addEventListener('click', closeDetailsDrawer);
+  /* ==========================================================================
+     4. Render Drawer Projects List
+     ========================================================================== */
+  function renderDrawerProjects() {
+    if (!elements.drawerProjectsList) return;
 
-  detailsDrawerBackdrop.addEventListener('click', (e) => {
-    if (e.target === detailsDrawerBackdrop) closeDetailsDrawer();
-  });
-
-  // --------------------------------------------------------------------------
-  // 7. Delete Project with Confirmation
-  // --------------------------------------------------------------------------
-  async function deleteProject(id, name) {
-    if (!confirm(`Are you sure you want to delete service project '${name}'? This action cannot be undone.`)) {
+    if (state.projects.length === 0) {
+      elements.drawerProjectsList.innerHTML = `
+        <div class="empty-state" style="padding: var(--space-4) var(--space-2);">
+          <div style="color: var(--text-dim); font-size: var(--font-caption);">No projects registered in PostgreSQL.</div>
+        </div>
+      `;
       return;
     }
 
-    try {
-      await api.deleteProject(id);
-      toast(`Project '${name}' deleted.`, 'info');
-      await loadProjects();
-    } catch (err) {
-      toast(err.message, 'error');
-    }
-  }
+    elements.drawerProjectsList.innerHTML = state.projects.map(proj => `
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; background: var(--color-surface-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-weight: 600; font-size: var(--font-body); color: var(--text-primary);">${escapeHtml(proj.name)}</span>
+          <span style="font-family: var(--font-mono); font-size: var(--font-micro); color: var(--text-muted);">${escapeHtml(proj.repositoryUrl || 'No VCS URL')}</span>
+        </div>
+        <button class="btn btn-danger btn-sm btn-delete-project" data-id="${proj.id}" data-name="${escapeHtml(proj.name)}" type="button" title="Delete Project">
+          Delete
+        </button>
+      </div>
+    `).join('');
 
-  // --------------------------------------------------------------------------
-  // 8. Command Palette (⌘K) Controller
-  // --------------------------------------------------------------------------
-  function openCommandPalette() {
-    cmdBackdrop.classList.add('open');
-    cmdSearchInput.value = '';
-    filterCommands('');
-    setTimeout(() => cmdSearchInput.focus(), 100);
-  }
-
-  function closeCommandPalette() {
-    cmdBackdrop.classList.remove('open');
-  }
-
-  btnCmdTrigger.addEventListener('click', openCommandPalette);
-
-  cmdBackdrop.addEventListener('click', (e) => {
-    if (e.target === cmdBackdrop) closeCommandPalette();
-  });
-
-  function filterCommands(query) {
-    const q = query.toLowerCase();
-    const items = cmdListItems.querySelectorAll('.cmd-item');
-    items.forEach((item) => {
-      const text = item.textContent.toLowerCase();
-      item.style.display = text.includes(q) ? 'flex' : 'none';
+    // Attach delete listeners
+    elements.drawerProjectsList.querySelectorAll('.btn-delete-project').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = btn.getAttribute('data-id');
+        const name = btn.getAttribute('data-name');
+        if (!confirm(`Are you sure you want to delete project '${name}'? This action cannot be undone.`)) {
+          return;
+        }
+        try {
+          await api.deleteProject(id);
+          showToast(`Project '${name}' deleted successfully`, 'success');
+          await refreshData();
+        } catch (err) {
+          showToast(`Deletion failed: ${err.message}`, 'error');
+        }
+      });
     });
   }
 
-  cmdSearchInput.addEventListener('input', (e) => {
-    filterCommands(e.target.value);
-  });
+  /* ==========================================================================
+     5. Render Recent Deployments Panel (With Honest Empty State)
+     ========================================================================== */
+  function renderRecentDeployments() {
+    if (!elements.deploymentsListContainer) return;
 
-  cmdListItems.addEventListener('click', (e) => {
-    const item = e.target.closest('.cmd-item');
-    if (!item) return;
+    if (state.deployments.length === 0) {
+      // Clean designed empty state mandated by Permanent Design Constitution
+      elements.deploymentsListContainer.innerHTML = `
+        <div class="empty-state">
+          <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+          <div class="empty-state-title">No deployments recorded yet</div>
+          <div class="empty-state-desc">Register a service codebase or trigger a pipeline to record deployment history.</div>
+          <button class="btn btn-primary btn-sm" type="button" id="btn-empty-deploy-action">+ New Deployment</button>
+        </div>
+      `;
 
-    const action = item.dataset.action;
-    closeCommandPalette();
-
-    switch (action) {
-      case 'new-project':
-        openCreateDrawer();
-        break;
-      case 'refresh':
-        btnRefresh.click();
-        break;
-      case 'nav-projects':
-        tabBtnProjects.click();
-        break;
-      case 'nav-deployments':
-        tabBtnDeployments.click();
-        break;
-      case 'doc-design':
-        window.open('file:///c:/Users/Aashu/Desktop/Cloudship/docs/design-system/design-principles.md', '_blank');
-        break;
-      case 'doc-api':
-        window.open('file:///c:/Users/Aashu/Desktop/Cloudship/docs/api.md', '_blank');
-        break;
-    }
-  });
-
-  // --------------------------------------------------------------------------
-  // 9. Global Keyboard Shortcuts
-  // --------------------------------------------------------------------------
-  window.addEventListener('keydown', (e) => {
-    const activeEl = document.activeElement;
-    const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
-
-    // ⌘K or Ctrl+K -> Command Palette
-    if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
-      e.preventDefault();
-      if (cmdBackdrop.classList.contains('open')) {
-        closeCommandPalette();
-      } else {
-        openCommandPalette();
+      const emptyDeployBtn = document.getElementById('btn-empty-deploy-action');
+      if (emptyDeployBtn) {
+        emptyDeployBtn.addEventListener('click', () => openProjectDrawer());
       }
       return;
     }
 
-    // Escape -> Close active drawer / modal
-    if (e.key === 'Escape') {
-      if (cmdBackdrop.classList.contains('open')) closeCommandPalette();
-      if (createDrawerBackdrop.classList.contains('open')) closeCreateDrawer();
-      if (detailsDrawerBackdrop.classList.contains('open')) closeDetailsDrawer();
+    // Render populated list of real deployments
+    elements.deploymentsListContainer.innerHTML = state.deployments.map(dep => {
+      let statusClass = 'success';
+      let statusLabel = 'Success';
+      if (dep.status === 'RUNNING' || dep.status === 'PENDING') {
+        statusClass = 'deploying';
+        statusLabel = 'Deploying';
+      } else if (dep.status === 'FAILED') {
+        statusClass = 'failed';
+        statusLabel = 'Failed';
+      }
+
+      const timeAgo = formatTimeAgo(dep.createdAt);
+
+      return `
+        <div class="deploy-row">
+          <div class="deploy-row-left">
+            <div class="deploy-icon-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect></svg>
+            </div>
+            <div class="deploy-row-info">
+              <span class="deploy-service-name">${escapeHtml(dep.projectName || 'service')}</span>
+              <div class="deploy-row-meta">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg> main</span>
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4"></circle><line x1="1.05" y1="12" x2="7" y2="12"></line><line x1="17.01" y1="12" x2="22.96" y2="12"></line></svg> ${escapeHtml(dep.version || 'v1.0')}</span>
+              </div>
+            </div>
+          </div>
+          <div class="deploy-row-right">
+            <span class="status-pill ${statusClass}">
+              <span class="status-dot"></span>
+              <span>${statusLabel}</span>
+            </span>
+            <span class="deploy-time">${timeAgo}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function formatTimeAgo(dateStr) {
+    if (!dateStr) return 'recently';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffSecs = Math.floor((now - date) / 1000);
+    if (diffSecs < 60) return `${diffSecs}s ago`;
+    const diffMins = Math.floor(diffSecs / 60);
+    if (diffMins < 60) return `${diffMins} min ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours} hr ago`;
+    return `${Math.floor(diffHours / 24)}d ago`;
+  }
+
+  /* ==========================================================================
+     6. Drawer Management
+     ========================================================================== */
+  function openProjectDrawer() {
+    if (elements.projectDrawer && elements.drawerBackdrop) {
+      elements.projectDrawer.classList.add('active');
+      elements.drawerBackdrop.classList.add('active');
+      setTimeout(() => {
+        if (elements.projectNameInput) elements.projectNameInput.focus();
+      }, 100);
+    }
+  }
+
+  function closeProjectDrawer() {
+    if (elements.projectDrawer && elements.drawerBackdrop) {
+      elements.projectDrawer.classList.remove('active');
+      elements.drawerBackdrop.classList.remove('active');
+    }
+  }
+
+  if (elements.btnCloseDrawer) {
+    elements.btnCloseDrawer.addEventListener('click', closeProjectDrawer);
+  }
+  if (elements.drawerBackdrop) {
+    elements.drawerBackdrop.addEventListener('click', closeProjectDrawer);
+  }
+
+  // Trigger buttons that open project drawer
+  if (elements.btnHeroNewDeploy) {
+    elements.btnHeroNewDeploy.addEventListener('click', openProjectDrawer);
+  }
+  if (elements.btnHeroViewProjects) {
+    elements.btnHeroViewProjects.addEventListener('click', openProjectDrawer);
+  }
+  if (elements.linkViewAllDeployments) {
+    elements.linkViewAllDeployments.addEventListener('click', (e) => {
+      e.preventDefault();
+      openProjectDrawer();
+    });
+  }
+  if (elements.navProjectsLink) {
+    elements.navProjectsLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      openProjectDrawer();
+    });
+  }
+
+  // Project Creation Form Submission
+  if (elements.createProjectForm) {
+    elements.createProjectForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = elements.projectNameInput.value.trim();
+      const description = elements.projectDescInput.value.trim();
+      const repositoryUrl = elements.projectRepoInput.value.trim();
+
+      if (!name) {
+        showToast('Project name is required', 'error');
+        return;
+      }
+
+      if (elements.btnSubmitProject) {
+        elements.btnSubmitProject.disabled = true;
+        elements.btnSubmitProject.textContent = 'Persisting to Database...';
+      }
+
+      try {
+        await api.createProject({ name, description, repositoryUrl });
+        showToast(`Project '${name}' successfully registered in database`, 'success');
+        elements.createProjectForm.reset();
+        await refreshData();
+      } catch (err) {
+        showToast(`Registration failed: ${err.message}`, 'error');
+      } finally {
+        if (elements.btnSubmitProject) {
+          elements.btnSubmitProject.disabled = false;
+          elements.btnSubmitProject.textContent = 'Persist Project to Database';
+        }
+      }
+    });
+  }
+
+  /* ==========================================================================
+     7. Command Palette Modal (Ctrl + K / ⌘K)
+     ========================================================================== */
+  const commands = [
+    { title: 'Overview', desc: 'Engineering dashboard & control center', action: () => switchView('overview') },
+    { title: '+ Register New Project', desc: 'Open project registration form in drawer', action: () => openProjectDrawer() },
+    { title: 'Deployments', desc: 'Inspect execution timelines and releases', action: () => openProjectDrawer() },
+    { title: 'Pipelines', desc: 'Declarative CI/CD build sequences', action: () => showToast('Pipelines configuration: Phase 2', 'info') },
+    { title: 'Infrastructure', desc: 'Multi-cloud topology & resources', action: () => showToast('Multi-cloud infrastructure: Phase 3', 'info') },
+    { title: 'Kubernetes', desc: 'Cluster nodes, namespaces, and workloads', action: () => showToast('Kubernetes operations: Phase 4', 'info') },
+    { title: 'Monitoring', desc: 'Prometheus & Grafana telemetry loops', action: () => showToast('Monitoring stack: Phase 5', 'info') },
+    { title: 'Incidents', desc: 'Failure records & post-mortem timelines', action: () => showToast('Zero active incidents recorded', 'info') },
+    { title: 'Simulations', desc: 'Controlled chaos engineering laboratory', action: () => showToast('Failure simulations: Phase 6', 'info') },
+    { title: 'Recovery', desc: 'Automated rollback & self-healing engine', action: () => showToast('Automated recovery: Phase 7', 'info') },
+    { title: 'Refresh Telemetry & State', desc: 'Instantaneous ping to database and API', action: () => { probeTelemetry(); refreshData(); showToast('Telemetry refreshed', 'info'); } },
+  ];
+
+  let selectedCmdIndex = 0;
+
+  function openCommandPalette() {
+    if (!elements.cmdPaletteBackdrop) return;
+    elements.cmdPaletteBackdrop.classList.add('active');
+    if (elements.cmdPaletteInput) {
+      elements.cmdPaletteInput.value = '';
+      elements.cmdPaletteInput.focus();
+    }
+    selectedCmdIndex = 0;
+    renderCommandResults('');
+  }
+
+  function closeCommandPalette() {
+    if (!elements.cmdPaletteBackdrop) return;
+    elements.cmdPaletteBackdrop.classList.remove('active');
+  }
+
+  function renderCommandResults(query) {
+    if (!elements.cmdPaletteResults) return;
+    const filter = (query || '').toLowerCase().trim();
+    const filtered = commands.filter(c => 
+      c.title.toLowerCase().includes(filter) || c.desc.toLowerCase().includes(filter)
+    );
+
+    if (filtered.length === 0) {
+      elements.cmdPaletteResults.innerHTML = `
+        <div style="padding: var(--space-4); text-align: center; color: var(--text-muted); font-size: var(--font-caption);">
+          No matching commands found.
+        </div>
+      `;
       return;
     }
 
-    // If typing inside an input field, do not trigger single-letter shortcuts
-    if (isTyping) return;
+    if (selectedCmdIndex >= filtered.length) selectedCmdIndex = 0;
 
-    // 'N' or 'n' -> New project drawer
-    if (e.key === 'n' || e.key === 'N') {
+    elements.cmdPaletteResults.innerHTML = filtered.map((cmd, idx) => `
+      <div class="cmd-item ${idx === selectedCmdIndex ? 'selected' : ''}" data-idx="${idx}">
+        <div class="cmd-item-left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          <div>
+            <span style="font-weight: 600;">${escapeHtml(cmd.title)}</span>
+            <div style="font-size: var(--font-micro); color: var(--text-muted);">${escapeHtml(cmd.desc)}</div>
+          </div>
+        </div>
+        <span class="kbd">↵</span>
+      </div>
+    `).join('');
+
+    elements.cmdPaletteResults.querySelectorAll('.cmd-item').forEach((item, idx) => {
+      item.addEventListener('click', () => {
+        filtered[idx].action();
+        closeCommandPalette();
+      });
+    });
+  }
+
+  if (elements.btnCmdTrigger) {
+    elements.btnCmdTrigger.addEventListener('click', openCommandPalette);
+  }
+  if (elements.cmdPaletteBackdrop) {
+    elements.cmdPaletteBackdrop.addEventListener('click', (e) => {
+      if (e.target === elements.cmdPaletteBackdrop) closeCommandPalette();
+    });
+  }
+  if (elements.cmdPaletteInput) {
+    elements.cmdPaletteInput.addEventListener('input', (e) => {
+      selectedCmdIndex = 0;
+      renderCommandResults(e.target.value);
+    });
+
+    elements.cmdPaletteInput.addEventListener('keydown', (e) => {
+      const filtered = commands.filter(c => 
+        c.title.toLowerCase().includes(elements.cmdPaletteInput.value.toLowerCase().trim()) || 
+        c.desc.toLowerCase().includes(elements.cmdPaletteInput.value.toLowerCase().trim())
+      );
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedCmdIndex = (selectedCmdIndex + 1) % filtered.length;
+        renderCommandResults(elements.cmdPaletteInput.value);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedCmdIndex = (selectedCmdIndex - 1 + filtered.length) % filtered.length;
+        renderCommandResults(elements.cmdPaletteInput.value);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (filtered[selectedCmdIndex]) {
+          filtered[selectedCmdIndex].action();
+          closeCommandPalette();
+        }
+      } else if (e.key === 'Escape') {
+        closeCommandPalette();
+      }
+    });
+  }
+
+  /* ==========================================================================
+     8. Global Keyboard Shortcuts
+     ========================================================================== */
+  document.addEventListener('keydown', (e) => {
+    // Ctrl+K or Cmd+K: Command Palette
+    if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'k')) {
       e.preventDefault();
-      openCreateDrawer();
+      openCommandPalette();
+      return;
     }
 
-    // 'R' or 'r' -> Refresh state
-    if (e.key === 'r' || e.key === 'R') {
-      e.preventDefault();
-      btnRefresh.click();
+    // Ignore single key shortcuts if user is typing in an input
+    const activeTag = document.activeElement ? document.activeElement.tagName : '';
+    if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') {
+      if (e.key === 'Escape') {
+        closeCommandPalette();
+        closeProjectDrawer();
+      }
+      return;
     }
 
-    // '/' -> Open command search
-    if (e.key === '/') {
+    if (e.key === 'Escape') {
+      closeCommandPalette();
+      closeProjectDrawer();
+    } else if (e.key === 'n' || e.key === 'N') {
+      e.preventDefault();
+      openProjectDrawer();
+    } else if (e.key === 'r' || e.key === 'R') {
+      e.preventDefault();
+      probeTelemetry();
+      refreshData();
+      showToast('State refreshed', 'info');
+    } else if (e.key === '/') {
       e.preventDefault();
       openCommandPalette();
     }
   });
 
-  // --------------------------------------------------------------------------
-  // 10. Workspace Tab Switching
-  // --------------------------------------------------------------------------
-  tabBtnProjects.addEventListener('click', () => {
-    tabBtnProjects.classList.add('active');
-    tabBtnProjects.setAttribute('aria-selected', 'true');
-    tabBtnDeployments.classList.remove('active');
-    tabBtnDeployments.setAttribute('aria-selected', 'false');
+  /* ==========================================================================
+     9. Navigation & Mobile Sidebar
+     ========================================================================== */
+  function switchView(viewName) {
+    state.activeView = viewName;
+    elements.navLinks.forEach(link => {
+      if (link.getAttribute('data-view') === viewName) {
+        link.classList.add('active');
+      } else {
+        link.classList.remove('active');
+      }
+    });
+  }
 
-    viewProjects.style.display = 'block';
-    viewDeployments.style.display = 'none';
+  elements.navLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      const view = link.getAttribute('data-view');
+      if (view === 'projects') {
+        e.preventDefault();
+        openProjectDrawer();
+      } else {
+        switchView(view);
+      }
+      if (elements.appSidebar) {
+        elements.appSidebar.classList.remove('mobile-open');
+      }
+    });
   });
 
-  tabBtnDeployments.addEventListener('click', () => {
-    tabBtnDeployments.classList.add('active');
-    tabBtnDeployments.setAttribute('aria-selected', 'true');
-    tabBtnProjects.classList.remove('active');
-    tabBtnProjects.setAttribute('aria-selected', 'false');
+  if (elements.btnSidebarToggle && elements.appSidebar) {
+    elements.btnSidebarToggle.addEventListener('click', () => {
+      elements.appSidebar.classList.toggle('mobile-open');
+    });
+  }
 
-    viewProjects.style.display = 'none';
-    viewDeployments.style.display = 'block';
-  });
+  if (elements.btnNotifications) {
+    elements.btnNotifications.addEventListener('click', () => {
+      showToast('No new notifications. All telemetry signals nominal.', 'info');
+    });
+  }
 
-  // Refresh Trigger
-  btnRefresh.addEventListener('click', async () => {
-    toast('Polling telemetry & synchronizing state...', 'info', 1500);
-    await Promise.all([probeTelemetry(), loadProjects(), loadDeployments()]);
-  });
-
-  // --------------------------------------------------------------------------
-  // 11. Initial Boot Sequence
-  // --------------------------------------------------------------------------
+  /* ==========================================================================
+     10. Lifecycle Initialization
+     ========================================================================== */
+  // Initial immediate probe & data fetch
   probeTelemetry();
-  loadProjects();
-  loadDeployments();
+  refreshData();
 
-  // Polling loop every 12 seconds
-  setInterval(probeTelemetry, 12000);
+  // Polling every 5 seconds for live RTT and database health
+  setInterval(probeTelemetry, 5000);
 });

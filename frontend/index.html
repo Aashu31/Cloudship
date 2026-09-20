@@ -7,424 +7,810 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
 
   <!-- ========================================================================
-       1. Persistent Application Shell Header
+       1. Top Header
        ======================================================================== -->
   <header class="app-header" role="banner">
-    <div class="brand-wrapper">
-      <!-- Minimalist Vector Brand Mark: Engineered Horizon + Ascending Vessel -->
-      <svg class="brand-logo-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <path d="M2 19H22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
-        <path d="M4 15L12 5L20 15H4Z" stroke="url(#cs-grad)" stroke-width="1.75" stroke-linejoin="round"/>
-        <path d="M12 9V15" stroke="#38BDF8" stroke-width="1.5" stroke-linecap="round"/>
-        <defs>
-          <linearGradient id="cs-grad" x1="4" y1="5" x2="20" y2="15" gradientUnits="userSpaceOnUse">
-            <stop stop-color="#38BDF8"/>
-            <stop offset="1" stop-color="#0284C7"/>
-          </linearGradient>
-        </defs>
-      </svg>
-      <span class="brand-wordmark">CloudShip</span>
-      <span class="badge badge-env">LOCAL DEV</span>
+    <div class="header-left">
+      <!-- Mobile Sidebar Toggle -->
+      <button id="btn-sidebar-toggle" class="header-toggle-btn" type="button" aria-label="Toggle navigation menu" style="display: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+
+      <!-- CloudShip Brand Mark: Geometric Ascending Horizon Vessel -->
+      <a href="#" class="brand-wrapper" id="brand-home-link">
+        <svg class="brand-logo-svg" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <!-- Isometric Hexagonal Folded Structure -->
+          <polygon points="16,3 29,10.5 29,21.5 16,29 3,21.5 3,10.5" fill="none" stroke="#0284C7" stroke-width="1.75" stroke-linejoin="round" opacity="0.4"/>
+          <path d="M16 3L29 10.5L16 18L3 10.5L16 3Z" fill="url(#cs-top-grad)"/>
+          <path d="M3 10.5L16 18V29L3 21.5V10.5Z" fill="url(#cs-left-grad)"/>
+          <path d="M29 10.5L16 18V29L29 21.5V10.5Z" fill="url(#cs-right-grad)"/>
+          <defs>
+            <linearGradient id="cs-top-grad" x1="3" y1="3" x2="29" y2="18" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#38BDF8"/>
+              <stop offset="1" stop-color="#0284C7"/>
+            </linearGradient>
+            <linearGradient id="cs-left-grad" x1="3" y1="10.5" x2="16" y2="29" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#0284C7"/>
+              <stop offset="1" stop-color="#0369A1"/>
+            </linearGradient>
+            <linearGradient id="cs-right-grad" x1="29" y1="10.5" x2="16" y2="29" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#0369A1"/>
+              <stop offset="1" stop-color="#075985"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="brand-meta">
+          <span class="brand-wordmark">CloudShip</span>
+          <span class="brand-tagline">DEPLOY BEYOND LIMITS</span>
+        </div>
+      </a>
     </div>
 
-    <!-- Center Command Search Trigger -->
+    <!-- Center Search & Command Trigger -->
     <div class="header-center">
-      <button id="btn-cmd-trigger" class="cmd-trigger-btn" type="button" aria-label="Open Command Center">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-        </svg>
-        <span>Search or command...</span>
-        <span class="kbd">⌘K</span>
+      <button id="btn-cmd-trigger" class="cmd-search-btn" type="button" aria-label="Open Command Center">
+        <div class="cmd-search-left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <span>Search, run a command, or navigate...</span>
+        </div>
+        <span class="kbd">Ctrl + K</span>
       </button>
     </div>
 
-    <!-- Right Header Actions & Live Telemetry -->
-    <div class="header-actions">
-      <div class="telemetry-group" role="status" aria-live="polite">
-        <div class="telemetry-item">
-          <span class="telemetry-label">API</span>
-          <span id="backend-status" class="status-pill probing">
-            <span class="status-dot"></span>
-            <span class="status-text">PROBING</span>
-          </span>
+    <!-- Right Telemetry & Profile -->
+    <div class="header-right">
+      <!-- Live Real-Time Telemetry Strip -->
+      <div class="telemetry-strip" role="status" aria-live="polite">
+        <div class="telemetry-cell">
+          <span class="dot" id="api-dot"></span>
+          <span>API</span>
+          <strong id="api-status-text">ONLINE</strong>
         </div>
-
-        <div class="telemetry-item">
-          <span class="telemetry-label">DB</span>
-          <span id="database-status" class="status-pill probing">
-            <span class="status-dot"></span>
-            <span class="status-text">CHECKING</span>
-          </span>
+        <div class="telemetry-divider"></div>
+        <div class="telemetry-cell">
+          <span class="dot" id="db-dot"></span>
+          <span>DB</span>
+          <strong id="db-status-text">CONNECTED</strong>
         </div>
-
-        <div class="telemetry-item" style="display: none;" id="telemetry-latency-item">
-          <span class="telemetry-label">RTT</span>
-          <span id="telemetry-latency" class="badge" style="font-family: var(--font-mono);">-- ms</span>
+        <div class="telemetry-divider"></div>
+        <div class="telemetry-cell">
+          <span>RTT</span>
+          <strong id="rtt-text">-- ms</strong>
         </div>
       </div>
 
-      <button id="btn-quick-create" class="btn btn-primary btn-sm" type="button">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
+      <!-- Environment Selector Pill -->
+      <div class="env-selector-pill" id="env-pill">
+        <span class="status-dot" style="background: var(--status-success-text); box-shadow: 0 0 6px var(--status-success-text);"></span>
+        <span>Local Dev</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+
+      <!-- Notifications Bell -->
+      <button class="header-notif-btn" type="button" id="btn-notifications" aria-label="Notifications">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
         </svg>
-        <span>New Project</span>
-        <span class="kbd" style="background: rgba(255,255,255,0.2); color:#fff; border:none;">N</span>
+        <span class="notif-badge-dot"></span>
       </button>
+
+      <!-- User Profile Chip -->
+      <div class="user-profile-chip" id="user-chip">
+        <div class="user-avatar">A</div>
+        <div class="user-info">
+          <span class="user-name">Aashu</span>
+          <span class="user-role">Engineer</span>
+        </div>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
     </div>
   </header>
 
   <!-- ========================================================================
-       2. Main Engineering Workspace
+       2. Application Shell Layout (Left Sidebar + Main Content)
        ======================================================================== -->
-  <main class="workspace" role="main">
+  <div class="app-layout">
+    
+    <!-- Left Navigation Sidebar -->
+    <aside class="app-sidebar" id="app-sidebar" role="navigation" aria-label="Main Navigation">
+      <nav class="sidebar-nav">
+        <a href="#overview" class="nav-link active" data-view="overview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span>Overview</span>
+        </a>
 
-    <!-- Workspace Header -->
-    <div class="workspace-header">
-      <div class="workspace-title-area">
-        <h1>Engineering Control Plane</h1>
-        <p>Declarative deployment orchestration, health telemetry, and automated recovery supervisory loop.</p>
-      </div>
+        <a href="#deployments" class="nav-link" data-view="deployments">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+          <span>Deployments</span>
+        </a>
 
-      <div class="workspace-actions">
-        <button id="btn-refresh" class="btn btn-secondary btn-sm" type="button" title="Refresh state (R)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <a href="#pipelines" class="nav-link" data-view="pipelines">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18" cy="18" r="3"></circle>
+            <circle cx="6" cy="6" r="3"></circle>
+            <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
+            <line x1="6" y1="9" x2="6" y2="21"></line>
+          </svg>
+          <span>Pipelines</span>
+        </a>
+
+        <a href="#infrastructure" class="nav-link" data-view="infrastructure">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+          </svg>
+          <span>Infrastructure</span>
+        </a>
+
+        <a href="#kubernetes" class="nav-link" data-view="kubernetes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>Kubernetes</span>
+        </a>
+
+        <a href="#monitoring" class="nav-link" data-view="monitoring">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          <span>Monitoring</span>
+        </a>
+
+        <a href="#incidents" class="nav-link" data-view="incidents">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <span>Incidents</span>
+        </a>
+
+        <a href="#simulations" class="nav-link" data-view="simulations">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span>Simulations</span>
+        </a>
+
+        <a href="#recovery" class="nav-link" data-view="recovery">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="23 4 23 10 17 10"></polyline>
-            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
           </svg>
-          <span>Refresh</span>
-          <span class="kbd">R</span>
-        </button>
-      </div>
-    </div>
+          <span>Recovery</span>
+        </a>
 
-    <!-- Precision Metrics Rail -->
-    <section class="metrics-rail" aria-label="System Metrics">
-      <div class="metric-card">
-        <div class="metric-header">
-          <span class="metric-label">Managed Codebases</span>
-          <span class="badge">VCS</span>
-        </div>
-        <div id="metric-projects-count" class="metric-number">0</div>
-        <div class="metric-sub">Registered service repositories</div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-header">
-          <span class="metric-label">Recorded Deployments</span>
-          <span class="badge">RELEASES</span>
-        </div>
-        <div id="metric-deployments-count" class="metric-number">0</div>
-        <div class="metric-sub">Release pipeline executions</div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-header">
-          <span class="metric-label">Telemetry RTT</span>
-          <span class="badge">HEALTH</span>
-        </div>
-        <div id="metric-latency-val" class="metric-number">--<span style="font-size: 1rem; font-weight: 500; color: var(--text-muted);">ms</span></div>
-        <div class="metric-sub">Round-trip health probe latency</div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-header">
-          <span class="metric-label">Engine Mode</span>
-          <span class="badge badge-env">PHASE 1</span>
-        </div>
-        <div class="metric-number" style="font-size: 1.5rem; line-height: 1.5; color: var(--text-accent);">ONLINE</div>
-        <div class="metric-sub">Local Foundation (Azure-Ready)</div>
-      </div>
-    </section>
-
-    <!-- Workspace View Navigation Tabs -->
-    <nav class="tabs" role="tablist" aria-label="Workspace Sections">
-      <button class="tab-item active" id="tab-btn-projects" role="tab" aria-selected="true" aria-controls="view-projects" type="button">
-        <span>Projects & Services</span>
-        <span id="tab-projects-badge" class="tab-badge">0</span>
-      </button>
-      <button class="tab-item" id="tab-btn-deployments" role="tab" aria-selected="false" aria-controls="view-deployments" type="button">
-        <span>Deployments & Pipeline</span>
-        <span id="tab-deployments-badge" class="tab-badge">0</span>
-      </button>
-    </nav>
-
-    <!-- Tab 1: Projects Section -->
-    <section id="view-projects" role="tabpanel" aria-labelledby="tab-btn-projects">
-      <div class="table-container" id="projects-table-wrap">
-        <table class="table" id="projects-table">
-          <thead>
-            <tr>
-              <th scope="col">Project Name</th>
-              <th scope="col">Repository URL</th>
-              <th scope="col">Deployments</th>
-              <th scope="col">Registered</th>
-              <th scope="col" style="text-align: right;">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="projects-tbody">
-            <!-- Dynamically populated rows -->
-          </tbody>
-        </table>
-      </div>
-
-      <!-- High-Fidelity Empty State -->
-      <div id="projects-empty" class="empty-state" style="display: none;">
-        <svg class="empty-state-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-          <line x1="12" y1="22.08" x2="12" y2="12"></line>
-        </svg>
-        <h3 class="empty-state-title">No projects registered</h3>
-        <p class="empty-state-desc">Register a software service and repository to initialize declarative deployment pipelines and observability tracking.</p>
-        <button id="btn-empty-create" class="btn btn-primary btn-sm" type="button">Register First Project</button>
-      </div>
-    </section>
-
-    <!-- Tab 2: Deployments Section -->
-    <section id="view-deployments" role="tabpanel" aria-labelledby="tab-btn-deployments" style="display: none;">
-      <!-- Pipeline Execution Visual Rail -->
-      <div class="pipeline-rail" aria-label="Deployment Pipeline Stages">
-        <div class="pipeline-node completed">
-          <span class="status-dot"></span> Source
-        </div>
-        <div class="pipeline-connector"></div>
-        <div class="pipeline-node completed">
-          <span class="status-dot"></span> Build
-        </div>
-        <div class="pipeline-connector"></div>
-        <div class="pipeline-node completed">
-          <span class="status-dot"></span> Test
-        </div>
-        <div class="pipeline-connector"></div>
-        <div class="pipeline-node active">
-          <span class="status-dot"></span> Container
-        </div>
-        <div class="pipeline-connector"></div>
-        <div class="pipeline-node">
-          <span class="status-dot"></span> Registry
-        </div>
-        <div class="pipeline-connector"></div>
-        <div class="pipeline-node">
-          <span class="status-dot"></span> Deploy
-        </div>
-        <div class="pipeline-connector"></div>
-        <div class="pipeline-node">
-          <span class="status-dot"></span> Live
-        </div>
-      </div>
-
-      <div class="table-container" id="deployments-table-wrap">
-        <table class="table">
-          <thead>
-            <tr>
-              <th scope="col">Execution ID</th>
-              <th scope="col">Target Project</th>
-              <th scope="col">Version / Tag</th>
-              <th scope="col">Status</th>
-              <th scope="col">Triggered At</th>
-            </tr>
-          </thead>
-          <tbody id="deployments-tbody">
-            <!-- Dynamically populated or empty -->
-          </tbody>
-        </table>
-      </div>
-
-      <div id="deployments-empty" class="empty-state">
-        <svg class="empty-state-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-        </svg>
-        <h3 class="empty-state-title">No deployments recorded</h3>
-        <p class="empty-state-desc">Continuous delivery pipelines will record build packages, container tags, and rollout histories here in Phase 2 & 3.</p>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- ========================================================================
-       3. Create Project Slide-Over Drawer
-       ======================================================================== -->
-  <div id="create-drawer-backdrop" class="drawer-backdrop" role="dialog" aria-modal="true" aria-labelledby="create-drawer-title">
-    <div class="drawer-panel">
-      <div class="drawer-header">
-        <h2 id="create-drawer-title" class="drawer-title">Register Service Project</h2>
-        <button id="btn-close-create-drawer" class="btn btn-ghost btn-icon" type="button" aria-label="Close drawer">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
+        <a href="#projects" class="nav-link" data-view="projects" id="nav-projects-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
           </svg>
-        </button>
-      </div>
+          <span>Projects</span>
+        </a>
 
-      <form id="drawer-create-form" class="drawer-body">
-        <div class="form-group">
-          <label for="input-project-name" class="form-label">PROJECT NAME *</label>
-          <input type="text" id="input-project-name" class="form-input" placeholder="e.g. payment-service" required maxlength="100" autocomplete="off">
-          <div id="err-project-name" class="form-error"></div>
-          <p class="form-hint">Unique alphanumeric identifier for your microservice or application.</p>
-        </div>
-
-        <div class="form-group">
-          <label for="input-project-desc" class="form-label">DESCRIPTION</label>
-          <textarea id="input-project-desc" class="form-textarea" placeholder="Core payment processing service handling transactions and settlements." maxlength="500"></textarea>
-          <p class="form-hint">Optional functional description for platform operators.</p>
-        </div>
-
-        <div class="form-group">
-          <label for="input-project-repo" class="form-label">GITHUB REPOSITORY URL *</label>
-          <input type="url" id="input-project-repo" class="form-input" placeholder="https://github.com/Aashu31/payment-service" required maxlength="255" autocomplete="off">
-          <div id="err-project-repo" class="form-error"></div>
-          <p class="form-hint">Target repository for CI/CD build triggers and container packaging.</p>
-        </div>
-      </form>
-
-      <div class="drawer-footer">
-        <button id="btn-cancel-create" class="btn btn-secondary" type="button">Cancel</button>
-        <button id="btn-submit-create" form="drawer-create-form" class="btn btn-primary" type="submit">Initialize Project</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========================================================================
-       4. Project Details Slide-Over Drawer
-       ======================================================================== -->
-  <div id="details-drawer-backdrop" class="drawer-backdrop" role="dialog" aria-modal="true" aria-labelledby="details-drawer-title">
-    <div class="drawer-panel">
-      <div class="drawer-header">
-        <div>
-          <h2 id="details-drawer-title" class="drawer-title">Service Details</h2>
-          <span id="details-project-id-badge" class="badge" style="margin-top: 4px;">ID #0</span>
-        </div>
-        <button id="btn-close-details-drawer" class="btn btn-ghost btn-icon" type="button" aria-label="Close drawer">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
+        <a href="#settings" class="nav-link" data-view="settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
-        </button>
-      </div>
+          <span>Settings</span>
+        </a>
+      </nav>
 
-      <div class="drawer-body">
-        <div style="margin-bottom: var(--space-6);">
-          <div class="detail-item">
-            <span class="detail-key">Project Slug</span>
-            <span id="details-project-name" class="detail-val">-</span>
+      <!-- Sidebar Bottom Teaser Card -->
+      <div class="sidebar-footer">
+        <div class="sidebar-teaser-card" id="teaser-card">
+          <img src="img/sidebar-teaser.png" alt="CloudShip Engineering" class="sidebar-teaser-img">
+          <div class="sidebar-teaser-content">
+            <span class="sidebar-teaser-title">Engineering<br>Reliable Tomorrow</span>
+            <div class="sidebar-teaser-meta">
+              <span>v1.0.0</span>
+              <span>→</span>
+            </div>
           </div>
-          <div class="detail-item">
-            <span class="detail-key">Description</span>
-            <span id="details-project-desc" class="detail-val" style="max-width: 60%;">-</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace Content -->
+    <main class="app-content" role="main">
+
+      <!-- ====================================================================
+           Hero Section
+           ==================================================================== -->
+      <section class="hero-card" aria-label="CloudShip Vision">
+        <div class="hero-left">
+          <div class="hero-kicker">INFRASTRUCTURE IN MOTION</div>
+          <h1 class="hero-title">Build. Deploy. Scale. Reliably.</h1>
+          <p class="hero-description">
+            CloudShip helps you deploy, monitor, and protect your applications across any infrastructure — with confidence.
+          </p>
+          <div class="hero-actions">
+            <button id="btn-hero-new-deploy" class="btn btn-hero-primary" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>+ New Deployment</span>
+            </button>
+            <button id="btn-hero-view-projects" class="btn btn-hero-secondary" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <span>View Projects</span>
+            </button>
           </div>
-          <div class="detail-item">
-            <span class="detail-key">Repository</span>
-            <span class="detail-val">
-              <a id="details-project-url" href="#" target="_blank" rel="noopener noreferrer" style="color: var(--text-accent); text-decoration: none; font-family: var(--font-mono); font-size: 0.8rem;">-</a>
+        </div>
+
+        <div class="hero-edge-badge">
+          <span>HIGHER SYSTEMS BRIGHTER TOMORROWS</span>
+          <div class="hero-edge-line"></div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           5-Card Operational Metrics Strip
+           ==================================================================== -->
+      <section class="metrics-strip" aria-label="System Operational Metrics">
+        <!-- Card 1: Active Deployments -->
+        <div class="metric-card">
+          <div class="metric-header">
+            <div class="metric-chip">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline></svg>
+            </div>
+            <span class="metric-label">Active Deployments</span>
+          </div>
+          <div class="metric-body">
+            <div class="metric-value" id="metric-active-deployments">0</div>
+            <div class="metric-trend positive">
+              <span>↑ 25%</span>
+              <svg class="metric-sparkline" viewBox="0 0 40 18" fill="none">
+                <rect x="2" y="10" width="4" height="8" fill="#0284C7" rx="1"/>
+                <rect x="8" y="7" width="4" height="11" fill="#0284C7" rx="1"/>
+                <rect x="14" y="12" width="4" height="6" fill="#0284C7" rx="1"/>
+                <rect x="20" y="5" width="4" height="13" fill="#0284C7" rx="1"/>
+                <rect x="26" y="9" width="4" height="9" fill="#0284C7" rx="1"/>
+                <rect x="32" y="2" width="4" height="16" fill="#38BDF8" rx="1"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Services Online -->
+        <div class="metric-card">
+          <div class="metric-header">
+            <div class="metric-chip">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path></svg>
+            </div>
+            <span class="metric-label">Services Online</span>
+          </div>
+          <div class="metric-body">
+            <div class="metric-value" id="metric-services-online">0 / 0</div>
+            <div class="metric-trend positive">
+              <span>↑ 2%</span>
+              <svg class="metric-sparkline" viewBox="0 0 40 18" fill="none">
+                <path d="M2 14 Q 10 4, 20 10 T 38 4" stroke="#10B981" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Running Pods -->
+        <div class="metric-card">
+          <div class="metric-header">
+            <div class="metric-chip">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+            </div>
+            <span class="metric-label">Running Pods</span>
+          </div>
+          <div class="metric-body">
+            <div class="metric-value" id="metric-running-pods">--</div>
+            <div class="metric-trend" style="color: var(--text-dim);">
+              <span>Phase 4</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: Incidents (24h) -->
+        <div class="metric-card">
+          <div class="metric-header">
+            <div class="metric-chip warning">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+            </div>
+            <span class="metric-label">Incidents (24h)</span>
+          </div>
+          <div class="metric-body">
+            <div class="metric-value" id="metric-incidents">0</div>
+            <div class="metric-trend positive">
+              <span>↓ 100%</span>
+              <svg class="metric-sparkline" viewBox="0 0 40 18" fill="none">
+                <rect x="2" y="14" width="4" height="4" fill="#10B981" rx="1"/>
+                <rect x="8" y="14" width="4" height="4" fill="#10B981" rx="1"/>
+                <rect x="14" y="14" width="4" height="4" fill="#10B981" rx="1"/>
+                <rect x="20" y="14" width="4" height="4" fill="#10B981" rx="1"/>
+                <rect x="26" y="14" width="4" height="4" fill="#10B981" rx="1"/>
+                <rect x="32" y="14" width="4" height="4" fill="#10B981" rx="1"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 5: Avg. Response Time -->
+        <div class="metric-card">
+          <div class="metric-header">
+            <div class="metric-chip clock">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </div>
+            <span class="metric-label">Avg. Response Time</span>
+          </div>
+          <div class="metric-body">
+            <div class="metric-value" id="metric-avg-response">-- ms</div>
+            <div class="metric-trend positive">
+              <span id="metric-avg-trend">Live</span>
+              <svg class="metric-sparkline" viewBox="0 0 40 18" fill="none">
+                <path d="M2 12 Q 12 16, 22 6 T 38 8" stroke="#38BDF8" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           3-Column Main Workspace Grid
+           ==================================================================== -->
+      <section class="workspace-grid" aria-label="Core Engineering Panels">
+
+        <!-- Column 1: Recent Deployments -->
+        <div class="panel panel-deployments">
+          <div class="panel-header">
+            <div class="panel-title-wrapper">
+              <span class="panel-title">Recent Deployments</span>
+            </div>
+            <a href="#" class="panel-link" id="link-view-all-deployments">View All →</a>
+          </div>
+          <div class="panel-body">
+            <div class="deploy-list" id="deployments-list-container">
+              <!-- Dynamically populated or empty state rendered via app.js -->
+              <div class="empty-state">
+                <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                  <polyline points="2 17 12 22 22 17"></polyline>
+                  <polyline points="2 12 12 17 22 12"></polyline>
+                </svg>
+                <div class="empty-state-title">No deployments yet</div>
+                <div class="empty-state-desc">Register a service codebase or trigger a pipeline to record deployment history.</div>
+                <button class="btn btn-primary btn-sm" type="button" id="btn-empty-new-deploy">+ New Deployment</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Column 2: Deployment Pipeline Stepper -->
+        <div class="panel panel-pipeline">
+          <div class="panel-header">
+            <div class="panel-title-wrapper">
+              <span class="panel-title">Deployment Pipeline</span>
+            </div>
+            <span class="status-pill success" style="font-size: 0.7rem;">
+              <span class="status-dot"></span>
+              <span>Live</span>
             </span>
           </div>
-          <div class="detail-item">
-            <span class="detail-key">Registered Date</span>
-            <span id="details-project-created" class="detail-val">-</span>
+          <div class="panel-body">
+            <div class="pipeline-stepper">
+              <!-- Step 1 -->
+              <div class="pipeline-step completed">
+                <div class="pipeline-line"></div>
+                <div class="pipeline-node">1</div>
+                <div class="pipeline-step-content">
+                  <div class="pipeline-step-text">
+                    <span class="pipeline-step-name">Source</span>
+                    <span class="pipeline-step-desc">Repository fetched</span>
+                  </div>
+                  <span class="pipeline-step-duration">12s</span>
+                </div>
+              </div>
+
+              <!-- Step 2 -->
+              <div class="pipeline-step completed">
+                <div class="pipeline-line"></div>
+                <div class="pipeline-node">✓</div>
+                <div class="pipeline-step-content">
+                  <div class="pipeline-step-text">
+                    <span class="pipeline-step-name">Build</span>
+                    <span class="pipeline-step-desc">Image built successfully</span>
+                  </div>
+                  <span class="pipeline-step-duration">28s</span>
+                </div>
+              </div>
+
+              <!-- Step 3 -->
+              <div class="pipeline-step completed">
+                <div class="pipeline-line"></div>
+                <div class="pipeline-node">3</div>
+                <div class="pipeline-step-content">
+                  <div class="pipeline-step-text">
+                    <span class="pipeline-step-name">Test</span>
+                    <span class="pipeline-step-desc">All tests passed</span>
+                  </div>
+                  <span class="pipeline-step-duration">45s</span>
+                </div>
+              </div>
+
+              <!-- Step 4 -->
+              <div class="pipeline-step completed">
+                <div class="pipeline-line"></div>
+                <div class="pipeline-node">4</div>
+                <div class="pipeline-step-content">
+                  <div class="pipeline-step-text">
+                    <span class="pipeline-step-name">Container</span>
+                    <span class="pipeline-step-desc">Docker image created</span>
+                  </div>
+                  <span class="pipeline-step-duration">18s</span>
+                </div>
+              </div>
+
+              <!-- Step 5 -->
+              <div class="pipeline-step completed">
+                <div class="pipeline-line"></div>
+                <div class="pipeline-node">5</div>
+                <div class="pipeline-step-content">
+                  <div class="pipeline-step-text">
+                    <span class="pipeline-step-name">Registry</span>
+                    <span class="pipeline-step-desc">Pushed to ACR</span>
+                  </div>
+                  <span class="pipeline-step-duration">22s</span>
+                </div>
+              </div>
+
+              <!-- Step 6 -->
+              <div class="pipeline-step active">
+                <div class="pipeline-line"></div>
+                <div class="pipeline-node">6</div>
+                <div class="pipeline-step-content">
+                  <div class="pipeline-step-text">
+                    <span class="pipeline-step-name">Deploy</span>
+                    <span class="pipeline-step-desc">Deployment in progress</span>
+                  </div>
+                  <span class="pipeline-step-duration">--</span>
+                </div>
+              </div>
+
+              <!-- Step 7 -->
+              <div class="pipeline-step pending">
+                <div class="pipeline-line"></div>
+                <div class="pipeline-node">7</div>
+                <div class="pipeline-step-content">
+                  <div class="pipeline-step-text">
+                    <span class="pipeline-step-name">Health Check</span>
+                    <span class="pipeline-step-desc">Waiting...</span>
+                  </div>
+                  <span class="pipeline-step-duration"></span>
+                </div>
+              </div>
+
+              <!-- Step 8 -->
+              <div class="pipeline-step pending">
+                <div class="pipeline-node">8</div>
+                <div class="pipeline-step-content">
+                  <div class="pipeline-step-text">
+                    <span class="pipeline-step-name">Live</span>
+                    <span class="pipeline-step-desc">Pending...</span>
+                  </div>
+                  <span class="pipeline-step-duration"></span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <h3 style="font-size: var(--font-title-sm); font-weight: 600; margin-bottom: var(--space-3); color: var(--text-primary);">
-          Release Execution History
-        </h3>
+        <!-- Column 3: Infrastructure Health & Recent Activity -->
+        <div class="panel-infra-activity">
+          <!-- Subpanel: Infrastructure Health -->
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title-wrapper">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                <span class="panel-title">Infrastructure Health</span>
+              </div>
+              <span class="status-pill success" style="font-size: 0.6875rem;">
+                <span class="status-dot"></span>
+                <span>All Systems Nominal</span>
+              </span>
+            </div>
+            <div class="panel-body">
+              <!-- Holographic SVG Dot-Matrix Globe -->
+              <div class="infra-globe-wrapper">
+                <svg class="infra-globe-svg" viewBox="0 0 200 120" fill="none">
+                  <!-- Latitude / Longitude Matrix Grid -->
+                  <ellipse cx="100" cy="60" rx="90" ry="50" stroke="rgba(56, 189, 248, 0.2)" stroke-width="1" stroke-dasharray="2 3"/>
+                  <ellipse cx="100" cy="60" rx="60" ry="50" stroke="rgba(56, 189, 248, 0.15)" stroke-width="1" stroke-dasharray="2 3"/>
+                  <ellipse cx="100" cy="60" rx="30" ry="50" stroke="rgba(56, 189, 248, 0.15)" stroke-width="1" stroke-dasharray="2 3"/>
+                  <line x1="10" y1="60" x2="190" y2="60" stroke="rgba(56, 189, 248, 0.25)" stroke-width="1"/>
+                  <line x1="100" y1="10" x2="100" y2="110" stroke="rgba(56, 189, 248, 0.25)" stroke-width="1"/>
+                  <!-- Continents Node Points -->
+                  <circle cx="55" cy="45" r="2.5" fill="#38BDF8"/>
+                  <circle cx="65" cy="52" r="1.5" fill="#0284C7"/>
+                  <circle cx="75" cy="48" r="2" fill="#38BDF8"/>
+                  <circle cx="105" cy="42" r="2" fill="#10B981"/>
+                  <circle cx="115" cy="48" r="3" fill="#38BDF8"/>
+                  <circle cx="135" cy="50" r="2.5" fill="#38BDF8"/>
+                  <circle cx="145" cy="60" r="2" fill="#0284C7"/>
+                  <circle cx="150" cy="75" r="2" fill="#10B981"/>
+                  <!-- Orbital Connection Arcs -->
+                  <path d="M55 45 Q 85 20, 115 48" stroke="#38BDF8" stroke-width="1.25" opacity="0.6" fill="none"/>
+                  <path d="M115 48 Q 130 35, 145 60" stroke="#10B981" stroke-width="1" opacity="0.5" fill="none"/>
+                </svg>
+              </div>
 
-        <div class="table-container">
-          <table class="table">
-            <thead>
-              <tr>
-                <th scope="col">Run ID</th>
-                <th scope="col">Version</th>
-                <th scope="col">Status</th>
-                <th scope="col">Date</th>
-              </tr>
-            </thead>
-            <tbody id="details-deployments-tbody">
-              <!-- Populated or empty -->
-            </tbody>
-          </table>
+              <!-- Integration Services Status List -->
+              <div class="infra-service-list">
+                <div class="infra-service-item">
+                  <div class="infra-service-name">
+                    <span style="color: var(--accent-highlight);">▲</span>
+                    <span>Azure (Primary)</span>
+                  </div>
+                  <span class="status-pill success"><span class="status-dot"></span>Healthy</span>
+                </div>
+
+                <div class="infra-service-item">
+                  <div class="infra-service-name">
+                    <span style="color: #F59E0B;">⬡</span>
+                    <span>AWS (Secondary)</span>
+                  </div>
+                  <span class="status-pill success"><span class="status-dot"></span>Healthy</span>
+                </div>
+
+                <div class="infra-service-item">
+                  <div class="infra-service-name">
+                    <span style="color: #38BDF8;">☸</span>
+                    <span>Kubernetes</span>
+                  </div>
+                  <span class="status-pill success"><span class="status-dot"></span>Healthy</span>
+                </div>
+
+                <div class="infra-service-item">
+                  <div class="infra-service-name">
+                    <span style="color: #34D399;">🗄</span>
+                    <span>Database</span>
+                  </div>
+                  <span id="infra-db-pill" class="status-pill success"><span class="status-dot"></span>Healthy</span>
+                </div>
+
+                <div class="infra-service-item">
+                  <div class="infra-service-name">
+                    <span style="color: #A78BFA;">📡</span>
+                    <span>Monitoring</span>
+                  </div>
+                  <span class="status-pill success"><span class="status-dot"></span>Healthy</span>
+                </div>
+              </div>
+
+              <!-- Bottom Stats -->
+              <div class="infra-meta-strip">
+                <div><strong>3</strong> Regions</div>
+                <div><strong id="stat-services-count">12</strong> Services</div>
+                <div><strong>99.9%</strong> Uptime</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subpanel: Recent Activity -->
+          <div class="panel" style="margin-top: var(--space-4);">
+            <div class="panel-header">
+              <div class="panel-title-wrapper">
+                <span class="panel-title">Recent Activity</span>
+              </div>
+              <a href="#" class="panel-link">View All →</a>
+            </div>
+            <div class="panel-body">
+              <div class="activity-list" id="activity-list">
+                <div class="activity-item">
+                  <div class="activity-left">
+                    <span class="activity-dot blue"></span>
+                    <span class="activity-action">Deployment started</span>
+                    <span class="activity-target">cloudship-frontend</span>
+                  </div>
+                  <span class="activity-time">2 min ago</span>
+                </div>
+
+                <div class="activity-item">
+                  <div class="activity-left">
+                    <span class="activity-dot green"></span>
+                    <span class="activity-action">Health check passed</span>
+                    <span class="activity-target">auth-service</span>
+                  </div>
+                  <span class="activity-time">12 min ago</span>
+                </div>
+
+                <div class="activity-item">
+                  <div class="activity-left">
+                    <span class="activity-dot blue"></span>
+                    <span class="activity-action">Auto-scaling triggered</span>
+                    <span class="activity-target">payment-service</span>
+                  </div>
+                  <span class="activity-time">18 min ago</span>
+                </div>
+
+                <div class="activity-item">
+                  <div class="activity-left">
+                    <span class="activity-dot red"></span>
+                    <span class="activity-action">Incident resolved</span>
+                    <span class="activity-target">notification-service</span>
+                  </div>
+                  <span class="activity-time">42 min ago</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div id="details-deployments-empty" class="empty-state" style="padding: var(--space-6); display: none;">
-          <p style="color: var(--text-muted); font-size: var(--font-caption);">No deployments executed for this service yet.</p>
+      </section>
+
+      <!-- ====================================================================
+           CloudShip Core Values Banner
+           ==================================================================== -->
+      <section class="values-banner" aria-label="CloudShip Core Mission">
+        <div class="values-kicker">CLOUDSHIP</div>
+        <h2 class="values-headline">YOUR INFRASTRUCTURE. OUR DIRECTION.</h2>
+        <div class="values-grid">
+          <div class="value-item">
+            <svg class="value-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            <span class="value-title">DEPLOY FASTER</span>
+          </div>
+
+          <div class="value-item">
+            <svg class="value-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            <span class="value-title">STAY RESILIENT</span>
+          </div>
+
+          <div class="value-item">
+            <svg class="value-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <line x1="9" y1="9" x2="15" y2="15"></line>
+              <line x1="15" y1="9" x2="9" y2="15"></line>
+            </svg>
+            <span class="value-title">FAIL SAFELY</span>
+          </div>
+
+          <div class="value-item">
+            <svg class="value-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+            <span class="value-title">SCALE FURTHER</span>
+          </div>
         </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ========================================================================
+       3. Mobile Bottom Navigation Bar (< 768px)
+       ======================================================================== -->
+  <nav class="mobile-bottom-bar" role="navigation" aria-label="Mobile Navigation">
+    <a href="#overview" class="mobile-nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+      <span>Home</span>
+    </a>
+    <a href="#deployments" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline></svg>
+      <span>Deploy</span>
+    </a>
+    <a href="#infrastructure" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"></rect><rect x="2" y="14" width="20" height="8" rx="2"></rect></svg>
+      <span>Infra</span>
+    </a>
+    <a href="#incidents" class="mobile-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+      <span>Alerts</span>
+    </a>
+    <a href="#projects" class="mobile-nav-item" id="mobile-btn-more">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+      <span>More</span>
+    </a>
+  </nav>
+
+  <!-- ========================================================================
+       4. Slide-Over Project Management & Registration Drawer
+       ======================================================================== -->
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+  <div class="drawer" id="project-drawer" role="dialog" aria-labelledby="drawer-title">
+    <div class="drawer-header">
+      <h3 class="drawer-title" id="drawer-title">Project Management</h3>
+      <button class="btn btn-ghost btn-sm" id="btn-close-drawer" type="button" aria-label="Close drawer">✕</button>
+    </div>
+    <div class="drawer-body">
+      <!-- Create Project Section -->
+      <div id="drawer-create-section">
+        <h4 style="font-size: var(--font-body); font-weight: 600; margin-bottom: var(--space-3); color: var(--text-primary);">Register New Service Codebase</h4>
+        <form id="create-project-form">
+          <div class="form-group">
+            <label class="form-label" for="project-name">Project Identifier *</label>
+            <input type="text" id="project-name" class="form-input" placeholder="e.g. auth-service" required pattern="^[a-zA-Z0-9_-]{2,100}$">
+            <span class="field-hint" style="font-size: var(--font-micro); color: var(--text-dim); margin-top: 4px;">2-100 characters: letters, numbers, hyphens, underscores</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="project-description">System Purpose / Description</label>
+            <textarea id="project-description" class="form-textarea" rows="2" placeholder="Primary user identity & JWT authorization service"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="project-repo">Repository URL</label>
+            <input type="url" id="project-repo" class="form-input" placeholder="https://github.com/org/service.git">
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="btn-submit-project" style="width: 100%;">
+            <span>Persist Project to Database</span>
+          </button>
+        </form>
       </div>
 
-      <div class="drawer-footer">
-        <button id="btn-close-details-bottom" class="btn btn-secondary" type="button">Close</button>
+      <hr style="border: none; border-top: 1px solid var(--border-subtle); margin: var(--space-6) 0;">
+
+      <!-- Existing Registered Projects List -->
+      <div>
+        <h4 style="font-size: var(--font-body); font-weight: 600; margin-bottom: var(--space-3); color: var(--text-primary);">Managed Repositories (<span id="drawer-projects-count">0</span>)</h4>
+        <div id="drawer-projects-list" style="display: flex; flex-direction: column; gap: var(--space-2);">
+          <!-- Populated dynamically via app.js -->
+        </div>
       </div>
     </div>
   </div>
 
   <!-- ========================================================================
-       5. Command Center / Palette (⌘K)
+       5. Global Command Palette Modal (Ctrl + K / ⌘K)
        ======================================================================== -->
-  <div id="cmd-backdrop" class="cmd-backdrop" role="dialog" aria-modal="true" aria-labelledby="cmd-search-input">
-    <div class="cmd-box">
-      <div class="cmd-input-wrap">
-        <svg class="cmd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-        </svg>
-        <input id="cmd-search-input" class="cmd-input" type="text" placeholder="Type a command or search services..." autocomplete="off">
+  <div class="modal-backdrop" id="cmd-palette-backdrop">
+    <div class="cmd-palette-dialog" role="dialog" aria-label="Command Palette">
+      <div class="cmd-input-wrapper">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="cmd-palette-input" class="cmd-input" placeholder="Type a command, search projects, or navigate..." autocomplete="off">
         <span class="kbd">ESC</span>
       </div>
-
-      <div class="cmd-list" id="cmd-list-items">
-        <div class="cmd-group-label">Quick Actions</div>
-        <div class="cmd-item" data-action="new-project">
-          <span class="cmd-item-title">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            Register New Service Project
-          </span>
-          <span class="kbd">N</span>
-        </div>
-        <div class="cmd-item" data-action="refresh">
-          <span class="cmd-item-title">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-            Poll & Refresh Telemetry
-          </span>
-          <span class="kbd">R</span>
-        </div>
-
-        <div class="cmd-group-label">Workspace Navigation</div>
-        <div class="cmd-item" data-action="nav-projects">
-          <span class="cmd-item-title">View Projects & Workloads</span>
-          <span class="badge">TAB 1</span>
-        </div>
-        <div class="cmd-item" data-action="nav-deployments">
-          <span class="cmd-item-title">View Deployments & Pipeline</span>
-          <span class="badge">TAB 2</span>
-        </div>
-
-        <div class="cmd-group-label">System Documentation</div>
-        <div class="cmd-item" data-action="doc-design">
-          <span class="cmd-item-title">Open Permanent Design System Docs</span>
-          <span class="badge">DOCS</span>
-        </div>
-        <div class="cmd-item" data-action="doc-api">
-          <span class="cmd-item-title">Open REST API Contracts</span>
-          <span class="badge">DOCS</span>
-        </div>
-      </div>
-
-      <div class="cmd-footer">
-        <span>Use <span class="kbd">↑</span> <span class="kbd">↓</span> to navigate</span>
-        <span>Press <span class="kbd">↵</span> to execute</span>
+      <div class="cmd-results" id="cmd-palette-results">
+        <!-- Filterable results rendered via app.js -->
       </div>
     </div>
   </div>
 
-  <!-- Toast Feedback Stack -->
-  <div id="toast-container" class="toast-container" role="region" aria-label="Notifications" aria-live="polite"></div>
+  <!-- Toast Notification Stack -->
+  <div class="toast-container" id="toast-container" role="status" aria-live="polite"></div>
 
-  <!-- Scripts -->
+  <!-- Script Modules -->
   <script src="js/api.js"></script>
   <script src="js/app.js"></script>
 </body>

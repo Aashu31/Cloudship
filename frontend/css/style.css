@@ -1,14 +1,14 @@
 /**
- * CloudShip — Master Application Shell & Layout ("Engineered Horizon")
- * Imports design tokens and component primitives.
+ * CloudShip — Application Shell Layout & Responsive Engine
+ * Master Reference: /frontend/cloudship-master-reference.png
  */
 
-@import url("./tokens.css");
-@import url("./components.css");
+@import url('tokens.css');
+@import url('components.css');
 
-/* ------------------------------------------------------------------------------
-   Global Reset & Canvas
-   ------------------------------------------------------------------------------ */
+/* ============================================================================
+   1. Base Reset & Typography
+   ============================================================================ */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -17,288 +17,182 @@
 
 html {
   font-size: 16px;
-  -webkit-text-size-adjust: 100%;
+  background-color: var(--color-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+  height: 100%;
 }
 
 body {
-  font-family: var(--font-sans);
+  min-height: 100%;
   background-color: var(--color-canvas);
   color: var(--text-primary);
   line-height: 1.5;
-  min-height: 100vh;
   overflow-x: hidden;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* Accessible focus visible */
-:focus-visible {
-  outline: 2px solid var(--accent-highlight);
-  outline-offset: 2px;
-}
-
-/* ------------------------------------------------------------------------------
-   Application Shell: Persistent Header
-   ------------------------------------------------------------------------------ */
-.app-header {
-  height: 56px;
-  background-color: rgba(13, 19, 31, 0.88);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border-subtle);
-  position: sticky;
-  top: 0;
-  z-index: var(--z-header);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--space-6);
+  flex-direction: column;
 }
 
-.brand-wrapper {
+::selection {
+  background: rgba(56, 189, 248, 0.3);
+  color: #FFFFFF;
+}
+
+/* ============================================================================
+   2. App Shell Structure (Header + Sidebar + Content)
+   ============================================================================ */
+.app-layout {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  text-decoration: none;
+  min-height: calc(100vh - 56px);
+  position: relative;
 }
 
-/* Custom Geometric Vector Brand Mark: Horizon + Vessel */
-.brand-logo-svg {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-}
-
-.brand-wordmark {
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-primary);
-}
-
-.header-center {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.cmd-trigger-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-3);
-  background-color: var(--color-surface-base);
-  border: 1px solid var(--border-medium);
-  border-radius: var(--radius-md);
-  padding: 0.35rem 0.75rem;
-  font-size: var(--font-caption);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
-}
-
-.cmd-trigger-btn:hover {
-  border-color: var(--border-strong);
-  color: var(--text-secondary);
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.telemetry-group {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.telemetry-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--font-caption);
-  color: var(--text-muted);
-}
-
-.telemetry-label {
-  font-size: var(--font-micro);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-/* ------------------------------------------------------------------------------
-   Workspace Container & Composition
-   ------------------------------------------------------------------------------ */
-.workspace {
-  max-width: 1360px;
-  margin: 0 auto;
-  padding: var(--space-8) var(--space-6);
-}
-
-.workspace-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: var(--space-6);
-  flex-wrap: wrap;
-  gap: var(--space-4);
-}
-
-.workspace-title-area h1 {
-  font-size: var(--font-title-lg);
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  color: var(--text-primary);
-  line-height: 1.2;
-}
-
-.workspace-title-area p {
-  font-size: var(--font-body);
-  color: var(--text-secondary);
-  margin-top: var(--space-1);
-}
-
-.workspace-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-/* ------------------------------------------------------------------------------
-   Metrics Rail
-   ------------------------------------------------------------------------------ */
-.metrics-rail {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--space-4);
-  margin-bottom: var(--space-8);
-}
-
-/* ------------------------------------------------------------------------------
-   Timeline Component (Deployment Execution Progression)
-   ------------------------------------------------------------------------------ */
-.pipeline-rail {
-  display: flex;
-  align-items: center;
-  padding: var(--space-4);
-  background-color: var(--color-surface-base);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  margin-bottom: var(--space-6);
-  overflow-x: auto;
-}
-
-.pipeline-node {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--font-micro);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
-.pipeline-node.completed {
-  color: var(--status-success-text);
-}
-
-.pipeline-node.active {
-  color: var(--accent-highlight);
-}
-
-.pipeline-connector {
+.app-content {
   flex: 1;
-  min-width: 32px;
-  height: 1px;
-  background-color: var(--border-subtle);
-  margin: 0 var(--space-2);
+  min-width: 0;
+  padding: var(--space-4) var(--space-6);
+  max-width: 1440px;
+  margin: 0 auto;
+  width: 100%;
 }
 
-.pipeline-node.completed + .pipeline-connector {
-  background-color: var(--status-success-border);
+/* ============================================================================
+   3. Responsive Breakpoints
+   ============================================================================ */
+
+/* Large Desktop (> 1440px) */
+@media (min-width: 1440px) {
+  .app-content {
+    padding: var(--space-6) var(--space-8);
+  }
 }
 
-/* ------------------------------------------------------------------------------
-   Project Details Row
-   ------------------------------------------------------------------------------ */
-.detail-item {
-  display: flex;
-  justify-content: space-between;
-  padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: var(--font-body);
+/* Laptop / Medium Desktop (1024px - 1280px) */
+@media (max-width: 1280px) {
+  .workspace-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .panel-infra-activity {
+    grid-column: span 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+  }
 }
 
-.detail-item:last-child {
-  border-bottom: none;
+/* Tablet (768px - 1023px) */
+@media (max-width: 1023px) {
+  .app-sidebar {
+    width: 200px;
+  }
+  .metrics-strip {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+  .panel-infra-activity {
+    grid-column: span 1;
+    grid-template-columns: 1fr;
+  }
+  .hero-edge-badge {
+    display: none;
+  }
+  .values-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
-.detail-key {
-  color: var(--text-muted);
-  font-size: var(--font-caption);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
+/* Mobile Devices (< 768px) */
+@media (max-width: 767px) {
+  .app-sidebar {
+    display: none;
+    position: fixed;
+    top: 56px;
+    left: 0;
+    bottom: 56px;
+    width: 260px;
+    z-index: var(--z-sidebar);
+    box-shadow: var(--shadow-modal);
+  }
+  .app-sidebar.mobile-open {
+    display: flex;
+  }
 
-.detail-val {
-  color: var(--text-primary);
-  font-weight: 500;
-  text-align: right;
-}
+  .app-content {
+    padding: var(--space-3) var(--space-3) calc(56px + var(--space-4)) var(--space-3);
+  }
 
-/* ------------------------------------------------------------------------------
-   Responsive Adaptations
-   ------------------------------------------------------------------------------ */
-@media (max-width: 768px) {
-  .app-header {
-    padding: 0 var(--space-4);
+  .header-toggle-btn {
+    display: flex !important;
   }
 
   .header-center {
-    display: none; /* Accessible via header button or gesture */
+    display: none;
   }
 
-  .workspace {
-    padding: var(--space-6) var(--space-4);
+  .telemetry-strip {
+    display: none;
   }
 
-  .metrics-rail {
+  .user-info {
+    display: none;
+  }
+
+  .hero-card {
+    padding: var(--space-4);
+    background-size: cover;
+  }
+
+  .hero-title {
+    font-size: 1.5rem;
+  }
+
+  .hero-edge-badge {
+    display: none;
+  }
+
+  .metrics-strip {
     grid-template-columns: 1fr 1fr;
   }
 
-  .drawer-panel {
-    max-width: 100vw;
-  }
-
-  .cmd-backdrop {
-    padding-top: 5vh;
-  }
-}
-
-@media (max-width: 430px) {
-  .metrics-rail {
+  .workspace-grid {
     grid-template-columns: 1fr;
   }
 
-  .workspace-title-area h1 {
-    font-size: 1.4rem;
+  .mobile-bottom-bar {
+    display: flex;
   }
 
-  .workspace-actions {
-    width: 100%;
+  .values-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
-  .workspace-actions .btn {
-    flex: 1;
+  .drawer {
+    width: 100vw;
   }
 }
 
-/* ------------------------------------------------------------------------------
-   Reduced Motion Mandate
-   ------------------------------------------------------------------------------ */
+/* Small Mobile (< 430px) */
+@media (max-width: 430px) {
+  .metrics-strip {
+    grid-template-columns: 1fr;
+  }
+  .hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .values-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================================
+   4. Reduced Motion Preference
+   ============================================================================ */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
