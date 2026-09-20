@@ -25,6 +25,9 @@ public class Project {
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Deployment> deployments = new ArrayList<>();
 
+    @OneToOne(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private GitRepository gitRepository;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -90,6 +93,14 @@ public class Project {
 
     public void setDeployments(List<Deployment> deployments) {
         this.deployments = deployments;
+    }
+
+    public GitRepository getGitRepository() {
+        return gitRepository;
+    }
+
+    public void setGitRepository(GitRepository gitRepository) {
+        this.gitRepository = gitRepository;
     }
 
     public OffsetDateTime getCreatedAt() {
