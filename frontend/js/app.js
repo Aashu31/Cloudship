@@ -13,6 +13,9 @@ document.addEventListener('DOMContentLoaded', () => {
     rtt: 0,
     activeView: 'overview',
     selectedProjectId: null,
+    jenkinsStatus: { available: false, connectionStatus: 'UNKNOWN' },
+    ciBuilds: [],
+    latestCIBuild: null,
   };
 
   // Cached DOM References
@@ -81,6 +84,31 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCopyComposeCmd: document.getElementById('btn-copy-compose-cmd'),
     snippetBuildCmd: document.getElementById('snippet-build-cmd'),
     snippetComposeCmd: document.getElementById('snippet-compose-cmd'),
+
+    // Phase 3: Jenkins CI Card & Pipeline Stepper
+    jenkinsCiCard: document.getElementById('jenkins-ci-card'),
+    jenkinsStatusPill: document.getElementById('jenkins-status-pill'),
+    jenkinsStatusLabel: document.getElementById('jenkins-status-label'),
+    jenkinsJobName: document.getElementById('jenkins-job-name'),
+    ciLastBuildStatus: document.getElementById('ci-last-build-status'),
+    ciDockerTag: document.getElementById('ci-docker-tag'),
+    ciBuildDuration: document.getElementById('ci-build-duration'),
+    btnTriggerCi: document.getElementById('btn-trigger-ci'),
+    btnRefreshCi: document.getElementById('btn-refresh-ci'),
+    ciBuildsCount: document.getElementById('ci-builds-count'),
+    ciBuildsList: document.getElementById('ci-builds-list'),
+
+    // Phase 3: CI Details Modal
+    ciDetailsModalBackdrop: document.getElementById('ci-details-modal-backdrop'),
+    btnCloseCiDetails: document.getElementById('btn-close-ci-details'),
+    ciDetailsBody: document.getElementById('ci-details-body'),
+
+    // Phase 3: Pipeline Stepper Nodes
+    pipeStepNodes: [1, 2, 3, 4, 5, 6, 7, 8].map(i => ({
+      step: document.getElementById(`pipe-step-${i}`),
+      desc: document.getElementById(`pipe-step-desc-${i}`),
+      dur: document.getElementById(`pipe-step-dur-${i}`),
+    })),
 
     // Command Palette
     btnCmdTrigger: document.getElementById('btn-cmd-trigger'),
@@ -231,6 +259,12 @@ document.addEventListener('DOMContentLoaded', () => {
       // Phase 2: Load Docker build & container info
       await loadDockerBuildInfo();
 
+      // Phase 3: Probe Jenkins CI status
+      await loadJenkinsStatus();
+
+      // Phase 3: Load CI builds for active project
+      await loadCIBuilds(state.selectedProjectId);
+
       // 2. Fetch recent deployments
       const deployments = await api.getAllDeployments();
       state.deployments = deployments || [];
@@ -290,6 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.selectedProjectId = id;
         if (elements.githubProjectSelect) elements.githubProjectSelect.value = id;
         await loadActiveProjectRepository();
+        await loadCIBuilds(state.selectedProjectId);
         renderDrawerProjects();
         if (elements.githubConnectionCard) {
           elements.githubConnectionCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -424,6 +459,319 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (err) {
       console.warn('Failed to load build info:', err);
+    }
+  }
+
+  /* ==========================================================================
+     4c. Phase 3: Jenkins Continuous Integration Logic
+     ========================================================================== */
+  async function loadJenkinsStatus() {
+    try {
+      const status = await api.getJenkinsStatus();
+      state.jenkinsStatus = status;
+
+      if (!elements.jenkinsStatusPill || !elements.jenkinsStatusLabel) return;
+
+      if (status && status.available) {
+        elements.jenkinsStatusPill.className = 'status-pill success';
+        elements.jenkinsStatusLabel.textContent = 'Online';
+      } else if (status && status.connectionStatus === 'UNAVAILABLE') {
+        elements.jenkinsStatusPill.className = 'status-pill standby';
+        elements.jenkinsStatusLabel.textContent = 'Offline (Simulated)';
+      } else {
+        elements.jenkinsStatusPill.className = 'status-pill standby';
+        elements.jenkinsStatusLabel.textContent = 'Standby';
+      }
+
+      if (elements.jenkinsJobName && status && status.jobName) {
+        elements.jenkinsJobName.textContent = status.jobName;
+      }
+    } catch (err) {
+      console.warn('Failed to probe Jenkins status:', err);
+      if (elements.jenkinsStatusPill && elements.jenkinsStatusLabel) {
+        elements.jenkinsStatusPill.className = 'status-pill standby';
+        elements.jenkinsStatusLabel.textContent = 'Offline (Simulated)';
+      }
+    }
+  }
+
+  function resetPipelineStepper() {
+    if (!elements.pipeStepNodes) return;
+    elements.pipeStepNodes.forEach((node, idx) => {
+      if (!node.step) return;
+      node.step.className = idx === 0 ? 'pipeline-step completed' : 'pipeline-step pending';
+      if (node.dur) node.dur.textContent = '--';
+    });
+    if (elements.pipeStepNodes[6] && elements.pipeStepNodes[6].desc) elements.pipeStepNodes[6].desc.textContent = 'Pending (Phase 4+)';
+    if (elements.pipeStepNodes[7] && elements.pipeStepNodes[7].desc) elements.pipeStepNodes[7].desc.textContent = 'Pending (Phase 4+)';
+  }
+
+  function updatePipelineStepper(latestBuild) {
+    if (!elements.pipeStepNodes) return;
+    if (!latestBuild) {
+      resetPipelineStepper();
+      return;
+    }
+
+    const isSuccess = latestBuild.status === 'SUCCESS';
+    const isRunning = latestBuild.status === 'RUNNING' || latestBuild.status === 'QUEUED';
+    const isFailed = latestBuild.status === 'FAILED' || latestBuild.status === 'ABORTED';
+
+    // Step 1: Source
+    if (elements.pipeStepNodes[0] && elements.pipeStepNodes[0].step) elements.pipeStepNodes[0].step.className = 'pipeline-step completed';
+    // Step 2: Checkout
+    if (elements.pipeStepNodes[1] && elements.pipeStepNodes[1].step) elements.pipeStepNodes[1].step.className = 'pipeline-step completed';
+    // Step 3: Validate
+    if (elements.pipeStepNodes[2] && elements.pipeStepNodes[2].step) elements.pipeStepNodes[2].step.className = 'pipeline-step completed';
+
+    // Step 4: Build
+    if (elements.pipeStepNodes[3] && elements.pipeStepNodes[3].step) {
+      elements.pipeStepNodes[3].step.className = isSuccess ? 'pipeline-step completed' : (isRunning ? 'pipeline-step active' : (isFailed ? 'pipeline-step failed' : 'pipeline-step pending'));
+    }
+    // Step 5: Test
+    if (elements.pipeStepNodes[4] && elements.pipeStepNodes[4].step) {
+      elements.pipeStepNodes[4].step.className = isSuccess ? 'pipeline-step completed' : (isRunning ? 'pipeline-step pending' : (isFailed ? 'pipeline-step failed' : 'pipeline-step pending'));
+    }
+    // Step 6: Docker Build
+    if (elements.pipeStepNodes[5] && elements.pipeStepNodes[5].step) {
+      elements.pipeStepNodes[5].step.className = isSuccess ? 'pipeline-step completed' : (isRunning ? 'pipeline-step pending' : (isFailed ? 'pipeline-step pending' : 'pipeline-step pending'));
+    }
+
+    // Step 7: Deploy (Strictly Phase 4+)
+    if (elements.pipeStepNodes[6] && elements.pipeStepNodes[6].step) elements.pipeStepNodes[6].step.className = 'pipeline-step pending';
+    if (elements.pipeStepNodes[6] && elements.pipeStepNodes[6].desc) elements.pipeStepNodes[6].desc.textContent = 'Pending (Phase 4+)';
+
+    // Step 8: Live (Strictly Phase 4+)
+    if (elements.pipeStepNodes[7] && elements.pipeStepNodes[7].step) elements.pipeStepNodes[7].step.className = 'pipeline-step pending';
+    if (elements.pipeStepNodes[7] && elements.pipeStepNodes[7].desc) elements.pipeStepNodes[7].desc.textContent = 'Pending (Phase 4+)';
+
+    // Durations if available
+    if (latestBuild.durationSeconds) {
+      const dur = Number(latestBuild.durationSeconds);
+      if (elements.pipeStepNodes[3] && elements.pipeStepNodes[3].dur) elements.pipeStepNodes[3].dur.textContent = Math.max(1, Math.round(dur * 0.4)) + 's';
+      if (elements.pipeStepNodes[4] && elements.pipeStepNodes[4].dur) elements.pipeStepNodes[4].dur.textContent = Math.max(1, Math.round(dur * 0.3)) + 's';
+      if (elements.pipeStepNodes[5] && elements.pipeStepNodes[5].dur) elements.pipeStepNodes[5].dur.textContent = Math.max(1, Math.round(dur * 0.3)) + 's';
+    }
+  }
+
+  async function loadCIBuilds(projectId) {
+    if (!projectId) {
+      if (elements.ciLastBuildStatus) elements.ciLastBuildStatus.textContent = 'No project selected';
+      if (elements.ciDockerTag) elements.ciDockerTag.textContent = 'cloudship/backend:pending';
+      if (elements.ciBuildDuration) elements.ciBuildDuration.textContent = '--';
+      if (elements.ciBuildsCount) elements.ciBuildsCount.textContent = '0';
+      if (elements.ciBuildsList) {
+        elements.ciBuildsList.innerHTML = '<div style="font-size: var(--font-caption); color: var(--text-dim); text-align: center; padding: var(--space-3);">Select a project to inspect CI builds.</div>';
+      }
+      resetPipelineStepper();
+      return;
+    }
+
+    try {
+      const builds = await api.getCIBuilds(projectId);
+      state.ciBuilds = builds || [];
+      state.latestCIBuild = state.ciBuilds.length > 0 ? state.ciBuilds[0] : null;
+
+      if (elements.ciBuildsCount) {
+        elements.ciBuildsCount.textContent = state.ciBuilds.length;
+      }
+
+      if (state.latestCIBuild) {
+        const latest = state.latestCIBuild;
+        let pillClass = 'standby';
+        if (latest.status === 'SUCCESS') pillClass = 'success';
+        else if (latest.status === 'FAILED' || latest.status === 'ABORTED') pillClass = 'failed';
+        else if (latest.status === 'RUNNING') pillClass = 'deploying';
+
+        const bNum = latest.jenkinsBuildNumber || latest.buildNumber || latest.id;
+        const durSec = latest.durationMs != null ? Math.round(latest.durationMs / 1000) : latest.durationSeconds;
+
+        if (elements.ciLastBuildStatus) {
+          elements.ciLastBuildStatus.innerHTML = `
+            <span class="status-pill ${pillClass}" style="font-size: 0.65rem; padding: 0.15rem 0.45rem;">
+              <span class="status-dot"></span>#${bNum} ${latest.status}
+            </span>
+          `;
+        }
+
+        if (elements.ciDockerTag) {
+          elements.ciDockerTag.textContent = latest.dockerImageTag || `cloudship/backend:${latest.commitSha ? latest.commitSha.substring(0, 7) : 'pending'}`;
+        }
+
+        if (elements.ciBuildDuration) {
+          elements.ciBuildDuration.textContent = durSec != null ? `${durSec}s` : (latest.status === 'RUNNING' ? 'In progress' : '--');
+        }
+
+        updatePipelineStepper(latest);
+      } else {
+        if (elements.ciLastBuildStatus) elements.ciLastBuildStatus.textContent = 'No builds executed';
+        if (elements.ciDockerTag) elements.ciDockerTag.textContent = 'cloudship/backend:pending';
+        if (elements.ciBuildDuration) elements.ciBuildDuration.textContent = '--';
+        resetPipelineStepper();
+      }
+
+      renderCIBuilds(state.ciBuilds);
+    } catch (err) {
+      console.warn('Failed to load CI builds:', err);
+    }
+  }
+
+  function renderCIBuilds(builds) {
+    if (!elements.ciBuildsList) return;
+
+    if (!builds || builds.length === 0) {
+      elements.ciBuildsList.innerHTML = `
+        <div style="font-size: var(--font-caption); color: var(--text-dim); text-align: center; padding: var(--space-3);">
+          No CI builds recorded yet.
+        </div>
+      `;
+      return;
+    }
+
+    elements.ciBuildsList.innerHTML = builds.map(b => {
+      let pillClass = 'standby';
+      if (b.status === 'SUCCESS') pillClass = 'success';
+      else if (b.status === 'FAILED' || b.status === 'ABORTED') pillClass = 'failed';
+      else if (b.status === 'RUNNING') pillClass = 'deploying';
+
+      const bNum = b.jenkinsBuildNumber || b.buildNumber || b.id;
+      const durSec = b.durationMs != null ? Math.round(b.durationMs / 1000) : b.durationSeconds;
+      const commitShort = b.commitSha ? b.commitSha.substring(0, 7) : 'HEAD';
+      const timeAgo = formatTimeAgo(b.createdAt);
+
+      return `
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.45rem 0.6rem; background: var(--color-surface-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: var(--font-caption);">
+          <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
+            <div style="display: flex; align-items: center; gap: var(--space-2);">
+              <span style="font-weight: 600; font-family: var(--font-mono); color: var(--text-primary);">#${bNum}</span>
+              <span class="status-pill ${pillClass}" style="font-size: 0.6rem; padding: 0.08rem 0.35rem;">
+                <span class="status-dot"></span>${b.status}
+              </span>
+              <span style="font-size: var(--font-micro); color: var(--text-muted);">${escapeHtml(b.triggerType)}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; font-size: var(--font-micro); color: var(--text-dim);">
+              <span>${escapeHtml(b.branch)}</span>
+              <span>•</span>
+              <span style="font-family: var(--font-mono);">${commitShort}</span>
+              <span>•</span>
+              <span>${durSec != null ? durSec + 's' : timeAgo}</span>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-sm btn-inspect-ci" data-id="${b.id}" style="padding: 2px 8px; font-size: var(--font-micro);" type="button">
+            Inspect
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    // Attach inspect handlers
+    elements.ciBuildsList.querySelectorAll('.btn-inspect-ci').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const buildId = Number(btn.getAttribute('data-id'));
+        const found = state.ciBuilds.find(b => b.id === buildId);
+        if (found) {
+          openCIDetailsModal(found);
+        }
+      });
+    });
+  }
+
+  function openCIDetailsModal(build) {
+    if (!elements.ciDetailsModalBackdrop || !elements.ciDetailsBody) return;
+
+    let pillClass = 'standby';
+    if (build.status === 'SUCCESS') pillClass = 'success';
+    else if (build.status === 'FAILED' || build.status === 'ABORTED') pillClass = 'failed';
+    else if (build.status === 'RUNNING') pillClass = 'deploying';
+
+    let stagesFormatted = '';
+    if (build.stagesJson) {
+      try {
+        const parsed = JSON.parse(build.stagesJson);
+        if (Array.isArray(parsed)) {
+          stagesFormatted = parsed.map(st => `
+            <div style="display: flex; justify-content: space-between; padding: 2px 0;">
+              <span>${escapeHtml(st.name || st.stage || 'Stage')}</span>
+              <span style="color: ${st.status === 'SUCCESS' ? '#34D399' : (st.status === 'FAILED' ? '#F87171' : 'var(--text-muted)')}; font-weight: 600;">${escapeHtml(st.status || '--')}</span>
+            </div>
+          `).join('');
+        } else {
+          stagesFormatted = `<pre style="margin: 0;">${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`;
+        }
+      } catch (e) {
+        stagesFormatted = `<div>${escapeHtml(build.stagesJson)}</div>`;
+      }
+    } else {
+      stagesFormatted = `
+        <div style="display: flex; justify-content: space-between; padding: 2px 0;"><span>1. Source / Checkout</span><span style="color: #34D399;">SUCCESS</span></div>
+        <div style="display: flex; justify-content: space-between; padding: 2px 0;"><span>2. Validate Tools</span><span style="color: #34D399;">SUCCESS</span></div>
+        <div style="display: flex; justify-content: space-between; padding: 2px 0;"><span>3. Maven Compile</span><span style="color: #34D399;">SUCCESS</span></div>
+        <div style="display: flex; justify-content: space-between; padding: 2px 0;"><span>4. JUnit Test Suite</span><span style="color: #34D399;">SUCCESS</span></div>
+        <div style="display: flex; justify-content: space-between; padding: 2px 0;"><span>5. Docker Build (cloudship/backend)</span><span style="color: #34D399;">SUCCESS</span></div>
+        <div style="display: flex; justify-content: space-between; padding: 2px 0; color: var(--text-dim);"><span>6. Push to Registry (Phase 4+)</span><span>SKIPPED</span></div>
+      `;
+    }
+
+    const bNum = build.jenkinsBuildNumber || build.buildNumber || build.id;
+    const durSec = build.durationMs != null ? Math.round(build.durationMs / 1000) : build.durationSeconds;
+
+    elements.ciDetailsBody.innerHTML = `
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-bottom: var(--space-3);">
+        <div>
+          <div style="font-size: var(--font-micro); color: var(--text-dim); text-transform: uppercase;">Build ID / Number</div>
+          <div style="font-weight: 600; font-family: var(--font-mono); color: var(--text-primary);">#${bNum} (ID: ${build.id})</div>
+        </div>
+        <div>
+          <div style="font-size: var(--font-micro); color: var(--text-dim); text-transform: uppercase;">Status</div>
+          <div><span class="status-pill ${pillClass}"><span class="status-dot"></span>${build.status}</span></div>
+        </div>
+        <div>
+          <div style="font-size: var(--font-micro); color: var(--text-dim); text-transform: uppercase;">Branch & Commit</div>
+          <div style="font-family: var(--font-mono); font-size: var(--font-caption); color: var(--text-primary);">${escapeHtml(build.branch)} (${build.commitSha ? build.commitSha.substring(0, 7) : '--'})</div>
+        </div>
+        <div>
+          <div style="font-size: var(--font-micro); color: var(--text-dim); text-transform: uppercase;">Trigger Type</div>
+          <div style="font-size: var(--font-caption); color: var(--text-primary);">${escapeHtml(build.triggerType)}</div>
+        </div>
+        <div style="grid-column: span 2;">
+          <div style="font-size: var(--font-micro); color: var(--text-dim); text-transform: uppercase;">Docker Artifact Tag</div>
+          <div style="font-family: var(--font-mono); font-size: var(--font-caption); color: var(--text-primary);">${escapeHtml(build.dockerImageTag || 'cloudship/backend:pending')}</div>
+        </div>
+        <div>
+          <div style="font-size: var(--font-micro); color: var(--text-dim); text-transform: uppercase;">Duration</div>
+          <div style="font-size: var(--font-caption); color: var(--text-primary);">${durSec != null ? durSec + 's' : '--'}</div>
+        </div>
+        <div>
+          <div style="font-size: var(--font-micro); color: var(--text-dim); text-transform: uppercase;">Recorded Time</div>
+          <div style="font-size: var(--font-caption); color: var(--text-muted);">${build.createdAt ? new Date(build.createdAt).toLocaleString() : '--'}</div>
+        </div>
+      </div>
+
+      <div style="margin-top: var(--space-2);">
+        <div style="font-size: var(--font-micro); color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px;">Pipeline Stages Execution</div>
+        <div style="background: var(--color-bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: var(--space-2); font-family: var(--font-mono); font-size: var(--font-micro); max-height: 110px; overflow-y: auto;">
+          ${stagesFormatted}
+        </div>
+      </div>
+
+      <div style="margin-top: var(--space-3);">
+        <div style="font-size: var(--font-micro); color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px;">CI Log Excerpt</div>
+        <pre style="background: var(--color-bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: var(--space-2); font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); max-height: 130px; overflow-y: auto; white-space: pre-wrap; margin: 0;">${escapeHtml(build.logsSummary || 'No logs captured.')}</pre>
+      </div>
+
+      ${build.errorMessage ? `
+        <div style="margin-top: var(--space-2); padding: var(--space-2); background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-sm); color: #F87171; font-size: var(--font-micro);">
+          <strong>Error:</strong> ${escapeHtml(build.errorMessage)}
+        </div>
+      ` : ''}
+    `;
+
+    elements.ciDetailsModalBackdrop.classList.add('active');
+  }
+
+  function closeCIDetailsModal() {
+    if (elements.ciDetailsModalBackdrop) {
+      elements.ciDetailsModalBackdrop.classList.remove('active');
     }
   }
 
@@ -598,6 +946,7 @@ document.addEventListener('DOMContentLoaded', () => {
       state.selectedProjectId = e.target.value ? Number(e.target.value) : null;
       renderDrawerProjects();
       await loadActiveProjectRepository();
+      await loadCIBuilds(state.selectedProjectId);
     });
   }
 
@@ -746,6 +1095,72 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  /* ==========================================================================
+     6c. Phase 3: Jenkins CI Event Listeners
+     ========================================================================== */
+  if (elements.btnTriggerCi) {
+    elements.btnTriggerCi.addEventListener('click', async () => {
+      if (!state.selectedProjectId) {
+        showToast('Please select a target project first', 'error');
+        return;
+      }
+
+      const branch = elements.githubBranch ? elements.githubBranch.value.trim() || 'main' : 'main';
+
+      elements.btnTriggerCi.disabled = true;
+      elements.btnTriggerCi.textContent = '⏳ Triggering CI...';
+
+      try {
+        const build = await api.triggerCIBuild(state.selectedProjectId, {
+          branch: branch,
+          triggerType: 'MANUAL',
+        });
+
+        showToast(`CI Build #${build.buildNumber || build.id} triggered: ${build.status}`, 'success');
+        await loadCIBuilds(state.selectedProjectId);
+        await loadJenkinsStatus();
+      } catch (err) {
+        showToast(`Failed to trigger CI build: ${err.message}`, 'error');
+      } finally {
+        if (elements.btnTriggerCi) {
+          elements.btnTriggerCi.disabled = false;
+          elements.btnTriggerCi.textContent = '▶ Trigger CI Build';
+        }
+      }
+    });
+  }
+
+  if (elements.btnRefreshCi) {
+    elements.btnRefreshCi.addEventListener('click', async () => {
+      if (elements.btnRefreshCi) {
+        elements.btnRefreshCi.style.transform = 'rotate(180deg)';
+        elements.btnRefreshCi.style.transition = 'transform 300ms ease';
+      }
+      try {
+        await loadJenkinsStatus();
+        await loadCIBuilds(state.selectedProjectId);
+        showToast('Jenkins CI pipeline data refreshed', 'info');
+      } finally {
+        setTimeout(() => {
+          if (elements.btnRefreshCi) {
+            elements.btnRefreshCi.style.transform = 'rotate(0deg)';
+          }
+        }, 350);
+      }
+    });
+  }
+
+  if (elements.btnCloseCiDetails) {
+    elements.btnCloseCiDetails.addEventListener('click', closeCIDetailsModal);
+  }
+
+  if (elements.ciDetailsModalBackdrop) {
+    elements.ciDetailsModalBackdrop.addEventListener('click', (e) => {
+      if (e.target === elements.ciDetailsModalBackdrop) {
+        closeCIDetailsModal();
+      }
+    });
+  }
 
   /* ==========================================================================
      7. Command Palette Modal (Ctrl + K / ⌘K)
@@ -754,13 +1169,14 @@ document.addEventListener('DOMContentLoaded', () => {
     { title: 'Overview', desc: 'Engineering dashboard & control center', action: () => switchView('overview') },
     { title: '+ Register New Project', desc: 'Open project registration form in drawer', action: () => openProjectDrawer() },
     { title: 'Deployments', desc: 'Inspect execution timelines and releases', action: () => openProjectDrawer() },
-    { title: 'Pipelines', desc: 'Declarative CI/CD build sequences', action: () => showToast('Pipelines configuration: Phase 2', 'info') },
-    { title: 'Infrastructure', desc: 'Multi-cloud topology & resources', action: () => showToast('Multi-cloud infrastructure: Phase 3', 'info') },
-    { title: 'Kubernetes', desc: 'Cluster nodes, namespaces, and workloads', action: () => showToast('Kubernetes operations: Phase 4', 'info') },
-    { title: 'Monitoring', desc: 'Prometheus & Grafana telemetry loops', action: () => showToast('Monitoring stack: Phase 5', 'info') },
+    { title: 'Pipelines / CI', desc: 'Continuous Integration build execution & pipeline stepper', action: () => { openProjectDrawer(); if (elements.jenkinsCiCard) elements.jenkinsCiCard.scrollIntoView({ behavior: 'smooth' }); } },
+    { title: 'Trigger CI Build', desc: 'Execute Jenkins CI pipeline for selected project', action: () => { if (elements.btnTriggerCi) elements.btnTriggerCi.click(); } },
+    { title: 'Infrastructure', desc: 'Multi-cloud topology & resources', action: () => showToast('Multi-cloud infrastructure: Phase 4', 'info') },
+    { title: 'Kubernetes', desc: 'Cluster nodes, namespaces, and workloads', action: () => showToast('Kubernetes operations: Phase 5', 'info') },
+    { title: 'Monitoring', desc: 'Prometheus & Grafana telemetry loops', action: () => showToast('Monitoring stack: Phase 6', 'info') },
     { title: 'Incidents', desc: 'Failure records & post-mortem timelines', action: () => showToast('Zero active incidents recorded', 'info') },
-    { title: 'Simulations', desc: 'Controlled chaos engineering laboratory', action: () => showToast('Failure simulations: Phase 6', 'info') },
-    { title: 'Recovery', desc: 'Automated rollback & self-healing engine', action: () => showToast('Automated recovery: Phase 7', 'info') },
+    { title: 'Simulations', desc: 'Controlled chaos engineering laboratory', action: () => showToast('Failure simulations: Phase 7', 'info') },
+    { title: 'Recovery', desc: 'Automated rollback & self-healing engine', action: () => showToast('Automated recovery: Phase 8', 'info') },
     { title: 'Refresh Telemetry & State', desc: 'Instantaneous ping to database and API', action: () => { probeTelemetry(); refreshData(); showToast('Telemetry refreshed', 'info'); } },
   ];
 
@@ -919,6 +1335,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (view === 'projects') {
         e.preventDefault();
         openProjectDrawer();
+      } else if (view === 'pipelines') {
+        e.preventDefault();
+        openProjectDrawer();
+        if (elements.jenkinsCiCard) {
+          setTimeout(() => {
+            elements.jenkinsCiCard.scrollIntoView({ behavior: 'smooth' });
+          }, 150);
+        }
       } else {
         switchView(view);
       }

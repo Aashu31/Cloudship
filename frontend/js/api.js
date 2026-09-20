@@ -227,6 +227,78 @@ const api = {
       console.warn('Build info unreachable:', err.message);
       return null;
     }
+  },
+
+  /**
+   * Probes Jenkins CI service status
+   */
+  async getJenkinsStatus() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/jenkins/status`, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn('Jenkins status probe unreachable:', err.message);
+      return { available: false, connectionStatus: 'UNAVAILABLE', baseUrl: 'http://localhost:8080' };
+    }
+  },
+
+  /**
+   * Fetches CI build history for a project
+   */
+  async getCIBuilds(projectId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/ci-builds`, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) {
+        return [];
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn('Failed to fetch CI builds:', err.message);
+      return [];
+    }
+  },
+
+  /**
+   * Fetches a single CI build by ID
+   */
+  async getCIBuildById(projectId, buildId) {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/ci-builds/${buildId}`, {
+      headers: { 'Accept': 'application/json' },
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Failed to fetch CI build (HTTP ${response.status})`);
+    }
+    return await response.json();
+  },
+
+  /**
+   * Triggers a new Continuous Integration build
+   */
+  async triggerCIBuild(projectId, payload = {}) {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/ci-builds`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      const message = errBody.details && errBody.details.length > 0
+        ? errBody.details.join(', ')
+        : (errBody.message || `Failed to trigger CI build (HTTP ${response.status})`);
+      throw new Error(message);
+    }
+    return await response.json();
   }
 };
 
