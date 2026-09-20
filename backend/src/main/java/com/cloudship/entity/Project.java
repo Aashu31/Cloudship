@@ -25,6 +25,9 @@ public class Project {
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Deployment> deployments = new ArrayList<>();
 
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<CIBuild> ciBuilds = new ArrayList<>();
+
     @OneToOne(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private GitRepository gitRepository;
 
@@ -93,6 +96,14 @@ public class Project {
 
     public void setDeployments(List<Deployment> deployments) {
         this.deployments = deployments;
+    }
+
+    public List<CIBuild> getCiBuilds() {
+        return ciBuilds;
+    }
+
+    public void setCiBuilds(List<CIBuild> ciBuilds) {
+        this.ciBuilds = ciBuilds;
     }
 
     public GitRepository getGitRepository() {
