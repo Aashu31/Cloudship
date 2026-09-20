@@ -191,3 +191,88 @@ Retrieves all registered users.
 []
 ```
 *(Authentication will be introduced in future phases; endpoints currently provide foundation)*.
+
+---
+
+### 2.5 GitHub Repositories API (Phase 2)
+
+#### `GET /api/projects/{projectId}/repository`
+Retrieves connected Git repository details for a project.
+
+**Response `200 OK`**:
+```json
+{
+  "id": 1,
+  "projectId": 7,
+  "provider": "GITHUB",
+  "repositoryUrl": "https://github.com/octocat/Hello-World",
+  "owner": "octocat",
+  "repositoryName": "Hello-World",
+  "defaultBranch": "master",
+  "connectionStatus": "CONNECTED",
+  "createdAt": "2026-09-21T04:44:46.562Z",
+  "updatedAt": "2026-09-21T04:44:46.562Z"
+}
+```
+
+#### `POST /api/projects/{projectId}/repository`
+Connects a Git repository to a project. Performs automated upstream verification against GitHub REST API.
+
+**Request Body**:
+```json
+{
+  "repositoryUrl": "https://github.com/octocat/Hello-World",
+  "defaultBranch": "master"
+}
+```
+
+**Response `201 Created`**: Returns created `GitRepositoryResponse`.  
+**Error `409 Conflict`**: If a repository is already connected to this project.
+
+#### `PUT /api/projects/{projectId}/repository`
+Updates the Git repository configuration for a project.
+
+**Response `200 OK`**: Returns updated `GitRepositoryResponse`.
+
+#### `DELETE /api/projects/{projectId}/repository`
+Disconnects and deletes the Git repository configuration for a project.
+
+**Response `204 No Content`**.
+
+#### `GET /api/projects/{projectId}/repository/status`
+Performs an active live check against the public GitHub API and updates the local repository status.
+
+**Response `200 OK`**:
+```json
+{
+  "projectId": 7,
+  "repositoryUrl": "https://github.com/octocat/Hello-World",
+  "owner": "octocat",
+  "repositoryName": "Hello-World",
+  "defaultBranch": "master",
+  "connectionStatus": "CONNECTED",
+  "message": "Repository verified successfully via GitHub API",
+  "lastVerifiedAt": "2026-09-21T04:44:54.009Z"
+}
+```
+
+---
+
+### 2.6 Build & Container Info API (Phase 2)
+
+#### `GET /api/build-info`
+Retrieves backend build and Docker container runtime metadata.
+
+**Response `200 OK`**:
+```json
+{
+  "application": "cloudship-backend",
+  "version": "1.0.0",
+  "environment": "Local Dev",
+  "dockerImage": "cloudship/backend:1.0.0",
+  "javaVersion": "17.0.20.1",
+  "containerStatus": "READY",
+  "timestamp": "2026-09-21T04:44:10.779Z"
+}
+```
+

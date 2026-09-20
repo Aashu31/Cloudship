@@ -3,8 +3,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Primary Cloud: Azure](https://img.shields.io/badge/Primary%20Cloud-Microsoft%20Azure-0078D4.svg)](docs/cloud-strategy.md)
 [![Future Cloud: AWS](https://img.shields.io/badge/Future%20Cloud-AWS%20(Phase%2013)-FF9900.svg)](docs/cloud-strategy.md)
-[![Phase](https://img.shields.io/badge/Phase-1%20(Application%20Foundation)-success.svg)](docs/roadmap.md)
-[![Status](https://img.shields.io/badge/Status-Phase%201%20Complete-brightgreen.svg)](docs/roadmap.md)
+[![Phase](https://img.shields.io/badge/Phase-2%20(GitHub%20+%20Docker)-success.svg)](docs/roadmap.md)
+[![Status](https://img.shields.io/badge/Status-Phase%202%20Complete-brightgreen.svg)](docs/roadmap.md)
 
 **CloudShip** is an intelligent DevOps deployment and recovery platform designed to demonstrate real-world continuous delivery, container orchestration, real-time health observability, and automated site reliability engineering (SRE) recovery.
 
@@ -85,6 +85,8 @@ PostgreSQL (Local Container / Azure PG)                 CloudShip SRE Supervisor
 For complete technical specifications and Mermaid diagrams, see:
 - [docs/architecture.md](docs/architecture.md)
 - [docs/architecture-diagram.md](docs/architecture-diagram.md)
+- [docs/github-integration.md](docs/github-integration.md)
+- [docs/docker.md](docs/docker.md)
 
 ---
 
@@ -111,8 +113,8 @@ For complete technical specifications and Mermaid diagrams, see:
 | Phase | Description | Status | Verification / Key Deliverable |
 |---|---|---|---|
 | **Phase 0** | **Foundation & Architecture** | **`[x] Completed`** | Comprehensive `docs/`, `.env.example`, `.gitignore`, GitHub origin linked |
-| **Phase 1** | **Application Foundation** | `[ ] Planned` | Spring Boot API, PostgreSQL, Flyway, Health Probes |
-| **Phase 2** | **GitHub + Docker** | `[ ] Planned` | Multi-stage Dockerfile, docker-compose local environment |
+| **Phase 1** | **Application Foundation** | **`[x] Completed`** | Spring Boot 3 API, PostgreSQL, Flyway, Health Probes, UI |
+| **Phase 2** | **GitHub + Docker Foundation** | **`[x] Completed`** | Multi-stage Dockerfile, docker-compose stack, GitHub repository APIs, Build Info |
 | **Phase 3** | **Jenkins CI** | `[ ] Planned` | Declarative `Jenkinsfile`, automated test stages |
 | **Phase 4** | **Azure Infrastructure** | `[ ] Planned` | Azure Resource Group, VNet, Subnets, NSGs, B-series VMs |
 | **Phase 5** | **Azure Container Registry** | `[ ] Planned` | Private ACR provisioning, CI image push via Service Principal |
@@ -165,13 +167,14 @@ CloudShip/
 
 ## 8. Local Development Setup (Phase 0 / Phase 1)
 
-### Prerequisites for Phase 1
+### Prerequisites for Local Development
 - **JDK 17 or 21**: Verify via `java -version`
-- **Maven 3.9+** or **Gradle 8+**: Verify via `mvn -version`
-- **PostgreSQL 15+**: Running locally or in Docker on port `5432`
+- **Maven 3.9+**: Verify via `mvn -version`
+- **PostgreSQL 15+**: Local daemon or container
 - **Git**: Verify via `git --version`
+- **Docker & Docker Compose**: Optional for containerized orchestration
 
-### Getting Started (Phase 1 Local Foundation)
+### Option A: Local Bare-Metal / CLI
 1. **Clone the repository**:
    ```bash
    git clone https://github.com/Aashu31/Cloudship.git
@@ -180,7 +183,7 @@ CloudShip/
 2. **Configure environment settings**:
    ```bash
    cp .env.example .env
-   # Edit .env with your local PostgreSQL credentials (default DB_PORT=5433, SERVER_PORT=8088)
+   # Edit .env with your local credentials (default DB_PORT=5433, SERVER_PORT=8088)
    ```
 3. **Start local PostgreSQL**:
    ```powershell
@@ -194,8 +197,24 @@ CloudShip/
 5. **Open Frontend Dashboard**:
    Open `frontend/index.html` in your web browser.
 
+### Option B: Containerized with Docker Compose (Phase 2)
+1. **Launch the entire stack**:
+   ```bash
+   docker compose up -d
+   ```
+2. **Inspect running services & health**:
+   ```bash
+   docker compose ps
+   ```
+3. **Access endpoints**:
+   - Web Dashboard: `http://localhost:80`
+   - Backend API: `http://localhost:8088/api/health`
+   - Build Information: `http://localhost:8088/api/build-info`
+
 For complete details, refer to:
 - [docs/local-development.md](docs/local-development.md) — Local development workflow
+- [docs/github-integration.md](docs/github-integration.md) — GitHub connection guide & REST APIs
+- [docs/docker.md](docs/docker.md) — Docker container foundation & Compose architecture
 - [docs/api.md](docs/api.md) — Complete REST API contract & endpoints
 - [docs/database.md](docs/database.md) — Schema design & Flyway migrations
 - [docs/development-setup.md](docs/development-setup.md) — Progressive tooling model
