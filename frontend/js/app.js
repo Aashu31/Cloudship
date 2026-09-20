@@ -414,7 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const buildInfo = await api.getBuildInfo();
       if (buildInfo) {
-        if (elements.dockerBaseImage) elements.dockerBaseImage.textContent = 'eclipse-temurin:17-jre-jammy';
+        if (elements.dockerBaseImage) elements.dockerBaseImage.textContent = 'eclipse-temurin:17-jre-alpine';
         if (elements.dockerExposedPort) elements.dockerExposedPort.textContent = '8088';
         if (elements.dockerContainerStatus) elements.dockerContainerStatus.textContent = 'Dockerfile Ready';
         if (elements.dockerStatusPill && elements.dockerStatusLabel) {

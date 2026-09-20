@@ -82,6 +82,75 @@ class GitRepositoryControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/projects/{id}/repository should return 409 Conflict when repository already connected")
+    void shouldReturn409WhenConnectingDuplicateRepository() throws Exception {
+        String jsonPayload = """
+            {
+                "repositoryUrl": "https://github.com/cloudship/demo-repo",
+                "defaultBranch": "main"
+            }
+            """;
+
+        // First connect succeeds with 201 Created
+        mockMvc.perform(post("/api/projects/" + testProject.getId() + "/repository")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonPayload))
+                .andExpect(status().isCreated());
+
+        // Second connect fails with 409 Conflict
+        mockMvc.perform(post("/api/projects/" + testProject.getId() + "/repository")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonPayload))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("Project with ID '" + testProject.getId() + "' already has a connected repository"));
+    }
+
+    @Test
+    @DisplayName("PUT /api/projects/{id}/repository should update existing repository successfully")
+    void shouldUpdateExistingRepositorySuccessfully() throws Exception {
+        String initialPayload = """
+            {
+                "repositoryUrl": "https://github.com/cloudship/demo-repo",
+                "defaultBranch": "main"
+            }
+            """;
+
+        // Connect first
+        mockMvc.perform(post("/api/projects/" + testProject.getId() + "/repository")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(initialPayload))
+                .andExpect(status().isCreated());
+
+        // Update with new branch/url
+        when(gitHubService.verifyRepository(anyString(), nullable(String.class)))
+                .thenReturn(new GitHubService.GitHubMetadataResult(
+                        "cloudship",
+                        "updated-repo",
+                        "develop",
+                        GitConnectionStatus.CONNECTED,
+                        "Repository updated successfully"
+                ));
+
+        String updatePayload = """
+            {
+                "repositoryUrl": "https://github.com/cloudship/updated-repo",
+                "defaultBranch": "develop"
+            }
+            """;
+
+        mockMvc.perform(put("/api/projects/" + testProject.getId() + "/repository")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updatePayload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.projectId").value(testProject.getId()))
+                .andExpect(jsonPath("$.owner").value("cloudship"))
+                .andExpect(jsonPath("$.repositoryName").value("updated-repo"))
+                .andExpect(jsonPath("$.defaultBranch").value("develop"))
+                .andExpect(jsonPath("$.connectionStatus").value("CONNECTED"));
+    }
+
+    @Test
     @DisplayName("POST /api/projects/{id}/repository should return 400 for invalid GitHub URL")
     void shouldReturn400ForInvalidUrl() throws Exception {
         String jsonPayload = """

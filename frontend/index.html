@@ -418,9 +418,9 @@
             <div class="panel-title-wrapper">
               <span class="panel-title">Deployment Pipeline</span>
             </div>
-            <span class="status-pill success" style="font-size: 0.7rem;">
+            <span class="status-pill standby" style="font-size: 0.7rem;">
               <span class="status-dot"></span>
-              <span>Live</span>
+              <span>Standby (Phase 3)</span>
             </span>
           </div>
           <div class="panel-body">
@@ -434,7 +434,7 @@
                     <span class="pipeline-step-name">Source</span>
                     <span class="pipeline-step-desc">Repository fetched</span>
                   </div>
-                  <span class="pipeline-step-duration">12s</span>
+                  <span class="pipeline-step-duration">--</span>
                 </div>
               </div>
 
@@ -447,7 +447,7 @@
                     <span class="pipeline-step-name">Build</span>
                     <span class="pipeline-step-desc">Image built successfully</span>
                   </div>
-                  <span class="pipeline-step-duration">28s</span>
+                  <span class="pipeline-step-duration">--</span>
                 </div>
               </div>
 
@@ -460,7 +460,7 @@
                     <span class="pipeline-step-name">Test</span>
                     <span class="pipeline-step-desc">All tests passed</span>
                   </div>
-                  <span class="pipeline-step-duration">45s</span>
+                  <span class="pipeline-step-duration">--</span>
                 </div>
               </div>
 
@@ -473,7 +473,7 @@
                     <span class="pipeline-step-name">Container</span>
                     <span class="pipeline-step-desc">Docker image created</span>
                   </div>
-                  <span class="pipeline-step-duration">18s</span>
+                  <span class="pipeline-step-duration">--</span>
                 </div>
               </div>
 
@@ -486,18 +486,18 @@
                     <span class="pipeline-step-name">Registry</span>
                     <span class="pipeline-step-desc">Pushed to ACR</span>
                   </div>
-                  <span class="pipeline-step-duration">22s</span>
+                  <span class="pipeline-step-duration">--</span>
                 </div>
               </div>
 
               <!-- Step 6 -->
-              <div class="pipeline-step active">
+              <div class="pipeline-step pending">
                 <div class="pipeline-line"></div>
                 <div class="pipeline-node">6</div>
                 <div class="pipeline-step-content">
                   <div class="pipeline-step-text">
                     <span class="pipeline-step-name">Deploy</span>
-                    <span class="pipeline-step-desc">Deployment in progress</span>
+                    <span class="pipeline-step-desc">Pending (Phase 3)</span>
                   </div>
                   <span class="pipeline-step-duration">--</span>
                 </div>
@@ -512,7 +512,7 @@
                     <span class="pipeline-step-name">Health Check</span>
                     <span class="pipeline-step-desc">Waiting...</span>
                   </div>
-                  <span class="pipeline-step-duration"></span>
+                  <span class="pipeline-step-duration">--</span>
                 </div>
               </div>
 
@@ -524,7 +524,7 @@
                     <span class="pipeline-step-name">Live</span>
                     <span class="pipeline-step-desc">Pending...</span>
                   </div>
-                  <span class="pipeline-step-duration"></span>
+                  <span class="pipeline-step-duration">--</span>
                 </div>
               </div>
             </div>
@@ -823,7 +823,7 @@
 
         <div class="drawer-meta-row">
           <span class="drawer-meta-label">Base Image:</span>
-          <span class="drawer-meta-value" id="docker-base-image">eclipse-temurin:17-jre-jammy</span>
+          <span class="drawer-meta-value" id="docker-base-image">eclipse-temurin:17-jre-alpine</span>
         </div>
 
         <div class="drawer-meta-row">

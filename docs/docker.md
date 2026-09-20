@@ -22,7 +22,7 @@ CloudShip Phase 2 establishes the containerization foundation. The platform pack
 │           ▼                             ▼              │
 │   ┌───────────────────────────────────────────────┐    │
 │   │                   database                    │    │
-│   │                (PostgreSQL 16)                │    │
+│   │                (PostgreSQL 18)                │    │
 │   │                  Port: 5432                   │    │
 │   └───────────────────────────────────────────────┘    │
 │                                                        │
@@ -36,25 +36,24 @@ CloudShip Phase 2 establishes the containerization foundation. The platform pack
 
 The backend uses a two-stage build to ensure minimal final image footprint and security:
 
-### Stage 1: Build & Package (`eclipse-temurin:17-jdk-jammy`)
+### Stage 1: Build & Package (`eclipse-temurin:17-jdk-alpine`)
 - Caches Maven wrapper dependencies using `.mvn/` and `pom.xml`.
-- Compiles source code with `mvn clean package -DskipTests`.
+- Compiles source code with `mvn clean package -DskipTests -B`.
 - Produces a self-contained Spring Boot executable JAR in `/workspace/target/`.
 
-### Stage 2: Hardened Runtime (`eclipse-temurin:17-jre-jammy`)
-- Uses headless JRE on Ubuntu Jammy for minimal attack surface.
-- Creates a dedicated unprivileged user and group:
+### Stage 2: Hardened Runtime (`eclipse-temurin:17-jre-alpine`)
+- Uses lightweight Alpine JRE for minimal attack surface.
+- Creates a dedicated unprivileged system group and user:
   ```dockerfile
-  RUN groupadd -g 10001 cloudship && \
-      useradd -u 10001 -g cloudship -s /bin/bash -m cloudship
+  RUN addgroup -S cloudship && adduser -S cloudship -G cloudship
   ```
 - Copies only the compiled artifact (`app.jar`).
 - Enforces non-root execution: `USER cloudship:cloudship`.
 - Exposes port `8088`.
 - Defines an automated Docker healthcheck:
   ```dockerfile
-  HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-      CMD curl -f http://localhost:8088/api/health || exit 1
+  HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
+      CMD wget --no-verbose --tries=1 --spider http://localhost:8088/api/health || exit 1
   ```
 
 ---
@@ -63,7 +62,7 @@ The backend uses a two-stage build to ensure minimal final image footprint and s
 
 The frontend is served via an Alpine-based Nginx container:
 
-- Base: `nginx:1.25-alpine`
+- Base: `nginx:alpine`
 - Configuration (`frontend/nginx.conf`):
   - Serves static assets (`index.html`, CSS, JS, images) from `/usr/share/nginx/html`.
   - Configures reverse proxy for `/api/` routing traffic directly to `http://backend:8088/api/`.
@@ -80,8 +79,8 @@ The multi-container stack orchestrates all three core tiers:
 
 | Service | Image / Build Target | Ports (Host:Container) | Depends On | Healthcheck |
 |---|---|---|---|---|
-| **`database`** | `postgres:16-alpine` | `5432:5432` | None | `pg_isready -U cloudship` |
-| **`backend`** | `./backend/Dockerfile` | `8088:8088` | `database` (healthy) | `curl -f /api/health` |
+| **`database`** | `postgres:18-alpine` | `5433:5432` | None | `pg_isready -U cloudship` |
+| **`backend`** | `./backend/Dockerfile` | `8088:8088` | `database` (healthy) | `wget -q /api/health` |
 | **`frontend`** | `./frontend/Dockerfile` | `80:80` | `backend` (healthy) | `wget -q http://localhost:80/` |
 
 ### Environment Configuration

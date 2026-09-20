@@ -7,6 +7,7 @@ import com.cloudship.entity.GitConnectionStatus;
 import com.cloudship.entity.GitProvider;
 import com.cloudship.entity.GitRepository;
 import com.cloudship.entity.Project;
+import com.cloudship.exception.DuplicateResourceException;
 import com.cloudship.exception.ResourceNotFoundException;
 import com.cloudship.repository.GitRepositoryRepository;
 import com.cloudship.repository.ProjectRepository;
@@ -44,18 +45,17 @@ public class GitRepositoryService {
     public GitRepositoryResponse connectRepository(Long projectId, GitRepositoryRequest request) {
         Project project = getProjectOrThrow(projectId);
 
+        if (gitRepositoryRepository.findByProjectId(projectId).isPresent()) {
+            throw new DuplicateResourceException("Project with ID '" + projectId + "' already has a connected repository");
+        }
+
         GitHubService.GitHubMetadataResult verification = gitHubService.verifyRepository(
                 request.getRepositoryUrl(),
                 request.getDefaultBranch()
         );
 
-        GitRepository repository = gitRepositoryRepository.findByProjectId(projectId)
-                .orElseGet(() -> {
-                    GitRepository newRepo = new GitRepository();
-                    newRepo.setProject(project);
-                    return newRepo;
-                });
-
+        GitRepository repository = new GitRepository();
+        repository.setProject(project);
         repository.setProvider(GitProvider.GITHUB);
         repository.setRepositoryUrl(request.getRepositoryUrl().trim());
         repository.setOwner(verification.getOwner());
@@ -76,7 +76,31 @@ public class GitRepositoryService {
 
     @Transactional
     public GitRepositoryResponse updateRepository(Long projectId, GitRepositoryRequest request) {
-        return connectRepository(projectId, request);
+        Project project = getProjectOrThrow(projectId);
+        GitRepository repository = gitRepositoryRepository.findByProjectId(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("No repository connected for project with ID: " + projectId));
+
+        GitHubService.GitHubMetadataResult verification = gitHubService.verifyRepository(
+                request.getRepositoryUrl(),
+                request.getDefaultBranch()
+        );
+
+        repository.setProvider(GitProvider.GITHUB);
+        repository.setRepositoryUrl(request.getRepositoryUrl().trim());
+        repository.setOwner(verification.getOwner());
+        repository.setRepositoryName(verification.getRepositoryName());
+        repository.setDefaultBranch(verification.getDefaultBranch());
+        repository.setConnectionStatus(verification.getConnectionStatus());
+
+        // Keep project repository URL synchronized
+        project.setRepositoryUrl(request.getRepositoryUrl().trim());
+        projectRepository.save(project);
+
+        GitRepository saved = gitRepositoryRepository.save(repository);
+        log.info("Updated GitHub repository {}/{} for project {} with status {}",
+                saved.getOwner(), saved.getRepositoryName(), projectId, saved.getConnectionStatus());
+
+        return GitRepositoryResponse.fromEntity(saved);
     }
 
     @Transactional
