@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CloudShip — DevOps Deployment & Recovery Platform</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation / Header -->
+  <header class="navbar">
+    <div class="brand">
+      <div class="brand-icon">CS</div>
+      <div class="brand-title">CloudShip</div>
+      <span class="brand-badge">Phase 1 Foundation</span>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-item">
+        <span class="status-label">Backend:</span>
+        <span id="backend-status" class="status-indicator unknown">
+          <span class="status-dot"></span>
+          <span class="status-text">CHECKING</span>
+        </span>
+      </div>
+
+      <div class="status-item">
+        <span class="status-label">Database:</span>
+        <span id="database-status" class="status-indicator unknown">
+          <span class="status-dot"></span>
+          <span class="status-text">UNKNOWN</span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="container">
+
+    <!-- Global Notification Banner -->
+    <div id="global-notification" class="notification"></div>
+
+    <!-- Metrics Cards Row -->
+    <section class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-title">Registered Projects</div>
+        <div id="metric-projects-count" class="metric-value">0</div>
+        <div class="metric-subtitle">Active managed codebases</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-title">Total Deployments</div>
+        <div id="metric-deployments-count" class="metric-value">0</div>
+        <div class="metric-subtitle">Release executions recorded</div>
+      </div>
+    </section>
+
+    <!-- Content Split: Project List + Creation Form -->
+    <div class="content-grid">
+
+      <!-- Left Column: Projects List -->
+      <section class="card">
+        <div class="card-header">
+          <h2 class="card-title">Projects</h2>
+          <button id="btn-refresh" class="btn btn-secondary">Refresh</button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table" id="projects-table">
+            <thead>
+              <tr>
+                <th>Project Name</th>
+                <th>Repository URL</th>
+                <th>Deployments</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="projects-table-body">
+              <!-- Dynamically populated or empty state -->
+            </tbody>
+          </table>
+        </div>
+
+        <div id="projects-empty-state" class="empty-state" style="display: none;">
+          <span class="empty-state-icon">📦</span>
+          <p>No projects registered yet.</p>
+        </div>
+      </section>
+
+      <!-- Right Column: Create Project Form -->
+      <section class="card">
+        <div class="card-header">
+          <h2 class="card-title">Create Project</h2>
+        </div>
+
+        <form id="create-project-form">
+          <div class="form-group">
+            <label for="project-name" class="form-label">Project Name *</label>
+            <input type="text" id="project-name" class="form-input" placeholder="e.g. payment-service" required maxlength="100">
+          </div>
+
+          <div class="form-group">
+            <label for="project-description" class="form-label">Description</label>
+            <textarea id="project-description" class="form-textarea" placeholder="Core payment processing microservice" maxlength="500"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="project-repo-url" class="form-label">GitHub Repository URL *</label>
+            <input type="url" id="project-repo-url" class="form-input" placeholder="https://github.com/org/repo" required maxlength="255">
+          </div>
+
+          <button type="submit" id="btn-create-project" class="btn btn-primary" style="width: 100%;">
+            Create Project
+          </button>
+        </form>
+      </section>
+
+    </div>
+
+    <!-- Bottom Section: Recent Deployments -->
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">Recent Deployments</h2>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table" id="deployments-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Project</th>
+              <th>Version</th>
+              <th>Status</th>
+              <th>Triggered At</th>
+            </tr>
+          </thead>
+          <tbody id="deployments-table-body">
+            <!-- Dynamically populated or empty state -->
+          </tbody>
+        </table>
+      </div>
+
+      <div id="deployments-empty-state" class="empty-state">
+        <span class="empty-state-icon">🚀</span>
+        <p>No deployments yet.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Project Details Modal -->
+  <div id="project-details-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-project-name" class="card-title">Project Details</h3>
+        <button id="modal-close-btn" class="modal-close">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="detail-row">
+          <span class="detail-label">Project ID:</span>
+          <span id="modal-project-id" class="detail-value">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Description:</span>
+          <span id="modal-project-desc" class="detail-value">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Repository:</span>
+          <span class="detail-value"><a id="modal-project-repo" href="#" target="_blank" class="project-url">-</a></span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Created At:</span>
+          <span id="modal-project-created" class="detail-value">-</span>
+        </div>
+
+        <h4 style="margin: 1.5rem 0 0.75rem 0; font-size: 1rem; color: var(--text-primary);">Deployment History</h4>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Version</th>
+                <th>Status</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody id="modal-deployments-body">
+              <!-- Populated or empty state -->
+            </tbody>
+          </table>
+        </div>
+        <div id="modal-deployments-empty" class="empty-state" style="padding: 1.5rem; display: none;">
+          <p>No deployments yet.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
