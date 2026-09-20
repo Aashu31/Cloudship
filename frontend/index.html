@@ -750,10 +750,115 @@
       <hr style="border: none; border-top: 1px solid var(--border-subtle); margin: var(--space-6) 0;">
 
       <!-- Existing Registered Projects List -->
-      <div>
+      <div style="margin-bottom: var(--space-6);">
         <h4 style="font-size: var(--font-body); font-weight: 600; margin-bottom: var(--space-3); color: var(--text-primary);">Managed Repositories (<span id="drawer-projects-count">0</span>)</h4>
         <div id="drawer-projects-list" style="display: flex; flex-direction: column; gap: var(--space-2);">
           <!-- Populated dynamically via app.js -->
+        </div>
+      </div>
+
+      <hr style="border: none; border-top: 1px solid var(--border-subtle); margin: var(--space-6) 0;">
+
+      <!-- Phase 2: GitHub Repository Connection Card -->
+      <div class="drawer-card" id="github-connection-card">
+        <div class="drawer-card-header">
+          <div class="drawer-card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+            </svg>
+            <span>GitHub Integration</span>
+          </div>
+          <span id="github-status-pill" class="status-pill standby">
+            <span class="status-dot"></span>
+            <span id="github-status-label">Not Connected</span>
+          </span>
+        </div>
+
+        <form id="github-connect-form">
+          <div class="form-group">
+            <label class="form-label" for="github-project-select">Target Project</label>
+            <select id="github-project-select" class="form-input">
+              <option value="">-- Select a project --</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="github-repo-url">Repository URL (HTTPS or SSH)</label>
+            <input type="text" id="github-repo-url" class="form-input" placeholder="https://github.com/org/repo">
+            <span class="field-hint" style="font-size: var(--font-micro); color: var(--text-dim); margin-top: 4px;">Public repositories verified instantly via GitHub REST API</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="github-branch">Default Branch</label>
+            <input type="text" id="github-branch" class="form-input" value="main" placeholder="main">
+          </div>
+
+          <div class="drawer-meta-row" style="margin-bottom: var(--space-3);">
+            <span class="drawer-meta-label">Last Sync / Verification:</span>
+            <span class="drawer-meta-value" id="github-last-sync">Never synced</span>
+          </div>
+
+          <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-github-connect">Connect Repository</button>
+            <button type="button" class="btn btn-outline btn-sm" id="btn-github-verify">Verify Connection</button>
+            <button type="button" class="btn btn-danger btn-sm" id="btn-github-disconnect">Disconnect</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Phase 2: Docker Container Readiness Card -->
+      <div class="drawer-card" id="docker-readiness-card">
+        <div class="drawer-card-header">
+          <div class="drawer-card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M4.222 14.889h2.444v-2.444H4.222v2.444zm3.056 0h2.444v-2.444H7.278v2.444zm3.055 0h2.445v-2.444h-2.445v2.444zm3.056 0h2.444v-2.444h-2.444v2.444zm-9.167-3.056h2.444V9.389H4.222v2.444zm3.056 0h2.444V9.389H7.278v2.444zm3.055 0h2.445V9.389h-2.445v2.444zm3.056 0h2.444V9.389h-2.444v2.444zm3.055 0h2.445V9.389h-2.445v2.444zm2.445 1.528c-.464-.325-1.222-.44-1.834-.333-.217-.923-.746-1.722-1.488-2.277L20.2 10.3c.094-.078.22-.095.33-.044.823.383 1.761.547 2.659.458.118-.012.23.04.288.143.433.774.654 1.637.654 2.532 0 .15-.008.3-.024.448-.016.143-.11.264-.25.295-.694.152-1.399.117-2.023-.115zM23.943 14.4c-.067-.09-.176-.134-.286-.118-.553.08-1.127.053-1.688-.08a3.29 3.29 0 01-.645-.246c-.053-.029-.115-.044-.176-.044H.5c-.276 0-.5.224-.5.5 0 2.22 1.042 4.238 2.828 5.518C4.542 21.17 6.643 21.8 8.847 21.8c6.647 0 12.447-4.14 14.653-10.155.034-.092.017-.194-.044-.27-.06-.075-.157-.118-.256-.118h-.197c.367-.61.64-1.269.81-1.956.036-.145-.03-.298-.16-.369-.13-.07-.291-.044-.393.064-.428.455-.95.81-1.533 1.039-.12.047-.19.167-.174.296.077.625.032 1.258-.13 1.854a.434.434 0 01-.137.215z"/>
+            </svg>
+            <span>Docker Readiness</span>
+          </div>
+          <span id="docker-status-pill" class="status-pill standby">
+            <span class="status-dot"></span>
+            <span id="docker-status-label">Not Built</span>
+          </span>
+        </div>
+
+        <div class="drawer-meta-row">
+          <span class="drawer-meta-label">Base Image:</span>
+          <span class="drawer-meta-value" id="docker-base-image">eclipse-temurin:17-jre-jammy</span>
+        </div>
+
+        <div class="drawer-meta-row">
+          <span class="drawer-meta-label">Exposed Port:</span>
+          <span class="drawer-meta-value" id="docker-exposed-port">8088</span>
+        </div>
+
+        <div class="drawer-meta-row">
+          <span class="drawer-meta-label">Container State:</span>
+          <span class="drawer-meta-value" id="docker-container-status">Dockerfile Ready</span>
+        </div>
+
+        <div class="drawer-meta-row">
+          <span class="drawer-meta-label">Dockerfile Target:</span>
+          <span class="drawer-meta-value">backend/Dockerfile</span>
+        </div>
+
+        <div style="margin-top: var(--space-3);">
+          <span style="font-size: var(--font-micro); font-family: var(--font-mono); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Build Command</span>
+          <div class="code-snippet-box">
+            <span class="code-snippet-text" id="snippet-build-cmd">docker build -t cloudship-backend:latest ./backend</span>
+            <button type="button" class="btn btn-ghost btn-sm btn-icon" id="btn-copy-build-cmd" title="Copy build command">
+              📋
+            </button>
+          </div>
+        </div>
+
+        <div style="margin-top: var(--space-2);">
+          <span style="font-size: var(--font-micro); font-family: var(--font-mono); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Compose Stack Command</span>
+          <div class="code-snippet-box">
+            <span class="code-snippet-text" id="snippet-compose-cmd">docker compose up -d</span>
+            <button type="button" class="btn btn-ghost btn-sm btn-icon" id="btn-copy-compose-cmd" title="Copy compose command">
+              📋
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -120,5 +120,113 @@ const api = {
       console.warn('Could not fetch all deployments:', err.message);
       return [];
     }
+  },
+
+  /**
+   * Fetches repository connection info for a project
+   */
+  async getRepository(projectId) {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/repository`, {
+      headers: { 'Accept': 'application/json' },
+    });
+    if (response.status === 404) {
+      return null;
+    }
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Failed to fetch repository (HTTP ${response.status})`);
+    }
+    return await response.json();
+  },
+
+  /**
+   * Connects a Git repository to a project
+   */
+  async connectRepository(projectId, payload) {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/repository`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      const message = errBody.details && errBody.details.length > 0
+        ? errBody.details.join(', ')
+        : (errBody.message || `Failed to connect repository (HTTP ${response.status})`);
+      throw new Error(message);
+    }
+    return await response.json();
+  },
+
+  /**
+   * Updates an existing Git repository connection
+   */
+  async updateRepository(projectId, payload) {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/repository`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      const message = errBody.details && errBody.details.length > 0
+        ? errBody.details.join(', ')
+        : (errBody.message || `Failed to update repository (HTTP ${response.status})`);
+      throw new Error(message);
+    }
+    return await response.json();
+  },
+
+  /**
+   * Disconnects / deletes a Git repository from a project
+   */
+  async disconnectRepository(projectId) {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/repository`, {
+      method: 'DELETE',
+    });
+    if (!response.ok && response.status !== 204) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Failed to disconnect repository (HTTP ${response.status})`);
+    }
+    return true;
+  },
+
+  /**
+   * Verifies Git repository status via public GitHub API
+   */
+  async verifyRepositoryStatus(projectId) {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/repository/status`, {
+      headers: { 'Accept': 'application/json' },
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Verification failed (HTTP ${response.status})`);
+    }
+    return await response.json();
+  },
+
+  /**
+   * Fetches backend build & Docker container information
+   */
+  async getBuildInfo() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/build-info`, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn('Build info unreachable:', err.message);
+      return null;
+    }
   }
 };
+

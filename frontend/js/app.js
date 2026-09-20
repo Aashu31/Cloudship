@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     health: { status: 'PROBING', database: 'CHECKING' },
     rtt: 0,
     activeView: 'overview',
+    selectedProjectId: null,
   };
 
   // Cached DOM References
@@ -56,6 +57,30 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSubmitProject: document.getElementById('btn-submit-project'),
     drawerProjectsCount: document.getElementById('drawer-projects-count'),
     drawerProjectsList: document.getElementById('drawer-projects-list'),
+
+    // Phase 2: GitHub Connection Card
+    githubConnectionCard: document.getElementById('github-connection-card'),
+    githubStatusPill: document.getElementById('github-status-pill'),
+    githubStatusLabel: document.getElementById('github-status-label'),
+    githubProjectSelect: document.getElementById('github-project-select'),
+    githubRepoUrl: document.getElementById('github-repo-url'),
+    githubBranch: document.getElementById('github-branch'),
+    githubLastSync: document.getElementById('github-last-sync'),
+    btnGithubConnect: document.getElementById('btn-github-connect'),
+    btnGithubVerify: document.getElementById('btn-github-verify'),
+    btnGithubDisconnect: document.getElementById('btn-github-disconnect'),
+
+    // Phase 2: Docker Container Readiness Card
+    dockerReadinessCard: document.getElementById('docker-readiness-card'),
+    dockerStatusPill: document.getElementById('docker-status-pill'),
+    dockerStatusLabel: document.getElementById('docker-status-label'),
+    dockerBaseImage: document.getElementById('docker-base-image'),
+    dockerExposedPort: document.getElementById('docker-exposed-port'),
+    dockerContainerStatus: document.getElementById('docker-container-status'),
+    btnCopyBuildCmd: document.getElementById('btn-copy-build-cmd'),
+    btnCopyComposeCmd: document.getElementById('btn-copy-compose-cmd'),
+    snippetBuildCmd: document.getElementById('snippet-build-cmd'),
+    snippetComposeCmd: document.getElementById('snippet-compose-cmd'),
 
     // Command Palette
     btnCmdTrigger: document.getElementById('btn-cmd-trigger'),
@@ -197,6 +222,15 @@ document.addEventListener('DOMContentLoaded', () => {
       // Render drawer projects list
       renderDrawerProjects();
 
+      // Phase 2: Populate GitHub Target Project Select
+      updateGithubProjectSelect();
+
+      // Phase 2: Load repository details for active project
+      await loadActiveProjectRepository();
+
+      // Phase 2: Load Docker build & container info
+      await loadDockerBuildInfo();
+
       // 2. Fetch recent deployments
       const deployments = await api.getAllDeployments();
       state.deployments = deployments || [];
@@ -231,15 +265,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     elements.drawerProjectsList.innerHTML = state.projects.map(proj => `
       <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; background: var(--color-surface-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
-        <div style="display: flex; flex-direction: column; gap: 2px;">
-          <span style="font-weight: 600; font-size: var(--font-body); color: var(--text-primary);">${escapeHtml(proj.name)}</span>
-          <span style="font-family: var(--font-mono); font-size: var(--font-micro); color: var(--text-muted);">${escapeHtml(proj.repositoryUrl || 'No VCS URL')}</span>
+        <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1;">
+          <div style="display: flex; align-items: center; gap: var(--space-2);">
+            <span style="font-weight: 600; font-size: var(--font-body); color: var(--text-primary);">${escapeHtml(proj.name)}</span>
+            ${state.selectedProjectId === proj.id ? '<span class="status-pill success" style="font-size: 0.6rem; padding: 0.1rem 0.35rem;"><span class="status-dot"></span>Selected</span>' : ''}
+          </div>
+          <span style="font-family: var(--font-mono); font-size: var(--font-micro); color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(proj.repositoryUrl || 'No VCS URL')}</span>
         </div>
-        <button class="btn btn-danger btn-sm btn-delete-project" data-id="${proj.id}" data-name="${escapeHtml(proj.name)}" type="button" title="Delete Project">
-          Delete
-        </button>
+        <div style="display: flex; gap: var(--space-2); margin-left: var(--space-2); flex-shrink: 0;">
+          <button class="btn btn-outline btn-sm btn-select-project" data-id="${proj.id}" type="button" title="Configure Git / Docker">
+            Config
+          </button>
+          <button class="btn btn-danger btn-sm btn-delete-project" data-id="${proj.id}" data-name="${escapeHtml(proj.name)}" type="button" title="Delete Project">
+            Delete
+          </button>
+        </div>
       </div>
     `).join('');
+
+    // Attach select listeners
+    elements.drawerProjectsList.querySelectorAll('.btn-select-project').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = Number(btn.getAttribute('data-id'));
+        state.selectedProjectId = id;
+        if (elements.githubProjectSelect) elements.githubProjectSelect.value = id;
+        await loadActiveProjectRepository();
+        renderDrawerProjects();
+        if (elements.githubConnectionCard) {
+          elements.githubConnectionCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
+    });
 
     // Attach delete listeners
     elements.drawerProjectsList.querySelectorAll('.btn-delete-project').forEach(btn => {
@@ -252,6 +308,9 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
           await api.deleteProject(id);
           showToast(`Project '${name}' deleted successfully`, 'success');
+          if (state.selectedProjectId === Number(id)) {
+            state.selectedProjectId = null;
+          }
           await refreshData();
         } catch (err) {
           showToast(`Deletion failed: ${err.message}`, 'error');
@@ -259,6 +318,115 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
+
+  /* ==========================================================================
+     4b. Phase 2: GitHub & Docker Integration Logic
+     ========================================================================== */
+  function updateGithubProjectSelect() {
+    if (!elements.githubProjectSelect) return;
+
+    const prevSelected = state.selectedProjectId;
+    elements.githubProjectSelect.innerHTML = '';
+
+    if (state.projects.length === 0) {
+      elements.githubProjectSelect.innerHTML = '<option value="">-- No projects registered --</option>';
+      state.selectedProjectId = null;
+      return;
+    }
+
+    elements.githubProjectSelect.innerHTML = state.projects.map(proj => `
+      <option value="${proj.id}">${escapeHtml(proj.name)} (ID: ${proj.id})</option>
+    `).join('');
+
+    // Maintain previous selection if still existing
+    const exists = state.projects.some(p => p.id === prevSelected);
+    if (exists) {
+      state.selectedProjectId = prevSelected;
+      elements.githubProjectSelect.value = prevSelected;
+    } else {
+      state.selectedProjectId = state.projects[0].id;
+      elements.githubProjectSelect.value = state.projects[0].id;
+    }
+  }
+
+  async function loadActiveProjectRepository() {
+    if (!elements.githubStatusPill || !elements.githubStatusLabel) return;
+
+    if (!state.selectedProjectId) {
+      elements.githubStatusPill.className = 'status-pill standby';
+      elements.githubStatusLabel.textContent = 'Not Connected';
+      if (elements.githubRepoUrl) elements.githubRepoUrl.value = '';
+      if (elements.githubBranch) elements.githubBranch.value = 'main';
+      if (elements.githubLastSync) elements.githubLastSync.textContent = 'Never synced';
+      if (elements.btnGithubConnect) elements.btnGithubConnect.disabled = true;
+      if (elements.btnGithubVerify) elements.btnGithubVerify.disabled = true;
+      if (elements.btnGithubDisconnect) elements.btnGithubDisconnect.disabled = true;
+      return;
+    }
+
+    if (elements.btnGithubConnect) elements.btnGithubConnect.disabled = false;
+
+    try {
+      const repo = await api.getRepository(state.selectedProjectId);
+
+      if (!repo) {
+        elements.githubStatusPill.className = 'status-pill standby';
+        elements.githubStatusLabel.textContent = 'Not Connected';
+        if (elements.githubLastSync) elements.githubLastSync.textContent = 'Never synced';
+        if (elements.btnGithubVerify) elements.btnGithubVerify.disabled = true;
+        if (elements.btnGithubDisconnect) elements.btnGithubDisconnect.disabled = true;
+        if (elements.btnGithubConnect) elements.btnGithubConnect.textContent = 'Connect Repository';
+
+        const activeProj = state.projects.find(p => p.id === state.selectedProjectId);
+        if (elements.githubRepoUrl) {
+          elements.githubRepoUrl.value = (activeProj && activeProj.repositoryUrl) ? activeProj.repositoryUrl : '';
+        }
+        if (elements.githubBranch) elements.githubBranch.value = 'main';
+      } else {
+        if (repo.connectionStatus === 'CONNECTED') {
+          elements.githubStatusPill.className = 'status-pill success';
+          elements.githubStatusLabel.textContent = 'Connected';
+        } else if (repo.connectionStatus === 'ERROR') {
+          elements.githubStatusPill.className = 'status-pill error';
+          elements.githubStatusLabel.textContent = 'Error';
+        } else {
+          elements.githubStatusPill.className = 'status-pill standby';
+          elements.githubStatusLabel.textContent = 'Not Connected';
+        }
+
+        if (elements.githubRepoUrl) elements.githubRepoUrl.value = repo.repositoryUrl || '';
+        if (elements.githubBranch) elements.githubBranch.value = repo.defaultBranch || 'main';
+        if (elements.githubLastSync) {
+          elements.githubLastSync.textContent = repo.updatedAt ? formatTimeAgo(repo.updatedAt) : 'Never synced';
+        }
+        if (elements.btnGithubVerify) elements.btnGithubVerify.disabled = false;
+        if (elements.btnGithubDisconnect) elements.btnGithubDisconnect.disabled = false;
+        if (elements.btnGithubConnect) elements.btnGithubConnect.textContent = 'Update Repository';
+      }
+    } catch (err) {
+      console.warn('Could not fetch repository for project:', err.message);
+      elements.githubStatusPill.className = 'status-pill error';
+      elements.githubStatusLabel.textContent = 'Error';
+    }
+  }
+
+  async function loadDockerBuildInfo() {
+    try {
+      const buildInfo = await api.getBuildInfo();
+      if (buildInfo) {
+        if (elements.dockerBaseImage) elements.dockerBaseImage.textContent = 'eclipse-temurin:17-jre-jammy';
+        if (elements.dockerExposedPort) elements.dockerExposedPort.textContent = '8088';
+        if (elements.dockerContainerStatus) elements.dockerContainerStatus.textContent = 'Dockerfile Ready';
+        if (elements.dockerStatusPill && elements.dockerStatusLabel) {
+          elements.dockerStatusPill.className = 'status-pill standby';
+          elements.dockerStatusLabel.textContent = 'Not Built';
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load build info:', err);
+    }
+  }
+
 
   /* ==========================================================================
      5. Render Recent Deployments Panel (With Honest Empty State)
@@ -421,6 +589,163 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  /* ==========================================================================
+     6b. Phase 2: GitHub & Docker Event Listeners
+     ========================================================================== */
+  if (elements.githubProjectSelect) {
+    elements.githubProjectSelect.addEventListener('change', async (e) => {
+      state.selectedProjectId = e.target.value ? Number(e.target.value) : null;
+      renderDrawerProjects();
+      await loadActiveProjectRepository();
+    });
+  }
+
+  if (elements.btnGithubConnect) {
+    elements.btnGithubConnect.addEventListener('click', async () => {
+      if (!state.selectedProjectId) {
+        showToast('Please select a target project first', 'error');
+        return;
+      }
+      const repoUrl = elements.githubRepoUrl ? elements.githubRepoUrl.value.trim() : '';
+      const branch = elements.githubBranch ? elements.githubBranch.value.trim() || 'main' : 'main';
+
+      if (!repoUrl) {
+        showToast('Repository URL is required (HTTPS or SSH)', 'error');
+        return;
+      }
+
+      elements.btnGithubConnect.disabled = true;
+      elements.btnGithubConnect.textContent = 'Connecting...';
+
+      try {
+        let repo;
+        try {
+          repo = await api.connectRepository(state.selectedProjectId, {
+            repositoryUrl: repoUrl,
+            defaultBranch: branch,
+          });
+        } catch (connErr) {
+          if (connErr.message.includes('already connected') || connErr.message.includes('already exists') || connErr.message.includes('409')) {
+            repo = await api.updateRepository(state.selectedProjectId, {
+              repositoryUrl: repoUrl,
+              defaultBranch: branch,
+            });
+          } else {
+            throw connErr;
+          }
+        }
+
+        showToast(`Repository connected: ${repo.owner}/${repo.repositoryName}`, 'success');
+        await refreshData();
+      } catch (err) {
+        showToast(`Connection failed: ${err.message}`, 'error');
+      } finally {
+        if (elements.btnGithubConnect) {
+          elements.btnGithubConnect.disabled = false;
+          elements.btnGithubConnect.textContent = 'Update Repository';
+        }
+      }
+    });
+  }
+
+  if (elements.btnGithubVerify) {
+    elements.btnGithubVerify.addEventListener('click', async () => {
+      if (!state.selectedProjectId) {
+        showToast('Please select a target project first', 'error');
+        return;
+      }
+
+      elements.btnGithubVerify.disabled = true;
+      elements.btnGithubVerify.textContent = 'Verifying...';
+
+      try {
+        const result = await api.verifyRepositoryStatus(state.selectedProjectId);
+        if (result.connectionStatus === 'CONNECTED') {
+          showToast(`Verified: ${result.message}`, 'success');
+        } else {
+          showToast(`Status: ${result.message}`, 'error');
+        }
+        await loadActiveProjectRepository();
+      } catch (err) {
+        showToast(`Verification failed: ${err.message}`, 'error');
+      } finally {
+        if (elements.btnGithubVerify) {
+          elements.btnGithubVerify.disabled = false;
+          elements.btnGithubVerify.textContent = 'Verify Connection';
+        }
+      }
+    });
+  }
+
+  if (elements.btnGithubDisconnect) {
+    elements.btnGithubDisconnect.addEventListener('click', async () => {
+      if (!state.selectedProjectId) return;
+      if (!confirm('Are you sure you want to disconnect this GitHub repository?')) {
+        return;
+      }
+
+      elements.btnGithubDisconnect.disabled = true;
+      elements.btnGithubDisconnect.textContent = 'Disconnecting...';
+
+      try {
+        await api.disconnectRepository(state.selectedProjectId);
+        showToast('Repository disconnected successfully', 'success');
+        await refreshData();
+      } catch (err) {
+        showToast(`Disconnect failed: ${err.message}`, 'error');
+      } finally {
+        if (elements.btnGithubDisconnect) {
+          elements.btnGithubDisconnect.disabled = false;
+          elements.btnGithubDisconnect.textContent = 'Disconnect';
+        }
+      }
+    });
+  }
+
+  function copyToClipboard(text, successMsg) {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(successMsg, 'success');
+      }).catch(() => {
+        fallbackCopy(text, successMsg);
+      });
+    } else {
+      fallbackCopy(text, successMsg);
+    }
+  }
+
+  function fallbackCopy(text, successMsg) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      showToast(successMsg, 'success');
+    } catch (err) {
+      showToast('Could not copy command', 'error');
+    }
+    textArea.remove();
+  }
+
+  if (elements.btnCopyBuildCmd) {
+    elements.btnCopyBuildCmd.addEventListener('click', () => {
+      const cmd = elements.snippetBuildCmd ? elements.snippetBuildCmd.textContent.trim() : 'docker build -t cloudship-backend:latest ./backend';
+      copyToClipboard(cmd, 'Docker build command copied to clipboard');
+    });
+  }
+
+  if (elements.btnCopyComposeCmd) {
+    elements.btnCopyComposeCmd.addEventListener('click', () => {
+      const cmd = elements.snippetComposeCmd ? elements.snippetComposeCmd.textContent.trim() : 'docker compose up -d';
+      copyToClipboard(cmd, 'Docker Compose command copied to clipboard');
+    });
+  }
+
 
   /* ==========================================================================
      7. Command Palette Modal (Ctrl + K / ⌘K)
