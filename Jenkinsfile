@@ -31,7 +31,7 @@ pipeline {
         stage('Validate') {
             steps {
                 echo '==> Validating project environment and workspace integrity'
-                sh 'java -version || true'
+                sh 'java -version'
                 script {
                     if (!fileExists('backend/pom.xml')) {
                         error('Validation failed: backend/pom.xml does not exist')

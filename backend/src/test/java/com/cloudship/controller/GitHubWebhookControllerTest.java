@@ -136,4 +136,211 @@ class GitHubWebhookControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("FAILED"));
     }
+
+    // =========================================================================
+    // HMAC-SHA256 Signature Verification Tests (Phase 3 Hardening)
+    // =========================================================================
+
+    private static final String TEST_WEBHOOK_SECRET = "super-secure-webhook-secret-xyz-987";
+
+    private MockMvc securedMockMvc;
+
+    @Autowired
+    private com.cloudship.service.CIService ciService;
+
+    @Autowired
+    private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
+    @org.junit.jupiter.api.BeforeEach
+    void initSecuredController() {
+        GitHubWebhookController securedController = new GitHubWebhookController(ciService, objectMapper, TEST_WEBHOOK_SECRET);
+        this.securedMockMvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
+                .standaloneSetup(securedController)
+                .build();
+    }
+
+    private static String computeSignature(String payload, String secret) {
+        try {
+            javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
+            javax.crypto.spec.SecretKeySpec keySpec = new javax.crypto.spec.SecretKeySpec(
+                    secret.getBytes(java.nio.charset.StandardCharsets.UTF_8), "HmacSHA256"
+            );
+            mac.init(keySpec);
+            byte[] hmacBytes = mac.doFinal(payload.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder("sha256=");
+            for (byte b : hmacBytes) {
+                hexString.append(String.format("%02x", b));
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    @DisplayName("1. Valid signature -> accepted with 200 OK")
+    void shouldAcceptValidSignature() throws Exception {
+        String payload = """
+            {
+                "ref": "refs/heads/main",
+                "repository": {
+                    "clone_url": "https://github.com/cloudship/webhook-demo.git",
+                    "html_url": "https://github.com/cloudship/webhook-demo"
+                }
+            }
+            """;
+        String validSig = computeSignature(payload, TEST_WEBHOOK_SECRET);
+
+        securedMockMvc.perform(post("/api/webhooks/github")
+                        .header("X-GitHub-Event", "push")
+                        .header("X-Hub-Signature-256", validSig)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PROCESSED"));
+    }
+
+    @Test
+    @DisplayName("2. Invalid signature -> rejected with 401 Unauthorized")
+    void shouldRejectInvalidSignature() throws Exception {
+        String payload = "{\"ref\": \"refs/heads/main\"}";
+        String invalidSig = "sha256=0000000000000000000000000000000000000000000000000000000000000000";
+
+        securedMockMvc.perform(post("/api/webhooks/github")
+                        .header("X-GitHub-Event", "push")
+                        .header("X-Hub-Signature-256", invalidSig)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.message").value("Invalid or missing webhook signature"));
+    }
+
+    @Test
+    @DisplayName("3. Missing signature when secret is configured -> rejected with 401 Unauthorized")
+    void shouldRejectMissingSignatureWhenSecretConfigured() throws Exception {
+        String payload = "{\"ref\": \"refs/heads/main\"}";
+
+        securedMockMvc.perform(post("/api/webhooks/github")
+                        .header("X-GitHub-Event", "push")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    @DisplayName("4. Malformed signature header format -> rejected with 401 Unauthorized")
+    void shouldRejectMalformedSignature() throws Exception {
+        String payload = "{\"ref\": \"refs/heads/main\"}";
+        // Missing "sha256=" prefix
+        String malformedSig = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
+
+        securedMockMvc.perform(post("/api/webhooks/github")
+                        .header("X-GitHub-Event", "push")
+                        .header("X-Hub-Signature-256", malformedSig)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    @DisplayName("5. Valid signature + unmapped repository -> returns IGNORED")
+    void shouldReturnIgnoredForValidSignatureWithUnmappedRepository() throws Exception {
+        String payload = """
+            {
+                "ref": "refs/heads/main",
+                "repository": {
+                    "clone_url": "https://github.com/unknown/nonexistent-project.git",
+                    "html_url": "https://github.com/unknown/nonexistent-project"
+                }
+            }
+            """;
+        String validSig = computeSignature(payload, TEST_WEBHOOK_SECRET);
+
+        securedMockMvc.perform(post("/api/webhooks/github")
+                        .header("X-GitHub-Event", "push")
+                        .header("X-Hub-Signature-256", validSig)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IGNORED"))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("No project configured")));
+    }
+
+    @Test
+    @DisplayName("6. Valid signature + mapped repository -> triggers CI build")
+    void shouldTriggerBuildForValidSignatureWithMappedRepository() throws Exception {
+        String payload = """
+            {
+                "ref": "refs/heads/main",
+                "repository": {
+                    "clone_url": "https://github.com/cloudship/webhook-demo.git",
+                    "html_url": "https://github.com/cloudship/webhook-demo"
+                },
+                "head_commit": {
+                    "id": "11223344556677889900aabbccddeeff11223344",
+                    "message": "feat: secured webhook trigger",
+                    "author": { "name": "Security Bot" }
+                }
+            }
+            """;
+        String validSig = computeSignature(payload, TEST_WEBHOOK_SECRET);
+
+        securedMockMvc.perform(post("/api/webhooks/github")
+                        .header("X-GitHub-Event", "push")
+                        .header("X-Hub-Signature-256", validSig)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PROCESSED"))
+                .andExpect(jsonPath("$.buildId").isNotEmpty())
+                .andExpect(jsonPath("$.projectId").value(testProject.getId()));
+    }
+
+    @Test
+    @DisplayName("7. Ping webhook with valid signature -> returns PONG (and ping without signature rejected)")
+    void shouldHandlePingWithValidSignatureAndRejectWithout() throws Exception {
+        String pingPayload = "{\"zen\": \"Security is paramount\"}";
+        String validSig = computeSignature(pingPayload, TEST_WEBHOOK_SECRET);
+
+        // Valid signature on ping -> 200 PONG
+        securedMockMvc.perform(post("/api/webhooks/github")
+                        .header("X-GitHub-Event", "ping")
+                        .header("X-Hub-Signature-256", validSig)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(pingPayload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PONG"));
+
+        // Missing signature on ping when secret is configured -> 401 Unauthorized
+        securedMockMvc.perform(post("/api/webhooks/github")
+                        .header("X-GitHub-Event", "ping")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(pingPayload))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    @DisplayName("8. Webhook secret never appears in response body")
+    void shouldNeverExposeWebhookSecretInResponse() throws Exception {
+        String payload = "{\"ref\": \"refs/heads/main\"}";
+        String invalidSig = "sha256=badbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbad1";
+
+        org.springframework.test.web.servlet.MvcResult result = securedMockMvc.perform(post("/api/webhooks/github")
+                        .header("X-GitHub-Event", "push")
+                        .header("X-Hub-Signature-256", invalidSig)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isUnauthorized())
+                .andReturn();
+
+        String responseBody = result.getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertFalse(
+                responseBody.contains(TEST_WEBHOOK_SECRET),
+                "Webhook response must NEVER expose the configured webhook secret"
+        );
+    }
 }

@@ -155,29 +155,50 @@ CREATE INDEX IF NOT EXISTS idx_ci_builds_created_at ON ci_builds(created_at DESC
 - **Endpoint**: `POST /api/webhooks/github`
 - **Headers**:
   - `X-GitHub-Event`: `push` | `ping`
-  - `X-Hub-Signature-256`: Optional HMAC SHA-256 signature
-- **Payload**: Standard GitHub Push or Ping event payload.
+  - `X-Hub-Signature-256`: HMAC-SHA256 signature (`sha256=<hex_digest>`)
+- **Payload**: Standard GitHub Push or Ping event payload (JSON).
+- **HMAC-SHA256 Signature Verification**:
+  - The signature is calculated as `HmacSHA256(rawRequestBody, JENKINS_WEBHOOK_SECRET)` and compared using constant-time comparison (`MessageDigest.isEqual`) to eliminate timing attacks.
+  - **When `JENKINS_WEBHOOK_SECRET` is configured (production/secure mode)**:
+    - The `X-Hub-Signature-256` header is **mandatory**.
+    - If the header is missing, malformed, or the cryptographic hash does not match, the request is immediately rejected with HTTP `401 Unauthorized` and payload `{"status":"UNAUTHORIZED","message":"Invalid or missing webhook signature"}`.
+    - Secrets and signature values are never logged or exposed in API responses.
+  - **When `JENKINS_WEBHOOK_SECRET` is unset/empty (local development fallback)**:
+    - Webhook verification is bypassed, and a security warning is logged at `WARN` level.
 - **Behavior**:
-  - `ping` ➔ Responds with `PONG` acknowledgment.
+  - `ping` ➔ Responds with HTTP 200 `PONG` acknowledgment.
   - `push` ➔ Matches repository URL to registered project, extracts branch and commit SHA, and automatically enqueues a new `CIBuild` with `triggerType = WEBHOOK`.
 
 ---
 
 ## 5. Environment Variables & Configuration
 
-The Jenkins CI subsystem is configured via `application.yml` and overridable via `.env`:
+The Jenkins CI subsystem is configured via `backend/src/main/resources/application.yml` and overridable via `.env`:
 
 ```yaml
 cloudship:
   jenkins:
-    base-url: ${CLOUDSHIP_JENKINS_BASE_URL:http://localhost:8080}
-    username: ${CLOUDSHIP_JENKINS_USER:admin}
-    api-token: ${CLOUDSHIP_JENKINS_TOKEN:}
-    job-name: ${CLOUDSHIP_JENKINS_JOB:cloudship-ci}
-    webhook-secret: ${CLOUDSHIP_JENKINS_WEBHOOK_SECRET:}
-    connect-timeout-seconds: 3
-    read-timeout-seconds: 5
+    base-url: ${JENKINS_BASE_URL:http://localhost:8080}
+    username: ${JENKINS_USERNAME:}
+    api-token: ${JENKINS_API_TOKEN:}
+    default-job-name: ${JENKINS_JOB_NAME:cloudship-ci}
+    webhook-secret: ${JENKINS_WEBHOOK_SECRET:}
 ```
+
+### Configuration Parameters
+
+| Environment Variable | Default Value | Description |
+|---|---|---|
+| `JENKINS_BASE_URL` | `http://localhost:8080` | URL of the Jenkins controller instance |
+| `JENKINS_USERNAME` | *(empty)* | Jenkins user account for API authentication |
+| `JENKINS_API_TOKEN` | *(empty)* | Jenkins API token or crumb for authenticated REST calls |
+| `JENKINS_JOB_NAME` | `cloudship-ci` | Target Jenkins pipeline job name |
+| `JENKINS_WEBHOOK_SECRET` | *(empty)* | Shared secret for verifying GitHub `X-Hub-Signature-256` |
+
+### Webhook Secret Behavior (`JENKINS_WEBHOOK_SECRET`)
+
+- **Configured (Recommended for Production)**: Every inbound webhook request must contain a valid `X-Hub-Signature-256` computed with this secret. Unauthorized requests return HTTP 401.
+- **Unset / Empty**: Requests without signatures are accepted with a logged warning to simplify local development environments.
 
 ### Local Resilience & Offline Fallback
 
