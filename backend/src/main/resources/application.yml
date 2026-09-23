@@ -37,3 +37,16 @@ cloudship:
     api-token: ${JENKINS_API_TOKEN:}
     default-job-name: ${JENKINS_JOB_NAME:cloudship-ci}
     webhook-secret: ${JENKINS_WEBHOOK_SECRET:}
+  azure:
+    enabled: ${AZURE_ENABLED:false}
+    subscription-id: ${AZURE_SUBSCRIPTION_ID:}
+    tenant-id: ${AZURE_TENANT_ID:}
+    client-id: ${AZURE_CLIENT_ID:}
+    client-secret: ${AZURE_CLIENT_SECRET:}
+    resource-group: ${AZURE_RESOURCE_GROUP:rg-cloudship-dev}
+    location: ${AZURE_LOCATION:eastus}
+    vnet-name: ${AZURE_VNET_NAME:vnet-cloudship}
+    subnet-name: ${AZURE_SUBNET_NAME:snet-cloudship}
+    acr-name: ${AZURE_ACR_NAME:cloudshipcr}
+    acr-login-server: ${AZURE_ACR_LOGIN_SERVER:}
+    acr-repository-prefix: ${AZURE_ACR_REPOSITORY_PREFIX:cloudship}

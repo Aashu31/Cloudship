@@ -49,8 +49,12 @@ The pipeline is authored as a declarative Jenkinsfile ensuring repeatable, deter
 | **2** | **Validate Environment** | Verifies presence of JDK 17, Maven 3.9+, and Docker runtime | `java -version`, `mvn -v`, `docker -v` |
 | **3** | **Compile Backend** | Compiles Java classes without executing test phase | `mvn clean compile -DskipTests` |
 | **4** | **Run Tests** | Executes unit and integration test suites with surefire | `mvn test` |
-| **5** | **Build Docker Image** | Builds Docker image tagged with commit SHA and latest | `docker build -t cloudship/backend:${GIT_COMMIT_SHORT} ./backend` |
-| **6** | **Publish CI Results** | Emits build status, stage timings, and metrics to CloudShip API | CloudShip webhook callback / status update |
+| **5** | **Build Docker Image** | Builds Docker image tagged with commit SHA | `docker build -t cloudship/backend:${GIT_COMMIT_SHORT} ./backend` |
+| **6** | **Authenticate to ACR** | Logs in to Azure Container Registry using service principal | `az acr login --name ${ACR_NAME}` / `docker login` |
+| **7** | **Tag for Registry** | Tags image with ACR login server and repository prefix | `docker tag ... ${ACR_LOGIN_SERVER}/${IMAGE_PREFIX}...` |
+| **8** | **Push to ACR** | Pushes image layers and manifest to ACR | `docker push ${ACR_LOGIN_SERVER}/${IMAGE_PREFIX}...` |
+| **9** | **Verify Push** | Extracts image digest (`sha256:...`) and validates push | `docker inspect --format='{{index .RepoDigests 0}}'` |
+| **10** | **Publish CI & ACR Results** | Emits build status, push status, digest, and timings to CloudShip API | CloudShip webhook callback / status update |
 
 ### Failure Matrix
 
@@ -58,6 +62,8 @@ If any stage fails:
 - Stage 3 (Compilation error) ➔ Build marked as `FAILED`, tests and Docker builds skipped.
 - Stage 4 (Unit test failure) ➔ Build marked as `FAILED`, test results archived, Docker build skipped.
 - Stage 5 (Docker daemon error) ➔ Build marked as `FAILED`, no image artifact created.
+- Stage 6 (ACR Auth error) ➔ Build marked as `FAILED` or `SUCCESS` with `pushStatus = FAILED`.
+- Stage 8 (ACR Push error) ➔ Build marked with `pushStatus = FAILED` and sanitized error recorded.
 - Notifications and state are transmitted to the CloudShip backend with the stage logs excerpt and error description.
 
 ---
@@ -70,29 +76,33 @@ If any stage fails:
 CREATE TABLE IF NOT EXISTS ci_builds (
     id BIGSERIAL PRIMARY KEY,
     project_id BIGINT NOT NULL,
-    build_number BIGINT,
+    git_repository_id BIGINT,
+    commit_sha VARCHAR(100),
+    branch VARCHAR(100) NOT NULL DEFAULT 'main',
     trigger_type VARCHAR(50) NOT NULL DEFAULT 'MANUAL',
     status VARCHAR(50) NOT NULL DEFAULT 'QUEUED',
-    branch VARCHAR(100) NOT NULL DEFAULT 'main',
-    commit_sha VARCHAR(100),
-    docker_image_tag VARCHAR(255),
-    stages_json TEXT,
-    logs_summary TEXT,
-    error_message TEXT,
-    duration_seconds BIGINT,
-    queued_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     started_at TIMESTAMP WITH TIME ZONE,
-    finished_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_ci_build_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    CONSTRAINT chk_ci_build_trigger CHECK (trigger_type IN ('MANUAL', 'WEBHOOK')),
-    CONSTRAINT chk_ci_build_status CHECK (status IN ('QUEUED', 'RUNNING', 'SUCCESS', 'FAILED', 'ABORTED'))
+    completed_at TIMESTAMP WITH TIME ZONE,
+    duration_ms BIGINT,
+    commit_message VARCHAR(500),
+    commit_author VARCHAR(100),
+    jenkins_build_number INT,
+    jenkins_job_name VARCHAR(100),
+    docker_image_name VARCHAR(200),
+    docker_image_tag VARCHAR(100),
+    error_message VARCHAR(1000),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT fk_ci_builds_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ci_builds_git_repository FOREIGN KEY (git_repository_id) REFERENCES git_repositories(id) ON DELETE SET NULL,
+    CONSTRAINT chk_ci_builds_status CHECK (status IN ('QUEUED', 'RUNNING', 'SUCCESS', 'FAILED', 'ABORTED')),
+    CONSTRAINT chk_ci_builds_trigger CHECK (trigger_type IN ('MANUAL', 'WEBHOOK'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_ci_builds_project_id ON ci_builds(project_id);
 CREATE INDEX IF NOT EXISTS idx_ci_builds_status ON ci_builds(status);
 CREATE INDEX IF NOT EXISTS idx_ci_builds_created_at ON ci_builds(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ci_builds_commit_sha ON ci_builds(commit_sha);
 ```
 
 ### Domain Entities

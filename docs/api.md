@@ -1,7 +1,7 @@
 # CloudShip — REST API Specification
 
-**Document Version:** 1.0.0  
-**Phase:** Phase 1 (Application Foundation)  
+**Document Version:** 1.2.0  
+**Phase:** Phase 4 (Azure Infrastructure Foundation)  
 **Base URL:** `http://localhost:8088/api`  
 
 ---
@@ -275,4 +275,258 @@ Retrieves backend build and Docker container runtime metadata.
   "timestamp": "2026-09-21T04:44:10.779Z"
 }
 ```
+
+---
+
+### 2.7 Continuous Integration (CI) API (Phase 3)
+
+#### `GET /api/jenkins/status`
+Checks connectivity and job availability for the Jenkins CI server.
+
+**Response `200 OK`**:
+```json
+{
+  "available": false,
+  "connectionStatus": "NOT_CONNECTED",
+  "baseUrl": "http://localhost:8080",
+  "jobName": "cloudship-ci",
+  "message": "Jenkins server unreachable"
+}
+```
+
+#### `GET /api/projects/{projectId}/ci-builds` (or `/api/projects/{projectId}/ci/builds`)
+Lists CI builds for a project ordered by creation date descending. Automatically reconciles `RUNNING` builds with Jenkins API if alive.
+
+**Response `200 OK`**:
+```json
+[
+  {
+    "id": 1,
+    "projectId": 1,
+    "gitRepositoryId": 1,
+    "commitSha": "3645398",
+    "branch": "main",
+    "triggerType": "MANUAL",
+    "status": "SUCCESS",
+    "dockerImageName": "cloudship/backend",
+    "dockerImageTag": "3645398",
+    "jenkinsBuildNumber": 12,
+    "jenkinsJobName": "cloudship-ci",
+    "durationMs": 45000,
+    "startedAt": "2026-09-22T20:00:00Z",
+    "completedAt": "2026-09-22T20:00:45Z",
+    "createdAt": "2026-09-22T19:59:58Z"
+  }
+]
+```
+
+#### `POST /api/projects/{projectId}/ci-builds` (or `/api/projects/{projectId}/ci/build`)
+Queues a new CI build. If `commitSha` is omitted, it is left null until resolved by SCM or Jenkins callback.
+
+**Request Body**:
+```json
+{
+  "branch": "main",
+  "commitSha": "3645398",
+  "triggerType": "MANUAL"
+}
+```
+
+**Response `201 Created`**: Returns initialized `CIBuildResponse` with status `QUEUED`.
+
+#### `GET /api/ci-builds/{id}` (or `/api/projects/{projectId}/ci-builds/{id}`)
+Fetches single build details with live status reconciliation against Jenkins.
+
+#### `PATCH /api/ci-builds/{id}/status`
+Callback endpoint invoked by CI runners / Jenkins pipeline `post` blocks to report final status, duration, error messages, and resolved commit SHA.
+Protected by `X-CloudShip-CI-Token` verification when webhook secret is configured.
+
+**Request Body**:
+```json
+{
+  "status": "SUCCESS",
+  "commitSha": "3645398",
+  "jenkinsBuildNumber": 12,
+  "dockerImageTag": "3645398",
+  "errorMessage": null
+}
+```
+
+#### `POST /api/webhooks/github`
+Handles GitHub push events to automatically queue a CI build when the branch matches the configured project repository.
+
+---
+
+### 2.8 Azure Infrastructure Foundation API (Phase 4)
+
+Base paths supported: `/api/azure/*` and `/api/infrastructure/azure/*`.
+
+#### `GET /api/azure/status`
+Retrieves Azure Resource Manager connectivity and authentication status.
+
+**Response `200 OK`**:
+```json
+{
+  "configured": true,
+  "connectionStatus": "CONNECTED",
+  "subscriptionId": "00000000-0000-0000-0000-000000000000",
+  "tenantId": "11111111-1111-1111-1111-111111111111",
+  "resourceGroup": "rg-cloudship-dev",
+  "location": "eastus",
+  "message": "Azure connection established and verified successfully",
+  "lastCheckedAt": "2026-09-22T22:00:00Z"
+}
+```
+
+#### `GET /api/azure/resource-group` (alias: `/api/azure/resources`)
+Inspects target Azure Resource Group existence, provisioning state, region, and tags.
+
+**Response `200 OK`**:
+```json
+{
+  "name": "rg-cloudship-dev",
+  "location": "eastus",
+  "provisioningState": "Succeeded",
+  "status": "READY",
+  "message": "Resource Group verified successfully",
+  "tags": { "Environment": "dev" }
+}
+```
+
+#### `GET /api/azure/network`
+Inspects Azure Virtual Network and Subnet topology, address prefixes, and status.
+
+**Response `200 OK`**:
+```json
+{
+  "vnetName": "vnet-cloudship",
+  "subnetName": "snet-cloudship",
+  "location": "eastus",
+  "provisioningState": "Succeeded",
+  "addressSpaces": ["10.0.0.0/16"],
+  "subnetAddressPrefixes": ["10.0.1.0/24"],
+  "status": "READY",
+  "subnetStatus": "READY",
+  "message": "Virtual network and subnet verified successfully"
+}
+```
+
+#### `GET /api/azure/registry`
+Inspects Azure Container Registry (ACR) name, login server, SKU, and admin user status.
+
+**Response `200 OK`**:
+```json
+{
+  "name": "cloudshipcr",
+  "loginServer": "cloudshipcr.azurecr.io",
+  "location": "eastus",
+  "sku": "Standard",
+  "adminUserEnabled": false,
+  "provisioningState": "Succeeded",
+  "status": "READY",
+  "message": "Azure Container Registry verified successfully"
+}
+```
+
+#### `GET /api/azure/infrastructure` (alias: `GET /api/azure`)
+Returns aggregated infrastructure overview comprising status, resource group, virtual network, and container registry.
+
+#### `GET /api/azure/health`
+Health probe for container orchestrators and platform monitoring.
+
+---
+
+### 2.8 Azure Container Registry (ACR) API (Version 5)
+
+All ACR endpoints are accessible under both `/api/azure/registry` and `/api/infrastructure/azure/registry`.
+
+#### `GET /api/azure/registry/status`
+Probes ACR configuration and SDK connectivity.
+
+**Response `200 OK`**:
+```json
+{
+  "status": "READY",
+  "connected": true,
+  "registryName": "cloudshipcr",
+  "loginServer": "cloudshipcr.azurecr.io",
+  "resourceGroup": "rg-cloudship-dev",
+  "location": "eastus",
+  "adminUserEnabled": false
+}
+```
+
+#### `GET /api/azure/registry/health`
+Health check endpoint reporting ACR connectivity.
+
+**Response `200 OK`**:
+```json
+{
+  "status": "UP",
+  "registry": "cloudshipcr",
+  "loginServer": "cloudshipcr.azurecr.io",
+  "adminUserEnabled": false
+}
+```
+
+#### `GET /api/azure/registry/repositories`
+Lists all container repositories registered in Azure Container Registry.
+
+**Response `200 OK`**:
+```json
+[
+  "cloudship/backend"
+]
+```
+
+#### `GET /api/azure/registry/images`
+Lists all images across all repositories in ACR with tags and digests.
+
+**Response `200 OK`**:
+```json
+[
+  {
+    "repository": "cloudship/backend",
+    "tag": "a3f9c2d",
+    "digest": "sha256:4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b553e6363964c10",
+    "fullImageName": "cloudshipcr.azurecr.io/cloudship/backend:a3f9c2d",
+    "loginServer": "cloudshipcr.azurecr.io",
+    "lastUpdateTime": "2026-09-22T22:30:00Z"
+  }
+]
+```
+
+#### `GET /api/azure/registry/images/{repository}`
+Lists all image tags and digests for a specific repository.
+
+#### `GET /api/azure/registry/images/{repository}/{tag}`
+Retrieves detailed metadata for a specific image repository and tag.
+
+#### `POST /api/azure/registry/verify`
+Verifies whether a specific image repository, tag, and optional digest exists in the Azure Container Registry.
+
+**Request Body**:
+```json
+{
+  "repository": "cloudship/backend",
+  "tag": "a3f9c2d",
+  "digest": "sha256:4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b553e6363964c10"
+}
+```
+
+**Response `200 OK`**:
+```json
+{
+  "repository": "cloudship/backend",
+  "tag": "a3f9c2d",
+  "digest": "sha256:4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b553e6363964c10",
+  "verified": true,
+  "status": "FOUND",
+  "loginServer": "cloudshipcr.azurecr.io",
+  "message": "Image verified in Azure Container Registry",
+  "verifiedAt": "2026-09-22T22:35:10Z"
+}
+```
+
+
 

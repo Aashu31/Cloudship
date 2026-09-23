@@ -42,6 +42,9 @@ class CIBuildControllerTest {
     @Autowired
     private CIBuildRepository ciBuildRepository;
 
+    @Autowired
+    private com.cloudship.service.CIService ciService;
+
     @MockBean
     private JenkinsClient jenkinsClient;
 
@@ -201,5 +204,28 @@ class CIBuildControllerTest {
                 .andExpect(jsonPath("$.available").value(true))
                 .andExpect(jsonPath("$.connectionStatus").value("CONNECTED"))
                 .andExpect(jsonPath("$.baseUrl").value("http://localhost:8080"));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/ci-builds/{id} with configured webhook secret should enforce X-CloudShip-CI-Token")
+    void shouldEnforceTokenWhenSecretConfigured() throws Exception {
+        CIBuildController securedController = new CIBuildController(ciService, "secret-token-123");
+        MockMvc customMvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
+                .standaloneSetup(securedController)
+                .setControllerAdvice(new com.cloudship.exception.GlobalExceptionHandler())
+                .build();
+
+        // 1. Without token -> 401
+        customMvc.perform(patch("/api/ci-builds/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"SUCCESS\"}"))
+                .andExpect(status().isUnauthorized());
+
+        // 2. With wrong token -> 401
+        customMvc.perform(patch("/api/ci-builds/1")
+                        .header("X-CloudShip-CI-Token", "wrong-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"SUCCESS\"}"))
+                .andExpect(status().isUnauthorized());
     }
 }

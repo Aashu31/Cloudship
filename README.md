@@ -3,8 +3,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Primary Cloud: Azure](https://img.shields.io/badge/Primary%20Cloud-Microsoft%20Azure-0078D4.svg)](docs/cloud-strategy.md)
 [![Future Cloud: AWS](https://img.shields.io/badge/Future%20Cloud-AWS%20(Phase%2013)-FF9900.svg)](docs/cloud-strategy.md)
-[![Phase](https://img.shields.io/badge/Phase-2%20(GitHub%20+%20Docker)-success.svg)](docs/roadmap.md)
-[![Status](https://img.shields.io/badge/Status-Phase%202%20Complete-brightgreen.svg)](docs/roadmap.md)
+[![Phase](https://img.shields.io/badge/Phase-5%20(Azure%20Container%20Registry)-success.svg)](docs/azure-acr.md)
+[![Status](https://img.shields.io/badge/Status-Phase%205%20Complete-brightgreen.svg)](docs/roadmap.md)
 
 **CloudShip** is an intelligent DevOps deployment and recovery platform designed to demonstrate real-world continuous delivery, container orchestration, real-time health observability, and automated site reliability engineering (SRE) recovery.
 
@@ -215,6 +215,9 @@ For complete details, refer to:
 - [docs/local-development.md](docs/local-development.md) — Local development workflow
 - [docs/github-integration.md](docs/github-integration.md) — GitHub connection guide & REST APIs
 - [docs/docker.md](docs/docker.md) — Docker container foundation & Compose architecture
+- [docs/jenkins-ci.md](docs/jenkins-ci.md) — Jenkins CI pipeline & webhook architecture
+- [docs/azure-infrastructure.md](docs/azure-infrastructure.md) — Azure Infrastructure Foundation
+- [docs/azure-acr.md](docs/azure-acr.md) — Azure Container Registry (ACR) Integration (Phase 5)
 - [docs/api.md](docs/api.md) — Complete REST API contract & endpoints
 - [docs/database.md](docs/database.md) — Schema design & Flyway migrations
 - [docs/development-setup.md](docs/development-setup.md) — Progressive tooling model

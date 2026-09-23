@@ -9,6 +9,7 @@ import com.cloudship.exception.ResourceNotFoundException;
 import com.cloudship.repository.CIBuildRepository;
 import com.cloudship.repository.GitRepositoryRepository;
 import com.cloudship.repository.ProjectRepository;
+import com.cloudship.service.jenkins.JenkinsBuildDetails;
 import com.cloudship.service.jenkins.JenkinsClient;
 import com.cloudship.service.jenkins.JenkinsTriggerResult;
 import org.slf4j.Logger;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -31,6 +33,7 @@ public class CIService {
     private final GitRepositoryRepository gitRepositoryRepository;
     private final JenkinsClient jenkinsClient;
     private final String defaultJobName;
+    private final com.cloudship.config.AzureProperties azureProperties;
 
     public CIService(
             CIBuildRepository ciBuildRepository,
@@ -38,11 +41,23 @@ public class CIService {
             GitRepositoryRepository gitRepositoryRepository,
             JenkinsClient jenkinsClient,
             @Value("${cloudship.jenkins.default-job-name:cloudship-ci}") String defaultJobName) {
+        this(ciBuildRepository, projectRepository, gitRepositoryRepository, jenkinsClient, defaultJobName, new com.cloudship.config.AzureProperties());
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public CIService(
+            CIBuildRepository ciBuildRepository,
+            ProjectRepository projectRepository,
+            GitRepositoryRepository gitRepositoryRepository,
+            JenkinsClient jenkinsClient,
+            @Value("${cloudship.jenkins.default-job-name:cloudship-ci}") String defaultJobName,
+            com.cloudship.config.AzureProperties azureProperties) {
         this.ciBuildRepository = ciBuildRepository;
         this.projectRepository = projectRepository;
         this.gitRepositoryRepository = gitRepositoryRepository;
         this.jenkinsClient = jenkinsClient;
         this.defaultJobName = defaultJobName;
+        this.azureProperties = azureProperties != null ? azureProperties : new com.cloudship.config.AzureProperties();
     }
 
     @Transactional
@@ -61,7 +76,7 @@ public class CIService {
 
         String commitSha = (request != null && request.getCommitSha() != null && !request.getCommitSha().isBlank())
                 ? request.getCommitSha().trim()
-                : generateSimulatedSha();
+                : null;
 
         String commitMessage = (request != null && request.getCommitMessage() != null && !request.getCommitMessage().isBlank())
                 ? request.getCommitMessage().trim()
@@ -72,6 +87,9 @@ public class CIService {
                 : "CloudShip Engineer";
 
         CITriggerType actualTriggerType = (triggerType != null) ? triggerType : CITriggerType.MANUAL;
+
+        String dockerImageTag = com.cloudship.util.DockerImageValidator.constructImageTag(commitSha, branch, null);
+        String dockerImageName = "cloudship/backend";
 
         CIBuild build = new CIBuild();
         build.setProject(project);
@@ -84,45 +102,57 @@ public class CIService {
         build.setCommitMessage(commitMessage);
         build.setCommitAuthor(commitAuthor);
         build.setJenkinsJobName(defaultJobName);
-        build.setDockerImageName("cloudship/backend");
-        build.setDockerImageTag(commitSha.length() >= 7 ? commitSha.substring(0, 7) : commitSha);
+        build.setDockerImageName(dockerImageName);
+        build.setDockerImageTag(dockerImageTag);
+        build.setRegistryName(azureProperties.getAcrName());
+        build.setRegistryLoginServer(azureProperties.resolveAcrLoginServer());
+        build.setPushStatus(com.cloudship.entity.CIPushStatus.NOT_STARTED);
+
+        // Pre-save build so an ID is generated before dispatching to Jenkins
+        CIBuild saved = ciBuildRepository.save(build);
 
         // Attempt triggering Jenkins
         Map<String, String> params = new HashMap<>();
         params.put("GIT_URL", repository.getRepositoryUrl());
         params.put("BRANCH_NAME", branch);
-        params.put("GIT_COMMIT", commitSha);
+        params.put("GIT_COMMIT", commitSha != null ? commitSha : "HEAD");
         params.put("PROJECT_ID", String.valueOf(projectId));
+        params.put("CLOUDSHIP_BUILD_ID", String.valueOf(saved.getId()));
+        params.put("DOCKER_IMAGE_NAME", dockerImageName);
+        params.put("DOCKER_IMAGE_TAG", dockerImageTag);
+        params.put("ACR_NAME", azureProperties.getAcrName() != null ? azureProperties.getAcrName() : "");
+        params.put("ACR_LOGIN_SERVER", azureProperties.resolveAcrLoginServer() != null ? azureProperties.resolveAcrLoginServer() : "");
 
         JenkinsTriggerResult triggerResult = jenkinsClient.triggerJob(defaultJobName, params);
 
         if (triggerResult.isSuccess()) {
-            build.setStatus(CIBuildStatus.RUNNING);
-            build.setJenkinsBuildNumber(triggerResult.getBuildNumber());
-            log.info("CI Build queued in Jenkins for project '{}' [Build ID: {}]", project.getName(), build.getId());
+            saved.setStatus(CIBuildStatus.RUNNING);
+            saved.setJenkinsBuildNumber(triggerResult.getBuildNumber());
+            log.info("CI Build queued in Jenkins for project '{}' [Build ID: {}]", project.getName(), saved.getId());
         } else {
-            build.setStatus(CIBuildStatus.FAILED);
-            build.setCompletedAt(OffsetDateTime.now());
-            build.setDurationMs(0L);
-            build.setErrorMessage(triggerResult.getMessage());
+            saved.setStatus(CIBuildStatus.FAILED);
+            saved.setCompletedAt(OffsetDateTime.now());
+            saved.setDurationMs(0L);
+            saved.setErrorMessage(triggerResult.getMessage());
             log.warn("CI Build for project '{}' failed to dispatch to Jenkins: {}", project.getName(), triggerResult.getMessage());
         }
 
-        CIBuild saved = ciBuildRepository.save(build);
+        saved = ciBuildRepository.save(saved);
         return CIBuildResponse.fromEntity(saved);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<CIBuildResponse> getProjectBuilds(Long projectId) {
         if (!projectRepository.existsById(projectId)) {
             throw new ResourceNotFoundException("Project with ID '" + projectId + "' was not found");
         }
         return ciBuildRepository.findByProjectIdOrderByCreatedAtDesc(projectId).stream()
+                .map(this::reconcileBuildStatusIfRunning)
                 .map(CIBuildResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CIBuildResponse getProjectBuild(Long projectId, Long buildId) {
         if (!projectRepository.existsById(projectId)) {
             throw new ResourceNotFoundException("Project with ID '" + projectId + "' was not found");
@@ -131,13 +161,15 @@ public class CIService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "CI Build with ID '" + buildId + "' not found for project '" + projectId + "'"
                 ));
+        build = reconcileBuildStatusIfRunning(build);
         return CIBuildResponse.fromEntity(build);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CIBuildResponse getBuild(Long id) {
         CIBuild build = ciBuildRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("CI Build with ID '" + id + "' was not found"));
+        build = reconcileBuildStatusIfRunning(build);
         return CIBuildResponse.fromEntity(build);
     }
 
@@ -161,6 +193,8 @@ public class CIService {
         }
         if (request.getDurationMs() != null) {
             build.setDurationMs(request.getDurationMs());
+        } else if (build.getDurationMs() == null && build.getStartedAt() != null && build.getCompletedAt() != null) {
+            build.setDurationMs(Duration.between(build.getStartedAt(), build.getCompletedAt()).toMillis());
         }
         if (request.getDockerImageTag() != null && !request.getDockerImageTag().isBlank()) {
             build.setDockerImageTag(request.getDockerImageTag());
@@ -168,9 +202,36 @@ public class CIService {
         if (request.getErrorMessage() != null) {
             build.setErrorMessage(request.getErrorMessage());
         }
+        if (request.getPushStatus() != null) {
+            build.setPushStatus(request.getPushStatus());
+            if (request.getPushStatus() == com.cloudship.entity.CIPushStatus.RUNNING && build.getPushStartedAt() == null) {
+                build.setPushStartedAt(OffsetDateTime.now());
+            }
+            if ((request.getPushStatus() == com.cloudship.entity.CIPushStatus.SUCCESS
+                    || request.getPushStatus() == com.cloudship.entity.CIPushStatus.FAILED
+                    || request.getPushStatus() == com.cloudship.entity.CIPushStatus.SKIPPED)
+                    && build.getPushCompletedAt() == null) {
+                build.setPushCompletedAt(OffsetDateTime.now());
+            }
+        }
+        if (request.getPushDurationMs() != null) {
+            build.setPushDurationMs(request.getPushDurationMs());
+        }
+        if (request.getPushErrorMessage() != null) {
+            build.setPushErrorMessage(com.cloudship.util.DockerImageValidator.sanitizeErrorMessage(request.getPushErrorMessage()));
+        }
+        if (request.getImageDigest() != null && !request.getImageDigest().isBlank()) {
+            build.setImageDigest(request.getImageDigest().trim());
+        }
+        if (request.getRegistryName() != null && !request.getRegistryName().isBlank()) {
+            build.setRegistryName(request.getRegistryName().trim());
+        }
+        if (request.getRegistryLoginServer() != null && !request.getRegistryLoginServer().isBlank()) {
+            build.setRegistryLoginServer(request.getRegistryLoginServer().trim());
+        }
 
         CIBuild saved = ciBuildRepository.save(build);
-        log.info("Updated CI Build {} status to {}", id, saved.getStatus());
+        log.info("Updated CI Build {} status to {} (pushStatus: {})", id, saved.getStatus(), saved.getPushStatus());
         return CIBuildResponse.fromEntity(saved);
     }
 
@@ -237,6 +298,31 @@ public class CIService {
         return status;
     }
 
+    private CIBuild reconcileBuildStatusIfRunning(CIBuild build) {
+        if (build.getStatus() == CIBuildStatus.RUNNING && build.getJenkinsBuildNumber() != null) {
+            try {
+                String jobName = build.getJenkinsJobName() != null ? build.getJenkinsJobName() : defaultJobName;
+                JenkinsBuildDetails details = jenkinsClient.getBuildDetails(jobName, build.getJenkinsBuildNumber());
+                if (details != null && details.getStatus() != null && details.getStatus() != CIBuildStatus.RUNNING) {
+                    build.setStatus(details.getStatus());
+                    if (build.getCompletedAt() == null) {
+                        build.setCompletedAt(OffsetDateTime.now());
+                    }
+                    if (details.getDurationMs() > 0) {
+                        build.setDurationMs(details.getDurationMs());
+                    } else if (build.getDurationMs() == null && build.getStartedAt() != null && build.getCompletedAt() != null) {
+                        build.setDurationMs(Duration.between(build.getStartedAt(), build.getCompletedAt()).toMillis());
+                    }
+                    build = ciBuildRepository.save(build);
+                    log.info("Reconciled running CI Build {} with Jenkins status: {}", build.getId(), build.getStatus());
+                }
+            } catch (Exception e) {
+                log.warn("Failed to reconcile CI build {} status from Jenkins: {}", build.getId(), e.getMessage());
+            }
+        }
+        return build;
+    }
+
     private Optional<GitRepository> findMatchingRepository(String targetUrl) {
         String normalizedTarget = normalizeRepoUrl(targetUrl);
         return gitRepositoryRepository.findAll().stream()
@@ -268,11 +354,5 @@ public class CIService {
             }
         }
         return null;
-    }
-
-    private String generateSimulatedSha() {
-        String part1 = UUID.randomUUID().toString().replace("-", "");
-        String part2 = UUID.randomUUID().toString().replace("-", "");
-        return (part1 + part2).substring(0, 40);
     }
 }

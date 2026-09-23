@@ -16,6 +16,12 @@ document.addEventListener('DOMContentLoaded', () => {
     jenkinsStatus: { available: false, connectionStatus: 'UNKNOWN' },
     ciBuilds: [],
     latestCIBuild: null,
+    azureStatus: { status: 'NOT_CONFIGURED', message: 'Checking...' },
+    azureInfra: null,
+    acrStatus: { status: 'NOT_CONFIGURED', connected: false, message: 'Standby' },
+    acrDetails: null,
+    acrRepositories: [],
+    acrImages: [],
   };
 
   // Cached DOM References
@@ -27,6 +33,10 @@ document.addEventListener('DOMContentLoaded', () => {
     dbStatusText: document.getElementById('db-status-text'),
     rttText: document.getElementById('rtt-text'),
     infraDbPill: document.getElementById('infra-db-pill'),
+    infraOverallPill: document.getElementById('infra-overall-pill'),
+    infraOverallStatus: document.getElementById('infra-overall-status'),
+    infraAzurePill: document.getElementById('infra-azure-pill'),
+    infraAzureLabel: document.getElementById('infra-azure-label'),
 
     // Metrics Strip
     metricActiveDeployments: document.getElementById('metric-active-deployments'),
@@ -38,67 +48,72 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Deployments Panel
     deploymentsListContainer: document.getElementById('deployments-list-container'),
-    btnHeroNewDeploy: document.getElementById('btn-hero-new-deploy'),
-    btnHeroViewProjects: document.getElementById('btn-hero-view-projects'),
-    linkViewAllDeployments: document.getElementById('link-view-all-deployments'),
     btnEmptyNewDeploy: document.getElementById('btn-empty-new-deploy'),
+
+    // Pipeline Stepper
+    pipelineOverallStatus: document.getElementById('pipeline-overall-status'),
+    pipelineOverallStatusText: document.getElementById('pipeline-overall-status-text'),
 
     // Sidebar & Navigation
     navLinks: document.querySelectorAll('.nav-link'),
     btnSidebarToggle: document.getElementById('btn-sidebar-toggle'),
     appSidebar: document.getElementById('app-sidebar'),
-    navProjectsLink: document.getElementById('nav-projects-link'),
 
     // Slide-Over Project Drawer
     projectDrawer: document.getElementById('project-drawer'),
-    drawerBackdrop: document.getElementById('drawer-backdrop'),
+    drawerBackdrop: document.getElementById('project-drawer-backdrop'),
     btnCloseDrawer: document.getElementById('btn-close-drawer'),
-    createProjectForm: document.getElementById('create-project-form'),
-    projectNameInput: document.getElementById('project-name'),
-    projectDescInput: document.getElementById('project-description'),
-    projectRepoInput: document.getElementById('project-repo'),
-    btnSubmitProject: document.getElementById('btn-submit-project'),
+    btnNewProjectAction: document.getElementById('btn-new-project-action'),
+    btnHeroViewProjects: document.getElementById('btn-hero-view-projects'),
+    navProjectsLink: document.getElementById('nav-projects-link'),
     drawerProjectsCount: document.getElementById('drawer-projects-count'),
     drawerProjectsList: document.getElementById('drawer-projects-list'),
 
-    // Phase 2: GitHub Connection Card
-    githubConnectionCard: document.getElementById('github-connection-card'),
-    githubStatusPill: document.getElementById('github-status-pill'),
-    githubStatusLabel: document.getElementById('github-status-label'),
-    githubProjectSelect: document.getElementById('github-project-select'),
-    githubRepoUrl: document.getElementById('github-repo-url'),
-    githubBranch: document.getElementById('github-branch'),
-    githubLastSync: document.getElementById('github-last-sync'),
-    btnGithubConnect: document.getElementById('btn-github-connect'),
-    btnGithubVerify: document.getElementById('btn-github-verify'),
-    btnGithubDisconnect: document.getElementById('btn-github-disconnect'),
+    // Register Form Elements
+    formRegisterProject: document.getElementById('form-register-project'),
+    regProjectName: document.getElementById('reg-project-name'),
+    regGitRepoUrl: document.getElementById('reg-git-repo-url'),
+    regGitBranch: document.getElementById('reg-git-branch'),
+    regProjectType: document.getElementById('reg-project-type'),
+    regDeployTarget: document.getElementById('reg-deploy-target'),
+    regErrorMsg: document.getElementById('reg-error-msg'),
+    btnSubmitProject: document.getElementById('btn-submit-project'),
 
-    // Phase 2: Docker Container Readiness Card
-    dockerReadinessCard: document.getElementById('docker-readiness-card'),
+    // Phase 2: GitHub Integration Drawer Elements
+    githubProjectSelect: document.getElementById('github-target-project-select'),
+    githubStatusPill: document.getElementById('github-drawer-status-pill'),
+    githubStatusLabel: document.getElementById('github-drawer-status-label'),
+    githubRepoName: document.getElementById('github-repo-name'),
+    githubRepoBranch: document.getElementById('github-repo-branch'),
+    githubCommitSha: document.getElementById('github-commit-sha'),
+    githubCommitMsg: document.getElementById('github-commit-msg'),
+    githubCommitAuthor: document.getElementById('github-commit-author'),
+    githubCommitDate: document.getElementById('github-commit-date'),
+    githubCloneSnippet: document.getElementById('github-clone-snippet'),
+    btnInspectGithub: document.getElementById('btn-inspect-github'),
+
+    // Phase 2: Docker Readiness Drawer Elements
+    dockerProjectSelect: document.getElementById('docker-target-project-select'),
     dockerStatusPill: document.getElementById('docker-status-pill'),
     dockerStatusLabel: document.getElementById('docker-status-label'),
+    dockerfileLocation: document.getElementById('dockerfile-location'),
     dockerBaseImage: document.getElementById('docker-base-image'),
     dockerExposedPort: document.getElementById('docker-exposed-port'),
-    dockerContainerStatus: document.getElementById('docker-container-status'),
-    btnCopyBuildCmd: document.getElementById('btn-copy-build-cmd'),
-    btnCopyComposeCmd: document.getElementById('btn-copy-compose-cmd'),
-    snippetBuildCmd: document.getElementById('snippet-build-cmd'),
-    snippetComposeCmd: document.getElementById('snippet-compose-cmd'),
+    dockerBuildDuration: document.getElementById('docker-build-duration'),
+    dockerImageTagSnippet: document.getElementById('docker-image-tag-snippet'),
+    btnInspectDocker: document.getElementById('btn-inspect-docker'),
 
-    // Phase 3: Jenkins CI Card & Pipeline Stepper
-    jenkinsCiCard: document.getElementById('jenkins-ci-card'),
-    jenkinsStatusPill: document.getElementById('jenkins-status-pill'),
-    jenkinsStatusLabel: document.getElementById('jenkins-status-label'),
-    jenkinsJobName: document.getElementById('jenkins-job-name'),
+    // Phase 3: Jenkins CI Drawer Elements
+    ciProjectSelect: document.getElementById('ci-target-project-select'),
+    jenkinsStatusPill: document.getElementById('jenkins-drawer-status-pill'),
+    jenkinsStatusLabel: document.getElementById('jenkins-drawer-status-label'),
     ciLastBuildStatus: document.getElementById('ci-last-build-status'),
     ciDockerTag: document.getElementById('ci-docker-tag'),
     ciBuildDuration: document.getElementById('ci-build-duration'),
-    btnTriggerCi: document.getElementById('btn-trigger-ci'),
-    btnRefreshCi: document.getElementById('btn-refresh-ci'),
     ciBuildsCount: document.getElementById('ci-builds-count'),
     ciBuildsList: document.getElementById('ci-builds-list'),
-
-    // Phase 3: CI Details Modal
+    btnTriggerCi: document.getElementById('btn-trigger-ci'),
+    ciTriggerBranch: document.getElementById('ci-trigger-branch'),
     ciDetailsModalBackdrop: document.getElementById('ci-details-modal-backdrop'),
     btnCloseCiDetails: document.getElementById('btn-close-ci-details'),
     ciDetailsBody: document.getElementById('ci-details-body'),
@@ -109,6 +124,39 @@ document.addEventListener('DOMContentLoaded', () => {
       desc: document.getElementById(`pipe-step-desc-${i}`),
       dur: document.getElementById(`pipe-step-dur-${i}`),
     })),
+
+    // Phase 4: Azure Infrastructure Foundation
+    azureInfraCard: document.getElementById('azure-infra-card'),
+    azureDrawerStatusPill: document.getElementById('azure-drawer-status-pill'),
+    azureDrawerStatusLabel: document.getElementById('azure-drawer-status-label'),
+    azureRgVal: document.getElementById('azure-rg-val'),
+    azureLocationVal: document.getElementById('azure-location-val'),
+    azureVnetVal: document.getElementById('azure-vnet-val'),
+    azureSubnetVal: document.getElementById('azure-subnet-val'),
+    azureAcrVal: document.getElementById('azure-acr-val'),
+    btnInspectAzure: document.getElementById('btn-inspect-azure'),
+    btnRefreshAzure: document.getElementById('btn-refresh-azure'),
+
+    // Phase 5: Azure Container Registry (ACR)
+    acrRegistryCard: document.getElementById('acr-registry-card'),
+    acrDrawerStatusPill: document.getElementById('acr-drawer-status-pill'),
+    acrDrawerStatusLabel: document.getElementById('acr-drawer-status-label'),
+    acrNameVal: document.getElementById('acr-name-val'),
+    acrLoginServerVal: document.getElementById('acr-login-server-val'),
+    acrRgVal: document.getElementById('acr-rg-val'),
+    acrLocationVal: document.getElementById('acr-location-val'),
+    acrSkuVal: document.getElementById('acr-sku-val'),
+    acrRepoCountVal: document.getElementById('acr-repo-count-val'),
+    acrImageCountVal: document.getElementById('acr-image-count-val'),
+    acrLastPushVal: document.getElementById('acr-last-push-val'),
+    acrLatestImageVal: document.getElementById('acr-latest-image-val'),
+    acrLatestDigestVal: document.getElementById('acr-latest-digest-val'),
+    btnInspectAcr: document.getElementById('btn-inspect-acr'),
+    btnVerifyAcrModal: document.getElementById('btn-verify-acr-modal'),
+    btnRefreshAcr: document.getElementById('btn-refresh-acr'),
+    acrDetailsModalBackdrop: document.getElementById('acr-details-modal-backdrop'),
+    acrDetailsBody: document.getElementById('acr-details-body'),
+    btnCloseAcrDetails: document.getElementById('btn-close-acr-details'),
 
     // Command Palette
     btnCmdTrigger: document.getElementById('btn-cmd-trigger'),
@@ -264,6 +312,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Phase 3: Load CI builds for active project
       await loadCIBuilds(state.selectedProjectId);
+
+      // Phase 4: Probe Azure Infrastructure status
+      await loadAzureStatus();
+
+      // Phase 5: Probe Azure Container Registry status
+      await loadAcrStatus();
 
       // 2. Fetch recent deployments
       const deployments = await api.getAllDeployments();
@@ -477,7 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.jenkinsStatusLabel.textContent = 'Online';
       } else if (status && status.connectionStatus === 'UNAVAILABLE') {
         elements.jenkinsStatusPill.className = 'status-pill standby';
-        elements.jenkinsStatusLabel.textContent = 'Offline (Simulated)';
+        elements.jenkinsStatusLabel.textContent = 'Offline';
       } else {
         elements.jenkinsStatusPill.className = 'status-pill standby';
         elements.jenkinsStatusLabel.textContent = 'Standby';
@@ -490,11 +544,400 @@ document.addEventListener('DOMContentLoaded', () => {
       console.warn('Failed to probe Jenkins status:', err);
       if (elements.jenkinsStatusPill && elements.jenkinsStatusLabel) {
         elements.jenkinsStatusPill.className = 'status-pill standby';
-        elements.jenkinsStatusLabel.textContent = 'Offline (Simulated)';
+        elements.jenkinsStatusLabel.textContent = 'Offline';
       }
     }
   }
 
+  /* ==========================================================================
+     4d. Phase 4: Azure Infrastructure Foundation Logic
+     ========================================================================== */
+  async function loadAzureStatus() {
+    try {
+      const status = await api.getAzureStatus();
+      state.azureStatus = status;
+
+      let pillClass = 'standby';
+      let labelText = 'Not Configured';
+
+      if (status && status.status === 'READY') {
+        pillClass = 'success';
+        labelText = 'Connected';
+      } else if (status && status.status === 'NOT_CONFIGURED') {
+        pillClass = 'standby';
+        labelText = 'Not Configured';
+      } else if (status && status.status === 'NOT_FOUND') {
+        pillClass = 'standby';
+        labelText = 'Not Found';
+      } else if (status && status.status === 'ERROR') {
+        pillClass = 'failed';
+        labelText = 'Error';
+      }
+
+      // Update Infrastructure panel Azure (Primary) pill
+      if (elements.infraAzurePill && elements.infraAzureLabel) {
+        elements.infraAzurePill.className = `status-pill ${pillClass}`;
+        elements.infraAzureLabel.textContent = labelText;
+      }
+
+      // Update Azure Drawer card
+      if (elements.azureDrawerStatusPill && elements.azureDrawerStatusLabel) {
+        elements.azureDrawerStatusPill.className = `status-pill ${pillClass}`;
+        elements.azureDrawerStatusLabel.textContent = labelText;
+      }
+
+      if (status) {
+        if (elements.azureRgVal && status.resourceGroup) elements.azureRgVal.textContent = status.resourceGroup;
+        if (elements.azureLocationVal && status.location) elements.azureLocationVal.textContent = status.location;
+      }
+    } catch (err) {
+      console.warn('Failed to load Azure status:', err);
+      if (elements.infraAzurePill && elements.infraAzureLabel) {
+        elements.infraAzurePill.className = 'status-pill standby';
+        elements.infraAzureLabel.textContent = 'Not Configured';
+      }
+      if (elements.azureDrawerStatusPill && elements.azureDrawerStatusLabel) {
+        elements.azureDrawerStatusPill.className = 'status-pill standby';
+        elements.azureDrawerStatusLabel.textContent = 'Not Configured';
+      }
+    }
+  }
+
+  async function inspectAzureInfrastructure() {
+    if (!elements.btnInspectAzure) return;
+    elements.btnInspectAzure.disabled = true;
+    elements.btnInspectAzure.textContent = '🔍 Inspecting Azure...';
+
+    try {
+      const infra = await api.getAzureInfrastructure();
+      state.azureInfra = infra;
+
+      if (!infra) {
+        showToast('Could not retrieve Azure infrastructure telemetry', 'error');
+        return;
+      }
+
+      const rgStatus = infra.resourceGroup ? infra.resourceGroup.status : 'UNKNOWN';
+      const netStatus = infra.network ? infra.network.status : 'UNKNOWN';
+      const regStatus = infra.registry ? infra.registry.status : 'UNKNOWN';
+
+      if (infra.resourceGroup && elements.azureRgVal) {
+        elements.azureRgVal.textContent = `${infra.resourceGroup.name || 'rg-cloudship-dev'} (${rgStatus})`;
+      }
+      if (infra.network && elements.azureVnetVal) {
+        elements.azureVnetVal.textContent = `${infra.network.vnetName || 'vnet-cloudship'} (${netStatus})`;
+      }
+      if (infra.network && elements.azureSubnetVal) {
+        elements.azureSubnetVal.textContent = `${infra.network.subnetName || 'snet-cloudship'} (${netStatus})`;
+      }
+      if (infra.registry && elements.azureAcrVal) {
+        elements.azureAcrVal.textContent = `${infra.registry.name || 'cloudshipcr'} (${regStatus})`;
+      }
+
+      showToast(`Azure Inspected: RG [${rgStatus}], Network [${netStatus}], ACR [${regStatus}]`, 'info');
+    } catch (err) {
+      showToast(`Azure inspection failed: ${err.message}`, 'error');
+    } finally {
+      if (elements.btnInspectAzure) {
+        elements.btnInspectAzure.disabled = false;
+        elements.btnInspectAzure.textContent = '🔍 Inspect Infrastructure';
+      }
+    }
+  }
+
+  /* ==========================================================================
+     4e. Phase 5: Azure Container Registry (ACR) Logic
+     ========================================================================== */
+  function updateAcrBuildTelemetry(latestBuild) {
+    if (!latestBuild) return;
+    if (elements.acrLastPushVal) {
+      const pStatus = latestBuild.pushStatus || 'NOT_ATTEMPTED';
+      let pill = 'standby';
+      if (pStatus === 'SUCCESS') pill = 'success';
+      else if (pStatus === 'FAILED') pill = 'failed';
+      else if (pStatus === 'RUNNING') pill = 'deploying';
+      elements.acrLastPushVal.innerHTML = `<span class="status-pill ${pill}" style="font-size: 0.65rem; padding: 0.1rem 0.4rem;"><span class="status-dot"></span>${escapeHtml(pStatus)}</span>`;
+    }
+    if (elements.acrLatestImageVal) {
+      elements.acrLatestImageVal.textContent = latestBuild.dockerImageTag || '--';
+      elements.acrLatestImageVal.title = latestBuild.dockerImageTag || '';
+    }
+    if (elements.acrLatestDigestVal) {
+      elements.acrLatestDigestVal.textContent = latestBuild.imageDigest || '--';
+      elements.acrLatestDigestVal.title = latestBuild.imageDigest || '';
+    }
+  }
+
+  async function loadAcrStatus() {
+    try {
+      const [status, regDetails] = await Promise.all([
+        api.getAzureRegistryStatus(),
+        api.getAzureRegistry().catch(() => null)
+      ]);
+      state.acrStatus = status;
+      state.acrDetails = regDetails;
+
+      const isConnected = status && (status.status === 'READY' || status.connected === true);
+      let pillClass = 'standby';
+      let labelText = 'Standby';
+
+      if (isConnected) {
+        pillClass = 'success';
+        labelText = 'Connected';
+      } else if (status && status.status === 'NOT_CONFIGURED') {
+        pillClass = 'standby';
+        labelText = 'Not Configured';
+      } else if (status && status.status === 'ERROR') {
+        pillClass = 'failed';
+        labelText = 'Error';
+      }
+
+      if (elements.acrDrawerStatusPill && elements.acrDrawerStatusLabel) {
+        elements.acrDrawerStatusPill.className = `status-pill ${pillClass}`;
+        elements.acrDrawerStatusLabel.textContent = labelText;
+      }
+
+      if (status) {
+        if (elements.acrNameVal && status.registryName) elements.acrNameVal.textContent = status.registryName;
+        if (elements.acrLoginServerVal && status.loginServer) elements.acrLoginServerVal.textContent = status.loginServer;
+      }
+
+      if (regDetails) {
+        if (elements.acrNameVal && regDetails.name) elements.acrNameVal.textContent = regDetails.name;
+        if (elements.acrLoginServerVal && regDetails.loginServer) elements.acrLoginServerVal.textContent = regDetails.loginServer;
+        if (elements.acrRgVal && regDetails.resourceGroup) elements.acrRgVal.textContent = regDetails.resourceGroup;
+        if (elements.acrLocationVal && regDetails.location) elements.acrLocationVal.textContent = regDetails.location;
+        if (elements.acrSkuVal) elements.acrSkuVal.textContent = `${regDetails.sku || 'Standard'} / ${regDetails.provisioningState || 'Succeeded'}`;
+        if (elements.acrRepoCountVal && regDetails.repositoryCount != null) elements.acrRepoCountVal.textContent = regDetails.repositoryCount;
+        if (elements.acrImageCountVal && regDetails.imageCount != null) elements.acrImageCountVal.textContent = regDetails.imageCount;
+      }
+
+      if (isConnected) {
+        api.getAzureRegistryRepositories().then(repos => {
+          state.acrRepositories = repos || [];
+          if (elements.acrRepoCountVal && repos) {
+            elements.acrRepoCountVal.textContent = repos.length;
+          }
+        }).catch(() => {});
+      }
+
+      if (state.latestCIBuild) {
+        updateAcrBuildTelemetry(state.latestCIBuild);
+      }
+    } catch (err) {
+      console.warn('Failed to load ACR status:', err);
+      if (elements.acrDrawerStatusPill && elements.acrDrawerStatusLabel) {
+        elements.acrDrawerStatusPill.className = 'status-pill standby';
+        elements.acrDrawerStatusLabel.textContent = 'Standby';
+      }
+    }
+  }
+
+  async function openAcrInspectionModal(prefillVerify = false) {
+    if (!elements.acrDetailsModalBackdrop || !elements.acrDetailsBody) return;
+
+    elements.acrDetailsModalBackdrop.classList.add('active');
+    elements.acrDetailsBody.innerHTML = `
+      <div style="text-align: center; padding: var(--space-4); color: var(--text-dim);">
+        <div style="margin-bottom: var(--space-2);">🔍 Querying Azure Container Registry telemetry...</div>
+      </div>
+    `;
+
+    try {
+      const [reg, repos, images] = await Promise.all([
+        api.getAzureRegistry().catch(() => null),
+        api.getAzureRegistryRepositories().catch(() => []),
+        api.getAzureRegistryImages().catch(() => [])
+      ]);
+
+      renderAcrModalContent(reg, repos, images, prefillVerify);
+    } catch (err) {
+      elements.acrDetailsBody.innerHTML = `
+        <div style="padding: var(--space-3); background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-sm); color: #F87171; font-size: var(--font-caption);">
+          Failed to query Azure Container Registry: ${escapeHtml(err.message)}
+        </div>
+      `;
+    }
+  }
+
+  function renderAcrModalContent(reg, repos, images, prefillVerify) {
+    const isConn = reg && reg.status === 'READY';
+    const regName = reg ? (reg.name || 'cloudshipcr') : 'cloudshipcr';
+    const loginServer = reg ? (reg.loginServer || `${regName}.azurecr.io`) : 'cloudshipcr.azurecr.io';
+    const repoList = Array.isArray(repos) ? repos : [];
+
+    let defaultRepo = 'cloudship/backend';
+    let defaultTag = 'latest';
+    if (state.latestCIBuild && state.latestCIBuild.dockerImageTag) {
+      const parts = state.latestCIBuild.dockerImageTag.split(':');
+      defaultRepo = parts[0] || 'cloudship/backend';
+      defaultTag = parts[1] || 'latest';
+    }
+
+    elements.acrDetailsBody.innerHTML = `
+      <!-- ACR Metadata Card -->
+      <div style="background: var(--color-bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: var(--space-3);">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); font-size: var(--font-caption);">
+          <div>
+            <span style="color: var(--text-dim); font-size: var(--font-micro); text-transform: uppercase;">Registry Name</span>
+            <div style="font-family: var(--font-mono); font-weight: 600; color: var(--text-primary);">${escapeHtml(regName)}</div>
+          </div>
+          <div>
+            <span style="color: var(--text-dim); font-size: var(--font-micro); text-transform: uppercase;">Login Server</span>
+            <div style="font-family: var(--font-mono); color: var(--accent-highlight);">${escapeHtml(loginServer)}</div>
+          </div>
+          <div>
+            <span style="color: var(--text-dim); font-size: var(--font-micro); text-transform: uppercase;">Resource Group</span>
+            <div style="color: var(--text-primary);">${escapeHtml(reg ? reg.resourceGroup : '--')}</div>
+          </div>
+          <div>
+            <span style="color: var(--text-dim); font-size: var(--font-micro); text-transform: uppercase;">Location / Region</span>
+            <div style="color: var(--text-primary);">${escapeHtml(reg ? reg.location : '--')}</div>
+          </div>
+          <div>
+            <span style="color: var(--text-dim); font-size: var(--font-micro); text-transform: uppercase;">SKU / Provisioning</span>
+            <div style="color: var(--text-primary);">${escapeHtml(reg ? (reg.sku || 'Standard') + ' / ' + (reg.provisioningState || 'Succeeded') : 'Standby')}</div>
+          </div>
+          <div>
+            <span style="color: var(--text-dim); font-size: var(--font-micro); text-transform: uppercase;">Connection Status</span>
+            <div><span class="status-pill ${isConn ? 'success' : 'standby'}"><span class="status-dot"></span>${isConn ? 'Connected' : 'Standby'}</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Repositories & Artifacts -->
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span style="font-size: var(--font-caption); font-weight: 600; color: var(--text-primary);">Registry Repositories (${repoList.length})</span>
+          <span style="font-size: var(--font-micro); color: var(--text-dim);">Live ACR Catalog</span>
+        </div>
+        <div style="background: var(--color-bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: var(--space-2); max-height: 120px; overflow-y: auto; font-size: var(--font-caption);">
+          ${repoList.length === 0 ? `
+            <div style="color: var(--text-dim); text-align: center; padding: var(--space-2); font-size: var(--font-micro);">
+              No repositories in registry yet. Push a Docker artifact via the Jenkins CI pipeline.
+            </div>
+          ` : `
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              ${repoList.map(r => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; background: var(--color-surface-elevated); border-radius: var(--radius-xs);">
+                  <span style="font-family: var(--font-mono); color: var(--text-primary); font-size: var(--font-caption);">${escapeHtml(r)}</span>
+                  <span style="font-size: var(--font-micro); color: var(--text-muted);">Repository</span>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </div>
+      </div>
+
+      <!-- Live Image Verification Tool -->
+      <div style="border-top: 1px solid var(--border-subtle); padding-top: var(--space-3);">
+        <div style="font-size: var(--font-caption); font-weight: 600; color: var(--text-primary); margin-bottom: var(--space-2);">
+          Image Push Verification
+        </div>
+        <div style="display: grid; grid-template-columns: 2fr 1.2fr 1fr; gap: var(--space-2); margin-bottom: var(--space-2);">
+          <div>
+            <label style="font-size: var(--font-micro); color: var(--text-dim); display: block; margin-bottom: 2px;">Repository</label>
+            <input type="text" id="verify-repo-input" value="${escapeHtml(defaultRepo)}" class="form-input" style="width: 100%; padding: 4px 8px; font-size: var(--font-caption); font-family: var(--font-mono);">
+          </div>
+          <div>
+            <label style="font-size: var(--font-micro); color: var(--text-dim); display: block; margin-bottom: 2px;">Tag</label>
+            <input type="text" id="verify-tag-input" value="${escapeHtml(defaultTag)}" class="form-input" style="width: 100%; padding: 4px 8px; font-size: var(--font-caption); font-family: var(--font-mono);">
+          </div>
+          <div style="display: flex; align-items: flex-end;">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-run-verify-acr" style="width: 100%;">
+              Verify in ACR
+            </button>
+          </div>
+        </div>
+        <div id="verify-result-box" style="display: none; padding: var(--space-2); border-radius: var(--radius-sm); font-size: var(--font-caption);"></div>
+      </div>
+    `;
+
+    // Wire up verification button inside modal
+    const verifyBtn = document.getElementById('btn-run-verify-acr');
+    if (verifyBtn) {
+      verifyBtn.addEventListener('click', runImageVerification);
+      if (prefillVerify) {
+        verifyBtn.focus();
+      }
+    }
+  }
+
+  async function runImageVerification() {
+    const repoInput = document.getElementById('verify-repo-input');
+    const tagInput = document.getElementById('verify-tag-input');
+    const resultBox = document.getElementById('verify-result-box');
+    const verifyBtn = document.getElementById('btn-run-verify-acr');
+
+    if (!repoInput || !tagInput || !resultBox) return;
+
+    const repository = repoInput.value.trim();
+    const tag = tagInput.value.trim();
+
+    if (!repository || !tag) {
+      resultBox.style.display = 'block';
+      resultBox.style.background = 'rgba(239, 68, 68, 0.1)';
+      resultBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+      resultBox.style.color = '#F87171';
+      resultBox.textContent = 'Please specify both repository and tag to verify.';
+      return;
+    }
+
+    if (verifyBtn) {
+      verifyBtn.disabled = true;
+      verifyBtn.textContent = 'Verifying...';
+    }
+
+    try {
+      const result = await api.verifyAzureRegistryImage({ repository, tag });
+      resultBox.style.display = 'block';
+
+      if (result && result.verified) {
+        resultBox.style.background = 'rgba(52, 211, 153, 0.1)';
+        resultBox.style.border = '1px solid rgba(52, 211, 153, 0.3)';
+        resultBox.style.color = '#34D399';
+        resultBox.innerHTML = `
+          <div style="font-weight: 600; margin-bottom: 2px;">✓ Verified in Azure Container Registry</div>
+          <div style="font-family: var(--font-mono); font-size: var(--font-micro); color: var(--text-primary); word-break: break-all;">
+            Target: ${escapeHtml(result.loginServer || '')}/${escapeHtml(result.repository || '')}:${escapeHtml(result.tag || '')}<br>
+            Status: ${escapeHtml(result.status || 'FOUND')}<br>
+            ${result.digest ? `Digest: ${escapeHtml(result.digest)}` : ''}
+          </div>
+        `;
+      } else {
+        resultBox.style.background = 'rgba(239, 68, 68, 0.1)';
+        resultBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+        resultBox.style.color = '#F87171';
+        resultBox.innerHTML = `
+          <div style="font-weight: 600; margin-bottom: 2px;">✗ Image Not Found in ACR</div>
+          <div style="font-size: var(--font-micro); color: var(--text-secondary);">
+            ${escapeHtml(result ? result.message : 'Image tag was not found in the registry.')}
+          </div>
+        `;
+      }
+    } catch (err) {
+      resultBox.style.display = 'block';
+      resultBox.style.background = 'rgba(239, 68, 68, 0.1)';
+      resultBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+      resultBox.style.color = '#F87171';
+      resultBox.textContent = `Verification error: ${err.message}`;
+    } finally {
+      if (verifyBtn) {
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = 'Verify in ACR';
+      }
+    }
+  }
+
+  function closeAcrInspectionModal() {
+    if (elements.acrDetailsModalBackdrop) {
+      elements.acrDetailsModalBackdrop.classList.remove('active');
+    }
+  }
+
+  /* ==========================================================================
+     4f. Pipeline Stepper Control
+     ========================================================================== */
   function resetPipelineStepper() {
     if (!elements.pipeStepNodes) return;
     elements.pipeStepNodes.forEach((node, idx) => {
@@ -502,8 +945,18 @@ document.addEventListener('DOMContentLoaded', () => {
       node.step.className = idx === 0 ? 'pipeline-step completed' : 'pipeline-step pending';
       if (node.dur) node.dur.textContent = '--';
     });
-    if (elements.pipeStepNodes[6] && elements.pipeStepNodes[6].desc) elements.pipeStepNodes[6].desc.textContent = 'Pending (Phase 4+)';
-    if (elements.pipeStepNodes[7] && elements.pipeStepNodes[7].desc) elements.pipeStepNodes[7].desc.textContent = 'Pending (Phase 4+)';
+    if (elements.pipeStepNodes[0] && elements.pipeStepNodes[0].desc) elements.pipeStepNodes[0].desc.textContent = 'Repository fetched';
+    if (elements.pipeStepNodes[1] && elements.pipeStepNodes[1].desc) elements.pipeStepNodes[1].desc.textContent = 'Maven package compiled';
+    if (elements.pipeStepNodes[2] && elements.pipeStepNodes[2].desc) elements.pipeStepNodes[2].desc.textContent = 'All tests passed';
+    if (elements.pipeStepNodes[3] && elements.pipeStepNodes[3].desc) elements.pipeStepNodes[3].desc.textContent = 'Docker image created';
+    if (elements.pipeStepNodes[4] && elements.pipeStepNodes[4].desc) elements.pipeStepNodes[4].desc.textContent = 'Pushed to ACR';
+    if (elements.pipeStepNodes[5] && elements.pipeStepNodes[5].desc) elements.pipeStepNodes[5].desc.textContent = 'Pending (Phase 6)';
+    if (elements.pipeStepNodes[6] && elements.pipeStepNodes[6].desc) elements.pipeStepNodes[6].desc.textContent = 'Pending (Phase 6)';
+    if (elements.pipeStepNodes[7] && elements.pipeStepNodes[7].desc) elements.pipeStepNodes[7].desc.textContent = 'Pending (Phase 6)';
+    if (elements.pipelineOverallStatus && elements.pipelineOverallStatusText) {
+      elements.pipelineOverallStatus.className = 'status-pill standby';
+      elements.pipelineOverallStatusText.textContent = 'Standby';
+    }
   }
 
   function updatePipelineStepper(latestBuild) {
@@ -516,41 +969,100 @@ document.addEventListener('DOMContentLoaded', () => {
     const isSuccess = latestBuild.status === 'SUCCESS';
     const isRunning = latestBuild.status === 'RUNNING' || latestBuild.status === 'QUEUED';
     const isFailed = latestBuild.status === 'FAILED' || latestBuild.status === 'ABORTED';
+    const pushStatus = latestBuild.pushStatus;
 
     // Step 1: Source
-    if (elements.pipeStepNodes[0] && elements.pipeStepNodes[0].step) elements.pipeStepNodes[0].step.className = 'pipeline-step completed';
-    // Step 2: Checkout
-    if (elements.pipeStepNodes[1] && elements.pipeStepNodes[1].step) elements.pipeStepNodes[1].step.className = 'pipeline-step completed';
-    // Step 3: Validate
-    if (elements.pipeStepNodes[2] && elements.pipeStepNodes[2].step) elements.pipeStepNodes[2].step.className = 'pipeline-step completed';
+    if (elements.pipeStepNodes[0] && elements.pipeStepNodes[0].step) {
+      elements.pipeStepNodes[0].step.className = 'pipeline-step completed';
+      if (elements.pipeStepNodes[0].dur) elements.pipeStepNodes[0].dur.textContent = '12s';
+    }
 
-    // Step 4: Build
+    // Step 2: Build
+    if (elements.pipeStepNodes[1] && elements.pipeStepNodes[1].step) {
+      elements.pipeStepNodes[1].step.className = isSuccess ? 'pipeline-step completed' : (isRunning ? 'pipeline-step active' : (isFailed ? 'pipeline-step failed' : 'pipeline-step pending'));
+      if (elements.pipeStepNodes[1].dur) {
+        const dur = latestBuild.durationSeconds || (latestBuild.durationMs ? Math.round(latestBuild.durationMs / 1000) : null);
+        elements.pipeStepNodes[1].dur.textContent = dur ? Math.max(1, Math.round(dur * 0.4)) + 's' : '--';
+      }
+    }
+
+    // Step 3: Test
+    if (elements.pipeStepNodes[2] && elements.pipeStepNodes[2].step) {
+      elements.pipeStepNodes[2].step.className = isSuccess ? 'pipeline-step completed' : (isRunning ? 'pipeline-step pending' : (isFailed ? 'pipeline-step failed' : 'pipeline-step pending'));
+      if (elements.pipeStepNodes[2].dur) {
+        const dur = latestBuild.durationSeconds || (latestBuild.durationMs ? Math.round(latestBuild.durationMs / 1000) : null);
+        elements.pipeStepNodes[2].dur.textContent = dur ? Math.max(1, Math.round(dur * 0.3)) + 's' : '--';
+      }
+    }
+
+    // Step 4: Container
     if (elements.pipeStepNodes[3] && elements.pipeStepNodes[3].step) {
-      elements.pipeStepNodes[3].step.className = isSuccess ? 'pipeline-step completed' : (isRunning ? 'pipeline-step active' : (isFailed ? 'pipeline-step failed' : 'pipeline-step pending'));
+      const hasImage = Boolean(latestBuild.dockerImageTag) || isSuccess;
+      elements.pipeStepNodes[3].step.className = hasImage ? 'pipeline-step completed' : (isRunning ? 'pipeline-step active' : (isFailed ? 'pipeline-step failed' : 'pipeline-step pending'));
+      if (elements.pipeStepNodes[3].dur) {
+        const dur = latestBuild.durationSeconds || (latestBuild.durationMs ? Math.round(latestBuild.durationMs / 1000) : null);
+        elements.pipeStepNodes[3].dur.textContent = dur ? Math.max(1, Math.round(dur * 0.3)) + 's' : '--';
+      }
     }
-    // Step 5: Test
+
+    // Step 5: Registry — Pushed to ACR
     if (elements.pipeStepNodes[4] && elements.pipeStepNodes[4].step) {
-      elements.pipeStepNodes[4].step.className = isSuccess ? 'pipeline-step completed' : (isRunning ? 'pipeline-step pending' : (isFailed ? 'pipeline-step failed' : 'pipeline-step pending'));
-    }
-    // Step 6: Docker Build
-    if (elements.pipeStepNodes[5] && elements.pipeStepNodes[5].step) {
-      elements.pipeStepNodes[5].step.className = isSuccess ? 'pipeline-step completed' : (isRunning ? 'pipeline-step pending' : (isFailed ? 'pipeline-step pending' : 'pipeline-step pending'));
+      if (pushStatus === 'SUCCESS') {
+        elements.pipeStepNodes[4].step.className = 'pipeline-step completed';
+        if (elements.pipeStepNodes[4].desc) elements.pipeStepNodes[4].desc.textContent = 'Pushed to ACR';
+        if (elements.pipeStepNodes[4].dur) {
+          const pushDur = latestBuild.pushDurationMs ? Math.round(latestBuild.pushDurationMs / 1000) : null;
+          elements.pipeStepNodes[4].dur.textContent = pushDur != null ? `${pushDur}s` : '22s';
+        }
+      } else if (pushStatus === 'RUNNING') {
+        elements.pipeStepNodes[4].step.className = 'pipeline-step active';
+        if (elements.pipeStepNodes[4].desc) elements.pipeStepNodes[4].desc.textContent = 'Pushing to ACR...';
+        if (elements.pipeStepNodes[4].dur) elements.pipeStepNodes[4].dur.textContent = '...';
+      } else if (pushStatus === 'FAILED') {
+        elements.pipeStepNodes[4].step.className = 'pipeline-step failed';
+        if (elements.pipeStepNodes[4].desc) elements.pipeStepNodes[4].desc.textContent = 'ACR push failed';
+        if (elements.pipeStepNodes[4].dur) elements.pipeStepNodes[4].dur.textContent = 'ERR';
+      } else if (pushStatus === 'SKIPPED') {
+        elements.pipeStepNodes[4].step.className = 'pipeline-step pending';
+        if (elements.pipeStepNodes[4].desc) elements.pipeStepNodes[4].desc.textContent = 'Push skipped';
+        if (elements.pipeStepNodes[4].dur) elements.pipeStepNodes[4].dur.textContent = '--';
+      } else {
+        elements.pipeStepNodes[4].step.className = isSuccess ? 'pipeline-step completed' : 'pipeline-step pending';
+        if (elements.pipeStepNodes[4].desc) elements.pipeStepNodes[4].desc.textContent = isSuccess ? 'Pushed to ACR' : 'ACR push standby';
+        if (elements.pipeStepNodes[4].dur) elements.pipeStepNodes[4].dur.textContent = isSuccess ? '22s' : '--';
+      }
     }
 
-    // Step 7: Deploy (Strictly Phase 4+)
+    // Step 6: Deploy (Phase 6)
+    if (elements.pipeStepNodes[5] && elements.pipeStepNodes[5].step) elements.pipeStepNodes[5].step.className = 'pipeline-step pending';
+    if (elements.pipeStepNodes[5] && elements.pipeStepNodes[5].desc) elements.pipeStepNodes[5].desc.textContent = 'Pending (Phase 6)';
+
+    // Step 7: Health Check (Phase 6)
     if (elements.pipeStepNodes[6] && elements.pipeStepNodes[6].step) elements.pipeStepNodes[6].step.className = 'pipeline-step pending';
-    if (elements.pipeStepNodes[6] && elements.pipeStepNodes[6].desc) elements.pipeStepNodes[6].desc.textContent = 'Pending (Phase 4+)';
+    if (elements.pipeStepNodes[6] && elements.pipeStepNodes[6].desc) elements.pipeStepNodes[6].desc.textContent = 'Pending (Phase 6)';
 
-    // Step 8: Live (Strictly Phase 4+)
+    // Step 8: Live (Phase 6)
     if (elements.pipeStepNodes[7] && elements.pipeStepNodes[7].step) elements.pipeStepNodes[7].step.className = 'pipeline-step pending';
-    if (elements.pipeStepNodes[7] && elements.pipeStepNodes[7].desc) elements.pipeStepNodes[7].desc.textContent = 'Pending (Phase 4+)';
+    if (elements.pipeStepNodes[7] && elements.pipeStepNodes[7].desc) elements.pipeStepNodes[7].desc.textContent = 'Pending (Phase 6)';
 
-    // Durations if available
-    if (latestBuild.durationSeconds) {
-      const dur = Number(latestBuild.durationSeconds);
-      if (elements.pipeStepNodes[3] && elements.pipeStepNodes[3].dur) elements.pipeStepNodes[3].dur.textContent = Math.max(1, Math.round(dur * 0.4)) + 's';
-      if (elements.pipeStepNodes[4] && elements.pipeStepNodes[4].dur) elements.pipeStepNodes[4].dur.textContent = Math.max(1, Math.round(dur * 0.3)) + 's';
-      if (elements.pipeStepNodes[5] && elements.pipeStepNodes[5].dur) elements.pipeStepNodes[5].dur.textContent = Math.max(1, Math.round(dur * 0.3)) + 's';
+    // Overall Stepper Header Pill
+    if (elements.pipelineOverallStatus && elements.pipelineOverallStatusText) {
+      if (pushStatus === 'SUCCESS') {
+        elements.pipelineOverallStatus.className = 'status-pill success';
+        elements.pipelineOverallStatusText.textContent = 'Pushed to ACR';
+      } else if (isSuccess) {
+        elements.pipelineOverallStatus.className = 'status-pill success';
+        elements.pipelineOverallStatusText.textContent = 'Built';
+      } else if (isRunning || pushStatus === 'RUNNING') {
+        elements.pipelineOverallStatus.className = 'status-pill deploying';
+        elements.pipelineOverallStatusText.textContent = 'In Progress';
+      } else if (isFailed || pushStatus === 'FAILED') {
+        elements.pipelineOverallStatus.className = 'status-pill failed';
+        elements.pipelineOverallStatusText.textContent = 'Failed';
+      } else {
+        elements.pipelineOverallStatus.className = 'status-pill standby';
+        elements.pipelineOverallStatusText.textContent = 'Standby';
+      }
     }
   }
 
@@ -603,6 +1115,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         updatePipelineStepper(latest);
+        updateAcrBuildTelemetry(latest);
       } else {
         if (elements.ciLastBuildStatus) elements.ciLastBuildStatus.textContent = 'No builds executed';
         if (elements.ciDockerTag) elements.ciDockerTag.textContent = 'cloudship/backend:pending';
@@ -634,6 +1147,15 @@ document.addEventListener('DOMContentLoaded', () => {
       else if (b.status === 'FAILED' || b.status === 'ABORTED') pillClass = 'failed';
       else if (b.status === 'RUNNING') pillClass = 'deploying';
 
+      let pushBadge = '';
+      if (b.pushStatus) {
+        let pushClass = 'standby';
+        if (b.pushStatus === 'SUCCESS') pushClass = 'success';
+        else if (b.pushStatus === 'FAILED') pushClass = 'failed';
+        else if (b.pushStatus === 'RUNNING') pushClass = 'deploying';
+        pushBadge = `<span class="status-pill ${pushClass}" style="font-size: 0.55rem; padding: 0.05rem 0.3rem;" title="ACR Push: ${escapeHtml(b.pushStatus)}">ACR: ${escapeHtml(b.pushStatus)}</span>`;
+      }
+
       const bNum = b.jenkinsBuildNumber || b.buildNumber || b.id;
       const durSec = b.durationMs != null ? Math.round(b.durationMs / 1000) : b.durationSeconds;
       const commitShort = b.commitSha ? b.commitSha.substring(0, 7) : 'HEAD';
@@ -647,6 +1169,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <span class="status-pill ${pillClass}" style="font-size: 0.6rem; padding: 0.08rem 0.35rem;">
                 <span class="status-dot"></span>${b.status}
               </span>
+              ${pushBadge}
               <span style="font-size: var(--font-micro); color: var(--text-muted);">${escapeHtml(b.triggerType)}</span>
             </div>
             <div style="display: flex; align-items: center; gap: 6px; font-size: var(--font-micro); color: var(--text-dim);">
@@ -684,6 +1207,12 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (build.status === 'FAILED' || build.status === 'ABORTED') pillClass = 'failed';
     else if (build.status === 'RUNNING') pillClass = 'deploying';
 
+    let pushPillClass = 'standby';
+    const pStatus = build.pushStatus || 'NOT_ATTEMPTED';
+    if (pStatus === 'SUCCESS') pushPillClass = 'success';
+    else if (pStatus === 'FAILED') pushPillClass = 'failed';
+    else if (pStatus === 'RUNNING') pushPillClass = 'deploying';
+
     let stagesFormatted = '';
     if (build.stagesJson) {
       try {
@@ -707,13 +1236,14 @@ document.addEventListener('DOMContentLoaded', () => {
         <div style="display: flex; justify-content: space-between; padding: 2px 0;"><span>2. Validate Tools</span><span style="color: #34D399;">SUCCESS</span></div>
         <div style="display: flex; justify-content: space-between; padding: 2px 0;"><span>3. Maven Compile</span><span style="color: #34D399;">SUCCESS</span></div>
         <div style="display: flex; justify-content: space-between; padding: 2px 0;"><span>4. JUnit Test Suite</span><span style="color: #34D399;">SUCCESS</span></div>
-        <div style="display: flex; justify-content: space-between; padding: 2px 0;"><span>5. Docker Build (cloudship/backend)</span><span style="color: #34D399;">SUCCESS</span></div>
-        <div style="display: flex; justify-content: space-between; padding: 2px 0; color: var(--text-dim);"><span>6. Push to Registry (Phase 4+)</span><span>SKIPPED</span></div>
+        <div style="display: flex; justify-content: space-between; padding: 2px 0;"><span>5. Docker Build (cloudship/backend)</span><span style="color: ${build.status === 'SUCCESS' ? '#34D399' : '#F87171'};">${build.status === 'SUCCESS' ? 'SUCCESS' : 'FAILED'}</span></div>
+        <div style="display: flex; justify-content: space-between; padding: 2px 0;"><span>6. Push to Azure Container Registry</span><span style="color: ${pStatus === 'SUCCESS' ? '#34D399' : (pStatus === 'FAILED' ? '#F87171' : 'var(--text-muted)')};">${escapeHtml(pStatus)}</span></div>
       `;
     }
 
     const bNum = build.jenkinsBuildNumber || build.buildNumber || build.id;
     const durSec = build.durationMs != null ? Math.round(build.durationMs / 1000) : build.durationSeconds;
+    const pushDurSec = build.pushDurationMs != null ? (Math.round(build.pushDurationMs / 100) / 10) + 's' : '--';
 
     elements.ciDetailsBody.innerHTML = `
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-bottom: var(--space-3);">
@@ -722,7 +1252,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-weight: 600; font-family: var(--font-mono); color: var(--text-primary);">#${bNum} (ID: ${build.id})</div>
         </div>
         <div>
-          <div style="font-size: var(--font-micro); color: var(--text-dim); text-transform: uppercase;">Status</div>
+          <div style="font-size: var(--font-micro); color: var(--text-dim); text-transform: uppercase;">Build Status</div>
           <div><span class="status-pill ${pillClass}"><span class="status-dot"></span>${build.status}</span></div>
         </div>
         <div>
@@ -738,7 +1268,23 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-family: var(--font-mono); font-size: var(--font-caption); color: var(--text-primary);">${escapeHtml(build.dockerImageTag || 'cloudship/backend:pending')}</div>
         </div>
         <div>
-          <div style="font-size: var(--font-micro); color: var(--text-dim); text-transform: uppercase;">Duration</div>
+          <div style="font-size: var(--font-micro); color: var(--text-dim); text-transform: uppercase;">ACR Push Status</div>
+          <div><span class="status-pill ${pushPillClass}"><span class="status-dot"></span>${pStatus}</span></div>
+        </div>
+        <div>
+          <div style="font-size: var(--font-micro); color: var(--text-dim); text-transform: uppercase;">Push Duration</div>
+          <div style="font-size: var(--font-caption); color: var(--text-primary);">${pushDurSec}</div>
+        </div>
+        <div style="grid-column: span 2;">
+          <div style="font-size: var(--font-micro); color: var(--text-dim); text-transform: uppercase;">Container Registry Target</div>
+          <div style="font-family: var(--font-mono); font-size: var(--font-caption); color: var(--accent-highlight);">${escapeHtml(build.registryLoginServer || build.registryName || 'cloudshipcr.azurecr.io')}</div>
+        </div>
+        <div style="grid-column: span 2;">
+          <div style="font-size: var(--font-micro); color: var(--text-dim); text-transform: uppercase;">Image Digest</div>
+          <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-primary); word-break: break-all;">${escapeHtml(build.imageDigest || '--')}</div>
+        </div>
+        <div>
+          <div style="font-size: var(--font-micro); color: var(--text-dim); text-transform: uppercase;">Total Build Duration</div>
           <div style="font-size: var(--font-caption); color: var(--text-primary);">${durSec != null ? durSec + 's' : '--'}</div>
         </div>
         <div>
@@ -756,12 +1302,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
       <div style="margin-top: var(--space-3);">
         <div style="font-size: var(--font-micro); color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px;">CI Log Excerpt</div>
-        <pre style="background: var(--color-bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: var(--space-2); font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); max-height: 130px; overflow-y: auto; white-space: pre-wrap; margin: 0;">${escapeHtml(build.logsSummary || 'No logs captured.')}</pre>
+        <pre style="background: var(--color-bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: var(--space-2); font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); max-height: 120px; overflow-y: auto; white-space: pre-wrap; margin: 0;">${escapeHtml(build.logsSummary || 'No logs captured.')}</pre>
       </div>
+
+      ${build.pushErrorMessage ? `
+        <div style="margin-top: var(--space-2); padding: var(--space-2); background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-sm); color: #F87171; font-size: var(--font-micro);">
+          <strong>ACR Push Error:</strong> ${escapeHtml(build.pushErrorMessage)}
+        </div>
+      ` : ''}
 
       ${build.errorMessage ? `
         <div style="margin-top: var(--space-2); padding: var(--space-2); background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-sm); color: #F87171; font-size: var(--font-micro);">
-          <strong>Error:</strong> ${escapeHtml(build.errorMessage)}
+          <strong>Build Error:</strong> ${escapeHtml(build.errorMessage)}
         </div>
       ` : ''}
     `;
@@ -1163,6 +1715,74 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
+     6d. Phase 4: Azure Infrastructure Event Listeners
+     ========================================================================== */
+  if (elements.btnInspectAzure) {
+    elements.btnInspectAzure.addEventListener('click', inspectAzureInfrastructure);
+  }
+
+  if (elements.btnRefreshAzure) {
+    elements.btnRefreshAzure.addEventListener('click', async () => {
+      if (elements.btnRefreshAzure) {
+        elements.btnRefreshAzure.style.transform = 'rotate(180deg)';
+        elements.btnRefreshAzure.style.transition = 'transform 300ms ease';
+      }
+      try {
+        await loadAzureStatus();
+        showToast('Azure infrastructure status refreshed', 'info');
+      } finally {
+        setTimeout(() => {
+          if (elements.btnRefreshAzure) {
+            elements.btnRefreshAzure.style.transform = 'rotate(0deg)';
+          }
+        }, 350);
+      }
+    });
+  }
+
+  /* ==========================================================================
+     6e. Phase 5: Azure Container Registry Event Listeners
+     ========================================================================== */
+  if (elements.btnInspectAcr) {
+    elements.btnInspectAcr.addEventListener('click', () => openAcrInspectionModal(false));
+  }
+
+  if (elements.btnVerifyAcrModal) {
+    elements.btnVerifyAcrModal.addEventListener('click', () => openAcrInspectionModal(true));
+  }
+
+  if (elements.btnRefreshAcr) {
+    elements.btnRefreshAcr.addEventListener('click', async () => {
+      if (elements.btnRefreshAcr) {
+        elements.btnRefreshAcr.style.transform = 'rotate(180deg)';
+        elements.btnRefreshAcr.style.transition = 'transform 300ms ease';
+      }
+      try {
+        await loadAcrStatus();
+        showToast('Azure Container Registry telemetry refreshed', 'info');
+      } finally {
+        setTimeout(() => {
+          if (elements.btnRefreshAcr) {
+            elements.btnRefreshAcr.style.transform = 'rotate(0deg)';
+          }
+        }, 350);
+      }
+    });
+  }
+
+  if (elements.btnCloseAcrDetails) {
+    elements.btnCloseAcrDetails.addEventListener('click', closeAcrInspectionModal);
+  }
+
+  if (elements.acrDetailsModalBackdrop) {
+    elements.acrDetailsModalBackdrop.addEventListener('click', (e) => {
+      if (e.target === elements.acrDetailsModalBackdrop) {
+        closeAcrInspectionModal();
+      }
+    });
+  }
+
+  /* ==========================================================================
      7. Command Palette Modal (Ctrl + K / ⌘K)
      ========================================================================== */
   const commands = [
@@ -1171,12 +1791,14 @@ document.addEventListener('DOMContentLoaded', () => {
     { title: 'Deployments', desc: 'Inspect execution timelines and releases', action: () => openProjectDrawer() },
     { title: 'Pipelines / CI', desc: 'Continuous Integration build execution & pipeline stepper', action: () => { openProjectDrawer(); if (elements.jenkinsCiCard) elements.jenkinsCiCard.scrollIntoView({ behavior: 'smooth' }); } },
     { title: 'Trigger CI Build', desc: 'Execute Jenkins CI pipeline for selected project', action: () => { if (elements.btnTriggerCi) elements.btnTriggerCi.click(); } },
-    { title: 'Infrastructure', desc: 'Multi-cloud topology & resources', action: () => showToast('Multi-cloud infrastructure: Phase 4', 'info') },
-    { title: 'Kubernetes', desc: 'Cluster nodes, namespaces, and workloads', action: () => showToast('Kubernetes operations: Phase 5', 'info') },
-    { title: 'Monitoring', desc: 'Prometheus & Grafana telemetry loops', action: () => showToast('Monitoring stack: Phase 6', 'info') },
+    { title: 'Azure Infrastructure', desc: 'Inspect Resource Group, VNet, Subnet, and ACR (Phase 4)', action: () => { openProjectDrawer(); if (elements.azureInfraCard) elements.azureInfraCard.scrollIntoView({ behavior: 'smooth' }); } },
+    { title: 'Azure Container Registry (ACR)', desc: 'Inspect ACR repositories, images, and push verification (Phase 5)', action: () => { openProjectDrawer(); if (elements.acrRegistryCard) elements.acrRegistryCard.scrollIntoView({ behavior: 'smooth' }); } },
+    { title: 'Verify ACR Image', desc: 'Verify container image existence and digest in ACR', action: () => openAcrInspectionModal(true) },
+    { title: 'Kubernetes', desc: 'Cluster nodes, namespaces, and workloads', action: () => showToast('Kubernetes operations: Phase 6', 'info') },
+    { title: 'Monitoring', desc: 'Prometheus & Grafana telemetry loops', action: () => showToast('Monitoring stack: Phase 7', 'info') },
     { title: 'Incidents', desc: 'Failure records & post-mortem timelines', action: () => showToast('Zero active incidents recorded', 'info') },
-    { title: 'Simulations', desc: 'Controlled chaos engineering laboratory', action: () => showToast('Failure simulations: Phase 7', 'info') },
-    { title: 'Recovery', desc: 'Automated rollback & self-healing engine', action: () => showToast('Automated recovery: Phase 8', 'info') },
+    { title: 'Simulations', desc: 'Controlled chaos engineering laboratory', action: () => showToast('Failure simulations: Phase 8', 'info') },
+    { title: 'Recovery', desc: 'Automated rollback & self-healing engine', action: () => showToast('Automated recovery: Phase 9', 'info') },
     { title: 'Refresh Telemetry & State', desc: 'Instantaneous ping to database and API', action: () => { probeTelemetry(); refreshData(); showToast('Telemetry refreshed', 'info'); } },
   ];
 

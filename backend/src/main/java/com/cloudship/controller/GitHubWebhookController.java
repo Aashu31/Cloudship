@@ -36,7 +36,7 @@ public class GitHubWebhookController {
         this.webhookSecret = webhookSecret != null ? webhookSecret.trim() : "";
     }
 
-    @PostMapping("/github")
+    @PostMapping(value = "/github", produces = "application/json")
     public ResponseEntity<GitHubWebhookResponse> handleGitHubWebhook(
             @RequestHeader(value = "X-GitHub-Event", required = false, defaultValue = "push") String event,
             @RequestHeader(value = "X-Hub-Signature-256", required = false) String signatureHeader,

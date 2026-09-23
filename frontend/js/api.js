@@ -299,6 +299,192 @@ const api = {
       throw new Error(message);
     }
     return await response.json();
+  },
+
+  /**
+   * Fetches Azure Infrastructure configuration and connection status
+   */
+  async getAzureStatus() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/azure/status`, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn('Azure status probe unreachable:', err.message);
+      return { status: 'ERROR', message: err.message, resourceGroup: 'rg-cloudship-dev', location: 'eastus' };
+    }
+  },
+
+  /**
+   * Fetches full Azure Infrastructure inspection (RG, VNet, Subnet, ACR)
+   */
+  async getAzureInfrastructure() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/azure/infrastructure`, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn('Azure infrastructure inspection unreachable:', err.message);
+      return null;
+    }
+  },
+
+  /**
+   * Fetches Azure Resource Group details
+   */
+  async getAzureResourceGroup() {
+    const response = await fetch(`${API_BASE_URL}/api/azure/resource-group`, {
+      headers: { 'Accept': 'application/json' },
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Failed to fetch Resource Group (HTTP ${response.status})`);
+    }
+    return await response.json();
+  },
+
+  /**
+   * Fetches Azure Network details (VNet & Subnet)
+   */
+  async getAzureNetwork() {
+    const response = await fetch(`${API_BASE_URL}/api/azure/network`, {
+      headers: { 'Accept': 'application/json' },
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Failed to fetch Network (HTTP ${response.status})`);
+    }
+    return await response.json();
+  },
+
+  /**
+   * Fetches Azure Container Registry details
+   */
+  async getAzureRegistry() {
+    const response = await fetch(`${API_BASE_URL}/api/azure/registry`, {
+      headers: { 'Accept': 'application/json' },
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Failed to fetch Registry (HTTP ${response.status})`);
+    }
+    return await response.json();
+  },
+
+  /**
+   * Fetches Azure Container Registry status
+   */
+  async getAzureRegistryStatus() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/azure/registry/status`, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn('ACR status probe unreachable:', err.message);
+      return { status: 'NOT_CONFIGURED', connected: false, message: err.message };
+    }
+  },
+
+  /**
+   * Fetches Azure Container Registry health
+   */
+  async getAzureRegistryHealth() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/azure/registry/health`, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn('ACR health probe unreachable:', err.message);
+      return { status: 'ERROR', message: err.message };
+    }
+  },
+
+  /**
+   * Fetches repositories in Azure Container Registry
+   */
+  async getAzureRegistryRepositories() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/azure/registry/repositories`, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn('ACR repositories probe unreachable:', err.message);
+      return [];
+    }
+  },
+
+  /**
+   * Fetches images in Azure Container Registry
+   */
+  async getAzureRegistryImages(repository) {
+    try {
+      const url = repository
+        ? `${API_BASE_URL}/api/azure/registry/images/${encodeURIComponent(repository)}`
+        : `${API_BASE_URL}/api/azure/registry/images`;
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn('ACR images probe unreachable:', err.message);
+      return [];
+    }
+  },
+
+  /**
+   * Fetches image tag details from Azure Container Registry
+   */
+  async getAzureRegistryImageDetails(repository, tag) {
+    const response = await fetch(`${API_BASE_URL}/api/azure/registry/images/${encodeURIComponent(repository)}/${encodeURIComponent(tag)}`, {
+      headers: { 'Accept': 'application/json' },
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Failed to fetch image details (HTTP ${response.status})`);
+    }
+    return await response.json();
+  },
+
+  /**
+   * Verifies that an image exists in Azure Container Registry
+   */
+  async verifyAzureRegistryImage(payload) {
+    const response = await fetch(`${API_BASE_URL}/api/azure/registry/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `ACR image verification failed (HTTP ${response.status})`);
+    }
+    return await response.json();
   }
 };
 

@@ -166,4 +166,76 @@ class CIServiceTest {
         assertEquals("http://localhost:8080", status.get("baseUrl"));
         assertEquals("cloudship-ci", status.get("defaultJobName"));
     }
+
+    @Test
+    @DisplayName("triggerBuild without commitSha should leave commitSha null and tag as branch-latest")
+    void shouldTriggerBuildWithoutCommitSha() {
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(testProject));
+        when(gitRepositoryRepository.findByProjectId(1L)).thenReturn(Optional.of(testRepo));
+        when(jenkinsClient.triggerJob(anyString(), any())).thenReturn(
+                new JenkinsTriggerResult(true, 56, "http://jenkins:8080/queue/item/56/", "Dispatched")
+        );
+        when(ciBuildRepository.save(any(CIBuild.class))).thenAnswer(invocation -> {
+            CIBuild b = invocation.getArgument(0);
+            b.setId(101L);
+            return b;
+        });
+
+        CITriggerRequest req = new CITriggerRequest("main", null, "no sha commit", "Dev");
+        CIBuildResponse resp = ciService.triggerBuild(1L, req, CITriggerType.MANUAL);
+
+        assertNotNull(resp);
+        assertNull(resp.getCommitSha());
+        assertEquals("main-latest", resp.getDockerImageTag());
+        assertEquals(CIBuildStatus.RUNNING, resp.getStatus());
+    }
+
+    @Test
+    @DisplayName("getBuild should reconcile RUNNING status with Jenkins when completed")
+    void shouldReconcileRunningBuild() {
+        CIBuild running = new CIBuild(testProject, testRepo, "main", "abc1234", CITriggerType.MANUAL);
+        running.setId(205L);
+        running.setStatus(CIBuildStatus.RUNNING);
+        running.setJenkinsBuildNumber(42);
+        running.setJenkinsJobName("cloudship-ci");
+
+        when(ciBuildRepository.findById(205L)).thenReturn(Optional.of(running));
+        when(jenkinsClient.getBuildDetails("cloudship-ci", 42)).thenReturn(
+                new com.cloudship.service.jenkins.JenkinsBuildDetails(42, CIBuildStatus.SUCCESS, 32000L, "SUCCESS")
+        );
+        when(ciBuildRepository.save(any(CIBuild.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CIBuildResponse resp = ciService.getBuild(205L);
+
+        assertEquals(CIBuildStatus.SUCCESS, resp.getStatus());
+        assertEquals(32000L, resp.getDurationMs());
+        assertNotNull(resp.getCompletedAt());
+        verify(ciBuildRepository, atLeastOnce()).save(any(CIBuild.class));
+    }
+
+    @Test
+    @DisplayName("updateBuildStatus should track ACR push status and image digest")
+    void shouldUpdateAcrPushStatus() {
+        CIBuild existing = new CIBuild(testProject, testRepo, "main", "abc1234", CITriggerType.MANUAL);
+        existing.setId(210L);
+
+        when(ciBuildRepository.findById(210L)).thenReturn(Optional.of(existing));
+        when(ciBuildRepository.save(any(CIBuild.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CIBuildStatusUpdateRequest req = new CIBuildStatusUpdateRequest();
+        req.setStatus(CIBuildStatus.SUCCESS);
+        req.setPushStatus(com.cloudship.entity.CIPushStatus.SUCCESS);
+        req.setPushDurationMs(18500L);
+        req.setImageDigest("sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+        req.setRegistryName("cloudshipcr");
+        req.setRegistryLoginServer("cloudshipcr.azurecr.io");
+
+        CIBuildResponse resp = ciService.updateBuildStatus(210L, req);
+
+        assertEquals("SUCCESS", resp.getPushStatus());
+        assertEquals(18500L, resp.getPushDurationMs());
+        assertEquals("sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", resp.getImageDigest());
+        assertEquals("cloudshipcr", resp.getRegistryName());
+        assertEquals("cloudshipcr.azurecr.io", resp.getRegistryLoginServer());
+    }
 }

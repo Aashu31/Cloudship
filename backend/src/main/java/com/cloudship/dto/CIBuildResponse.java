@@ -26,6 +26,14 @@ public class CIBuildResponse {
     private String jenkinsJobName;
     private String dockerImageName;
     private String dockerImageTag;
+    private String registryName;
+    private String registryLoginServer;
+    private String pushStatus;
+    private OffsetDateTime pushStartedAt;
+    private OffsetDateTime pushCompletedAt;
+    private Long pushDurationMs;
+    private String pushErrorMessage;
+    private String imageDigest;
     private String errorMessage;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
@@ -63,6 +71,14 @@ public class CIBuildResponse {
         response.setJenkinsJobName(entity.getJenkinsJobName());
         response.setDockerImageName(entity.getDockerImageName());
         response.setDockerImageTag(entity.getDockerImageTag());
+        response.setRegistryName(entity.getRegistryName());
+        response.setRegistryLoginServer(entity.getRegistryLoginServer());
+        response.setPushStatus(entity.getPushStatus() != null ? entity.getPushStatus().name() : "NOT_STARTED");
+        response.setPushStartedAt(entity.getPushStartedAt());
+        response.setPushCompletedAt(entity.getPushCompletedAt());
+        response.setPushDurationMs(entity.getPushDurationMs());
+        response.setPushErrorMessage(entity.getPushErrorMessage());
+        response.setImageDigest(entity.getImageDigest());
         response.setErrorMessage(entity.getErrorMessage());
         response.setCreatedAt(entity.getCreatedAt());
         response.setUpdatedAt(entity.getUpdatedAt());
@@ -220,6 +236,70 @@ public class CIBuildResponse {
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
+    }
+
+    public String getRegistryName() {
+        return registryName;
+    }
+
+    public void setRegistryName(String registryName) {
+        this.registryName = registryName;
+    }
+
+    public String getRegistryLoginServer() {
+        return registryLoginServer;
+    }
+
+    public void setRegistryLoginServer(String registryLoginServer) {
+        this.registryLoginServer = registryLoginServer;
+    }
+
+    public String getPushStatus() {
+        return pushStatus;
+    }
+
+    public void setPushStatus(String pushStatus) {
+        this.pushStatus = pushStatus;
+    }
+
+    public OffsetDateTime getPushStartedAt() {
+        return pushStartedAt;
+    }
+
+    public void setPushStartedAt(OffsetDateTime pushStartedAt) {
+        this.pushStartedAt = pushStartedAt;
+    }
+
+    public OffsetDateTime getPushCompletedAt() {
+        return pushCompletedAt;
+    }
+
+    public void setPushCompletedAt(OffsetDateTime pushCompletedAt) {
+        this.pushCompletedAt = pushCompletedAt;
+    }
+
+    public Long getPushDurationMs() {
+        return pushDurationMs;
+    }
+
+    public void setPushDurationMs(Long pushDurationMs) {
+        this.pushDurationMs = pushDurationMs;
+    }
+
+    public String getPushErrorMessage() {
+        return pushErrorMessage;
+    }
+
+    public void setPushErrorMessage(String pushErrorMessage) {
+        this.pushErrorMessage = pushErrorMessage;
+    }
+
+    public String getImageDigest() {
+        return imageDigest;
+    }
+
+    public void setImageDigest(String imageDigest) {
+        this.imageDigest = imageDigest;
     }
 
     public OffsetDateTime getCreatedAt() {

@@ -129,7 +129,7 @@ CloudShip provides a live build and container metadata endpoint:
      -e DB_HOST=host.docker.internal \
      -e DB_PORT=5432 \
      -e DB_NAME=cloudship_dev \
-     -e DB_USER=cloudship \
+     -e DB_USERNAME=cloudship \
      -e DB_PASSWORD=cloudship_secret \
      cloudship-backend:latest
    ```
@@ -158,3 +158,37 @@ CloudShip provides a live build and container metadata endpoint:
    ```bash
    docker compose down -v
    ```
+
+---
+
+## 7. Azure Container Registry (ACR) Publishing (Phase 5)
+
+In Version 5, Docker images built by the CI pipeline are tagged with deterministic Git commit identifiers and pushed to Azure Container Registry:
+
+### 1. Authenticate with ACR
+```bash
+az acr login --name cloudshipcr
+# Or using standard Docker CLI with Service Principal credentials:
+docker login cloudshipcr.azurecr.io -u <CLIENT_ID> -p <CLIENT_SECRET>
+```
+
+### 2. Tag Image with Registry Target
+```bash
+docker tag cloudship/backend:a3f9c2d cloudshipcr.azurecr.io/cloudship/backend:a3f9c2d
+docker tag cloudship/backend:a3f9c2d cloudshipcr.azurecr.io/cloudship/backend:latest
+```
+
+### 3. Push Image to ACR
+```bash
+docker push cloudshipcr.azurecr.io/cloudship/backend:a3f9c2d
+docker push cloudshipcr.azurecr.io/cloudship/backend:latest
+```
+
+### 4. Inspect Push Digest
+```bash
+docker inspect --format='{{index .RepoDigests 0}}' cloudshipcr.azurecr.io/cloudship/backend:a3f9c2d
+# Outputs: cloudshipcr.azurecr.io/cloudship/backend@sha256:...
+```
+
+For complete ACR architecture and validation rules, see [docs/azure-acr.md](azure-acr.md).
+

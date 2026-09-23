@@ -60,6 +60,31 @@ public class CIBuild {
     @Column(name = "docker_image_tag", length = 100)
     private String dockerImageTag;
 
+    @Column(name = "registry_name", length = 100)
+    private String registryName;
+
+    @Column(name = "registry_login_server", length = 200)
+    private String registryLoginServer;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "push_status", nullable = false, length = 50)
+    private CIPushStatus pushStatus = CIPushStatus.NOT_STARTED;
+
+    @Column(name = "push_started_at")
+    private OffsetDateTime pushStartedAt;
+
+    @Column(name = "push_completed_at")
+    private OffsetDateTime pushCompletedAt;
+
+    @Column(name = "push_duration_ms")
+    private Long pushDurationMs;
+
+    @Column(name = "push_error_message", length = 1000)
+    private String pushErrorMessage;
+
+    @Column(name = "image_digest", length = 200)
+    private String imageDigest;
+
     @Column(name = "error_message", length = 1000)
     private String errorMessage;
 
@@ -94,6 +119,9 @@ public class CIBuild {
         }
         if (this.status == null) {
             this.status = CIBuildStatus.QUEUED;
+        }
+        if (this.pushStatus == null) {
+            this.pushStatus = CIPushStatus.NOT_STARTED;
         }
     }
 
@@ -236,6 +264,70 @@ public class CIBuild {
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
+    }
+
+    public String getRegistryName() {
+        return registryName;
+    }
+
+    public void setRegistryName(String registryName) {
+        this.registryName = registryName;
+    }
+
+    public String getRegistryLoginServer() {
+        return registryLoginServer;
+    }
+
+    public void setRegistryLoginServer(String registryLoginServer) {
+        this.registryLoginServer = registryLoginServer;
+    }
+
+    public CIPushStatus getPushStatus() {
+        return pushStatus;
+    }
+
+    public void setPushStatus(CIPushStatus pushStatus) {
+        this.pushStatus = pushStatus;
+    }
+
+    public OffsetDateTime getPushStartedAt() {
+        return pushStartedAt;
+    }
+
+    public void setPushStartedAt(OffsetDateTime pushStartedAt) {
+        this.pushStartedAt = pushStartedAt;
+    }
+
+    public OffsetDateTime getPushCompletedAt() {
+        return pushCompletedAt;
+    }
+
+    public void setPushCompletedAt(OffsetDateTime pushCompletedAt) {
+        this.pushCompletedAt = pushCompletedAt;
+    }
+
+    public Long getPushDurationMs() {
+        return pushDurationMs;
+    }
+
+    public void setPushDurationMs(Long pushDurationMs) {
+        this.pushDurationMs = pushDurationMs;
+    }
+
+    public String getPushErrorMessage() {
+        return pushErrorMessage;
+    }
+
+    public void setPushErrorMessage(String pushErrorMessage) {
+        this.pushErrorMessage = pushErrorMessage;
+    }
+
+    public String getImageDigest() {
+        return imageDigest;
+    }
+
+    public void setImageDigest(String imageDigest) {
+        this.imageDigest = imageDigest;
     }
 
     public OffsetDateTime getCreatedAt() {
