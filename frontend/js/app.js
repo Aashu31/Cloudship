@@ -37,6 +37,9 @@ document.addEventListener('DOMContentLoaded', () => {
     infraOverallStatus: document.getElementById('infra-overall-status'),
     infraAzurePill: document.getElementById('infra-azure-pill'),
     infraAzureLabel: document.getElementById('infra-azure-label'),
+    infraMonitoringPill: document.getElementById('infra-monitoring-pill'),
+    infraMonitoringLabel: document.getElementById('infra-monitoring-label'),
+    activityList: document.getElementById('activity-list'),
 
     // Metrics Strip
     metricActiveDeployments: document.getElementById('metric-active-deployments'),
@@ -318,6 +321,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Phase 5: Probe Azure Container Registry status
       await loadAcrStatus();
+
+      // Version 8: Load Observability & Monitoring overview
+      await loadMonitoringOverview();
 
       // 2. Fetch recent deployments
       const deployments = await api.getAllDeployments();
@@ -2048,6 +2054,100 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   /* ==========================================================================
+     Version 8: Observability, Live Monitoring & Operational Events
+     ========================================================================== */
+  async function loadMonitoringOverview() {
+    try {
+      const overview = await api.getMonitoringOverview();
+      if (!overview) return;
+
+      // 1. Update Monitoring Pill in Infrastructure Panel
+      if (elements.infraMonitoringPill && elements.infraMonitoringLabel) {
+        elements.infraMonitoringPill.className = 'status-pill success';
+        elements.infraMonitoringLabel.textContent = 'Active (Live)';
+      }
+
+      // 2. Update Running Pods Metric Card
+      if (overview.kubernetes && elements.metricRunningPods) {
+        const k8s = overview.kubernetes;
+        if (k8s.status === 'CONNECTED') {
+          elements.metricRunningPods.textContent = `${k8s.runningPods || 0} / ${k8s.totalPods || 0}`;
+          const trendSpan = elements.metricRunningPods.parentElement.querySelector('.metric-trend span');
+          if (trendSpan) {
+            trendSpan.textContent = `${k8s.healthyWorkloads || 0} Workloads Healthy`;
+            trendSpan.style.color = 'var(--status-success-text)';
+          }
+        } else {
+          elements.metricRunningPods.textContent = '0';
+          const trendSpan = elements.metricRunningPods.parentElement.querySelector('.metric-trend span');
+          if (trendSpan) {
+            trendSpan.textContent = 'Cluster Standby';
+            trendSpan.style.color = 'var(--text-dim)';
+          }
+        }
+      }
+
+      // 3. Render Real Operational Events Feed in Recent Activity Panel
+      if (overview.recentEvents && elements.activityList) {
+        renderRecentActivity(overview.recentEvents);
+      }
+    } catch (err) {
+      console.warn('Failed to load monitoring overview:', err.message);
+      if (elements.infraMonitoringPill && elements.infraMonitoringLabel) {
+        elements.infraMonitoringPill.className = 'status-pill standby';
+        elements.infraMonitoringLabel.textContent = 'Standby';
+      }
+    }
+  }
+
+  function renderRecentActivity(events) {
+    if (!elements.activityList) return;
+    if (!events || events.length === 0) {
+      elements.activityList.innerHTML = `
+        <div class="empty-state" style="padding: var(--space-4) var(--space-2);">
+          <div style="color: var(--text-dim); font-size: var(--font-caption);">No recent operational events recorded</div>
+        </div>
+      `;
+      return;
+    }
+
+    elements.activityList.innerHTML = events.slice(0, 8).map(event => {
+      const sevColor = event.severity === 'ERROR' ? '#F87171' : (event.severity === 'WARN' ? '#FBBF24' : '#38BDF8');
+      const timeStr = event.createdAt ? formatRelativeTime(event.createdAt) : 'just now';
+      return `
+        <div class="activity-item" style="display: flex; align-items: flex-start; gap: var(--space-2); padding: var(--space-2) 0; border-bottom: 1px solid var(--border-subtle); font-size: var(--font-caption);">
+          <div style="width: 7px; height: 7px; border-radius: 50%; background: ${sevColor}; margin-top: 5px; flex-shrink: 0;"></div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-bottom: 2px;">
+              <span style="font-family: var(--font-mono); font-size: 0.7rem; color: ${sevColor}; font-weight: 600; text-transform: uppercase;">
+                ${escapeHtml(event.eventType)}
+              </span>
+              <span style="color: var(--text-dim); font-size: 0.6875rem; white-space: nowrap;">${timeStr}</span>
+            </div>
+            <div style="color: var(--text-secondary); line-height: 1.3; word-break: break-word;">
+              ${escapeHtml(event.message)}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function formatRelativeTime(dateStr) {
+    try {
+      const d = new Date(dateStr);
+      const now = new Date();
+      const diffSec = Math.floor((now - d) / 1000);
+      if (diffSec < 60) return 'just now';
+      if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+      if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+      return `${Math.floor(diffSec / 86400)}d ago`;
+    } catch {
+      return 'recent';
+    }
+  }
+
+  /* ==========================================================================
      9. Navigation & Mobile Sidebar
      ========================================================================== */
   function switchView(viewName) {
@@ -2105,4 +2205,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Polling every 5 seconds for live RTT and database health
   setInterval(probeTelemetry, 5000);
+
+  // Polling every 15 seconds for live observability overview
+  setInterval(loadMonitoringOverview, 15000);
 });

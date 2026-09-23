@@ -719,6 +719,114 @@ const api = {
       throw new Error(errBody.message || `Failed to cancel pipeline (HTTP ${response.status})`);
     }
     return await response.json();
+  },
+
+  /* ==========================================================================
+     Version 8: Observability, Monitoring & Operational Visibility API
+     ========================================================================== */
+
+  /**
+   * Fetches the complete 3-tier monitoring overview (Application, Cloud/K8s, Pipelines, Events)
+   */
+  async getMonitoringOverview(refresh = false) {
+    const query = refresh ? '?refresh=true' : '';
+    const response = await fetch(`${API_BASE_URL}/api/monitoring/overview${query}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Failed to fetch monitoring overview (HTTP ${response.status})`);
+    }
+    return await response.json();
+  },
+
+  /**
+   * Fetches Tier 1 Application & JVM health metrics
+   */
+  async getMonitoringApplication() {
+    const response = await fetch(`${API_BASE_URL}/api/monitoring/application`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Failed to fetch application health (HTTP ${response.status})`);
+    }
+    return await response.json();
+  },
+
+  /**
+   * Fetches Tier 2 Cloud Infrastructure health (Azure, ACR, AKS)
+   */
+  async getMonitoringInfrastructure() {
+    const response = await fetch(`${API_BASE_URL}/api/monitoring/infrastructure`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Failed to fetch infrastructure health (HTTP ${response.status})`);
+    }
+    return await response.json();
+  },
+
+  /**
+   * Fetches Tier 2 live Kubernetes workloads and pod health
+   */
+  async getMonitoringKubernetes(namespace = '') {
+    const query = namespace ? `?namespace=${encodeURIComponent(namespace)}` : '';
+    const response = await fetch(`${API_BASE_URL}/api/monitoring/kubernetes${query}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Failed to fetch Kubernetes health (HTTP ${response.status})`);
+    }
+    return await response.json();
+  },
+
+  /**
+   * Fetches deep health inspection of a specific workload / deployment
+   */
+  async getMonitoringWorkload(deploymentName, namespace = 'default') {
+    const response = await fetch(`${API_BASE_URL}/api/monitoring/workloads/${encodeURIComponent(deploymentName)}?namespace=${encodeURIComponent(namespace)}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Failed to fetch workload '${deploymentName}' (HTTP ${response.status})`);
+    }
+    return await response.json();
+  },
+
+  /**
+   * Fetches operational audit events with optional project and limit filters
+   */
+  async getMonitoringEvents(projectId = null, limit = 50) {
+    const params = new URLSearchParams();
+    if (projectId) params.append('projectId', projectId);
+    if (limit) params.append('limit', limit);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const response = await fetch(`${API_BASE_URL}/api/monitoring/events${query}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Failed to fetch monitoring events (HTTP ${response.status})`);
+    }
+    return await response.json();
+  },
+
+  /**
+   * Fetches concrete operational metrics (success rates, pod counts, restarts, latency)
+   */
+  async getMonitoringMetrics() {
+    const response = await fetch(`${API_BASE_URL}/api/monitoring/metrics`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Failed to fetch monitoring metrics (HTTP ${response.status})`);
+    }
+    return await response.json();
   }
 };
 

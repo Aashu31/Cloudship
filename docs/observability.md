@@ -1,99 +1,106 @@
-# CloudShip — Observability, Telemetry & Incident Taxonomy (Azure-First)
+# CloudShip Version 8 — Observability, Monitoring & Operational Visibility
 
-**Document Version:** 1.1.0  
-**Phase:** Phase 0 (Foundation & Architecture)  
-**Status:** Approved  
+## 1. Overview & Architectural Philosophy
+
+CloudShip Version 8 establishes a production-grade, three-tier observability and operational monitoring foundation. It replaces synthetic metrics with concrete, verifiable telemetry sourced directly from runtime environments, cloud providers, container registries, Kubernetes clusters, and PostgreSQL audit tables.
+
+### Design Principles:
+1. **Three-Tier Separation of Concerns**: Application & Database (Tier 1), Cloud & Workloads (Tier 2), and Pipelines & Operational Audits (Tier 3).
+2. **Concrete Truth**: No manufactured numbers, fake "All Systems Nominal" fallbacks, or synthetic success percentages. If a pod is in `CrashLoopBackOff` or `Pending`, it is flagged with its exact status.
+3. **Protection Against API Thrashing**: A thread-safe, 15-second in-memory rate-limiting cache protects downstream Azure and Kubernetes APIs from high-frequency dashboard polling. A `?refresh=true` flag allows on-demand cache invalidation.
+4. **Decoupled Event Sourcing**: Event-driven auditing records every state transition (`CIBuildStatusChangedEvent`, `DeploymentStatusChangedEvent`, `PipelineStatusChangedEvent`) asynchronously into PostgreSQL without circular dependencies.
 
 ---
 
-## 1. Observability Pillars & Taxonomy
+## 2. Three-Tier Observability Architecture
 
-CloudShip structures telemetry into five distinct operational abstractions:
-
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          Observability Taxonomy                         │
-├──────────────┬──────────────────────────────────────────────────────────┤
-│ Logs         │ Discrete, timestamped event records emitted by workloads │
-│ Metrics      │ Aggregable numerical measurements evaluated over time    │
-│ Health Checks│ Binary or stateful runtime availability indicators       │
-│ Alerts       │ Actionable notifications triggered when thresholds cross │
-│ Incidents    │ Auditable operational records of degradation & recovery  │
-└──────────────┴──────────────────────────────────────────────────────────┘
 ```
-
-### 1.1 Taxonomy Concepts Comparison
-
-| Concept | Nature | Typical Source | Retention | Example |
-|---|---|---|---|---|
-| **Logs** | JSON text streams | Container stdout/stderr, Logback | 30 days (Azure Log Analytics) | `{"level":"ERROR","msg":"DB connection refused"}` |
-| **Metrics** | Time-series float vectors | Actuator `/metrics`, Azure Monitor | 30 days | `http_server_requests_seconds_count{status="500"}` |
-| **Health Checks** | Structured status (`UP`/`DOWN`) | Actuator `/health`, K8s Liveness/Readiness | Current State | `GET /actuator/health/readiness -> 200 OK` |
-| **Alerts** | State transitions with severity | Azure Monitor Metric Alerts | Ephemeral (until resolved) | `Alert: DeploymentRolloutStalled (Severity: 1)` |
-| **Incidents** | Relational database entity | CloudShip SRE Supervisor | Permanent (PostgreSQL) | `Incident #42: Pod crash loop -> Auto-rollback to v1.2` |
-
----
-
-## 2. Core Metrics Monitored by CloudShip
-
-### 2.1 Application & Runtime Telemetry
-- **HTTP Request Rate & Status Codes**: Rates of `2xx`, `4xx`, and `5xx` responses (RED method).
-- **Latency Distribution**: Request latency p50, p95, and p99.
-- **JVM Heap & Non-Heap Memory**: Committed vs. used memory; garbage collection pause times.
-- **Database Connection Pool (HikariCP)**: Active connections, idle connections, acquisition latency.
-
-### 2.2 Container & Kubernetes Telemetry
-- **CPU & Memory Utilization**: Pod CPU millicores and memory consumption compared against requests/limits.
-- **Pod Lifecycle State**: `Pending`, `Running`, `CrashLoopBackOff`, `Completed`.
-- **Container Restart Count**: Consecutive or cumulative container terminations.
-- **Replica Availability**: Available replicas vs. desired replica count (`status.availableReplicas / spec.replicas`).
-
-### 2.3 Deployment Pipeline Telemetry (DORA Metrics)
-- **Deployment Duration**: Wall-clock time elapsed from trigger dispatch to all replicas reaching ready state.
-- **Deployment Frequency**: Count of deployments executed per day/week.
-- **Change Failure Rate**: Percentage of deployments requiring rollback or hotfix intervention.
-- **Rollback Count**: Total frequency of automated or manual rollbacks.
-
-### 2.4 Reliability & Recovery Telemetry
-- **Mean Time to Detect (MTTD)**: Time from fault injection to first probe failure detection.
-- **Mean Time to Recovery (MTTR)**: Time from confirmed failure detection to completed rollback and healthy status restoration.
-- **Total Incident Count**: Cumulative count of recovered service degradations.
-
----
-
-## 3. Microsoft Azure Monitoring Architecture
-
-```mermaid
-flowchart LR
-    subgraph Workload ["Spring Boot Pods"]
-        Actuator["Actuator Health / Metrics"]
-        AppInsightsAgent["Application Insights Java Agent"]
-        Stdout["Stdout / Stderr (JSON Logs)"]
-    end
-
-    subgraph AzureCloud ["Azure Monitor"]
-        AppInsights["Application Insights\n(Live Traces & Latency)"]
-        LogAnalytics["Log Analytics Workspace\n(Container Insights)"]
-        MetricAlerts["Azure Monitor Alerts\n(Threshold Breach Triggers)"]
-    end
-
-    subgraph SRESupervisor ["CloudShip Recovery Engine"]
-        Supervisor["SRE Recovery Loop"]
-    end
-
-    AppInsightsAgent -->|"App Telemetry"| AppInsights
-    Stdout -->|"Container Logs"| LogAnalytics
-    Actuator -->|"Probe Status (5s)"| Supervisor
-    LogAnalytics --> MetricAlerts
-    MetricAlerts -->|"Alert Webhook"| Supervisor
+                               ┌─────────────────────────────────────────────────────────────┐
+                               │                    CLOUDSHIP CONTROL CENTER                 │
+                               │           (Vercel Frontend / Responsive Dark UI)            │
+                               └──────────────────────────────┬──────────────────────────────┘
+                                                              │ REST / SSE
+                                                              ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                             CLOUDSHIP OBSERVABILITY ENGINE                                              │
+│                                           (/api/monitoring/* Controller & Service)                                      │
+├──────────────────────────────────────┬──────────────────────────────────────┬───────────────────────────────────────────┤
+│ Tier 1: Application & Database       │ Tier 2: Cloud & Kubernetes           │ Tier 3: Pipelines & Operational Auditing  │
+├──────────────────────────────────────┼──────────────────────────────────────┼───────────────────────────────────────────┤
+│ • JVM Memory (Used / Max MB)         │ • Azure ARM Authentication & RG      │ • End-to-End Pipeline Execution Stats     │
+│ • Application Uptime & PID           │ • Azure Container Registry (ACR)     │ • Real Success Rate % & Avg Duration (s)  │
+│ • Thread Count & Garbage Collection  │ • Azure Kubernetes Service (AKS)     │ • Deployment Rollout Progression Metrics  │
+│ • PostgreSQL Connection Validation   │ • Workload Replicas (Desired/Ready)  │ • Operational Audit Event Persistence     │
+│ • Database Latency Ping (ms)         │ • Pod Phase & CrashLoopBackOff       │ • Immutable Event History (V8 Migration)  │
+└──────────────────────────────────────┴──────────────────────────────────────┴───────────────────────────────────────────┘
 ```
 
 ---
 
-## 4. Phased Telemetry Implementation Roadmap
+## 3. Database Schema (Flyway Migration V8)
 
-- **Phase 0 (Active)**: Observability taxonomy and telemetry metrics defined.
-- **Phase 1**: Spring Boot Actuator health groups (`liveness`, `readiness`) and structured logging.
-- **Phase 6**: Kubernetes pod health probes and container restart counters active.
-- **Phase 9**: Azure Monitor Log Analytics workspace and Application Insights agent integration.
-- **Phase 12**: Automated SRE recovery engine actively evaluating probe metrics to trigger self-healing rollbacks.
+Operational events are permanently logged in the PostgreSQL table `monitoring_events`, defined in `V8__create_monitoring_events.sql`:
+
+```sql
+CREATE TABLE IF NOT EXISTS monitoring_events (
+    id BIGSERIAL PRIMARY KEY,
+    project_id BIGINT REFERENCES projects(id) ON DELETE CASCADE,
+    event_type VARCHAR(100) NOT NULL,
+    severity VARCHAR(20) NOT NULL,
+    source VARCHAR(50) NOT NULL,
+    message TEXT NOT NULL,
+    details_json TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_monitoring_events_created_at ON monitoring_events(created_at DESC);
+CREATE INDEX idx_monitoring_events_project_id ON monitoring_events(project_id);
+CREATE INDEX idx_monitoring_events_severity ON monitoring_events(severity);
+```
+
+### Event Classification:
+- **Severities**: `INFO`, `WARN`, `ERROR`
+- **Sources**: `PIPELINE`, `KUBERNETES`, `ACR`, `DATABASE`, `SYSTEM`
+- **Event Types**:
+  - `CI_BUILD_STARTED`, `CI_BUILD_SUCCEEDED`, `CI_BUILD_FAILED`
+  - `IMAGE_PUSH_STARTED`, `IMAGE_PUSH_SUCCEEDED`, `IMAGE_PUSH_FAILED`
+  - `DEPLOYMENT_STARTED`, `DEPLOYMENT_SUCCEEDED`, `DEPLOYMENT_FAILED`
+  - `PIPELINE_STARTED`, `PIPELINE_SUCCEEDED`, `PIPELINE_FAILED`
+
+---
+
+## 4. API Endpoints Reference
+
+All endpoints are hosted under `/api/monitoring`:
+
+| Method | Endpoint | Description | Cache Behavior |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/monitoring/overview` | Complete 3-tier consolidated health snapshot | 15s in-memory cache (`?refresh=true` bypasses) |
+| `GET` | `/api/monitoring/application` | JVM memory, thread count, runtime uptime | Real-time JVM probe |
+| `GET` | `/api/monitoring/infrastructure` | Azure ARM, ACR registry, AKS cluster power states | Real-time Azure probe |
+| `GET` | `/api/monitoring/kubernetes` | Kubernetes workloads, replica status, and pod breakdown | Real-time K8s API query (`?namespace=...`) |
+| `GET` | `/api/monitoring/workloads/{deploymentName}` | Deep inspection of a single workload and its pods | Returns 404 if not found |
+| `GET` | `/api/monitoring/events` | Operational audit event feed (`?projectId=...`, `?limit=50`) | Real-time PostgreSQL query |
+| `GET` | `/api/monitoring/metrics` | Concrete pipeline/deployment success rates, pod totals | Real-time calculation |
+
+---
+
+## 5. Workload & Pod Health Derivation Rules
+
+A workload’s health status is derived using Kubernetes-native condition logic:
+
+```java
+if (desiredReplicas == 0) {
+    status = "STANDBY";
+} else if (readyReplicas >= desiredReplicas && availableReplicas >= desiredReplicas) {
+    status = "HEALTHY";
+} else if (readyReplicas > 0) {
+    status = "DEGRADED";
+} else {
+    status = "FAILED";
+}
+```
+
+A pod is classified as ready **only** if:
+- `readyContainers == totalContainers` and `phase == "Running"`
+- A pod in `Pending`, `Failed`, or `CrashLoopBackOff` is strictly excluded from ready counters.
