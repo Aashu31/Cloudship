@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -31,6 +32,28 @@ public class DeploymentService {
     private final AzureClientProvider azureClientProvider;
     private final AzureContainerRegistryService acrService;
     private final KubernetesDeploymentService kubernetesDeploymentService;
+    private final TransactionTemplate transactionTemplate;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public DeploymentService(
+            DeploymentRepository deploymentRepository,
+            ProjectRepository projectRepository,
+            CIBuildRepository ciBuildRepository,
+            AzureClientProvider azureClientProvider,
+            AzureContainerRegistryService acrService,
+            KubernetesDeploymentService kubernetesDeploymentService,
+            TransactionTemplate transactionTemplate,
+            org.springframework.context.ApplicationEventPublisher eventPublisher) {
+        this.deploymentRepository = deploymentRepository;
+        this.projectRepository = projectRepository;
+        this.ciBuildRepository = ciBuildRepository;
+        this.azureClientProvider = azureClientProvider;
+        this.acrService = acrService;
+        this.kubernetesDeploymentService = kubernetesDeploymentService;
+        this.transactionTemplate = transactionTemplate;
+        this.eventPublisher = eventPublisher;
+    }
 
     public DeploymentService(
             DeploymentRepository deploymentRepository,
@@ -38,13 +61,9 @@ public class DeploymentService {
             CIBuildRepository ciBuildRepository,
             AzureClientProvider azureClientProvider,
             AzureContainerRegistryService acrService,
-            KubernetesDeploymentService kubernetesDeploymentService) {
-        this.deploymentRepository = deploymentRepository;
-        this.projectRepository = projectRepository;
-        this.ciBuildRepository = ciBuildRepository;
-        this.azureClientProvider = azureClientProvider;
-        this.acrService = acrService;
-        this.kubernetesDeploymentService = kubernetesDeploymentService;
+            KubernetesDeploymentService kubernetesDeploymentService,
+            TransactionTemplate transactionTemplate) {
+        this(deploymentRepository, projectRepository, ciBuildRepository, azureClientProvider, acrService, kubernetesDeploymentService, transactionTemplate, null);
     }
 
     @Transactional(readOnly = true)
@@ -79,7 +98,6 @@ public class DeploymentService {
         return deploymentRepository.count();
     }
 
-    @Transactional
     public DeploymentResponse triggerDeployment(DeploymentRequest request) {
         if (request == null || request.getProjectId() == null) {
             throw new IllegalArgumentException("Project ID is required to trigger a deployment.");
@@ -182,9 +200,15 @@ public class DeploymentService {
         deployment.setAvailableReplicas(0);
         deployment.setStartedAt(OffsetDateTime.now());
 
-        Deployment saved = deploymentRepository.save(deployment);
+        Deployment saved = transactionTemplate.execute(tx -> deploymentRepository.save(deployment));
+        if (saved == null) {
+            throw new IllegalStateException("Failed to persist deployment record for project '" + project.getName() + "'.");
+        }
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(new com.cloudship.event.DeploymentStatusChangedEvent(saved));
+        }
 
-        // 4. Apply Kubernetes Deployment & Service resources
+        // 4. Apply Kubernetes Deployment & Service resources OUTSIDE any database transaction
         try {
             kubernetesDeploymentService.applyDeployment(saved);
         } catch (Exception e) {
@@ -195,18 +219,28 @@ public class DeploymentService {
             saved.setCompletedAt(OffsetDateTime.now());
         }
 
-        Deployment finalDeployment = deploymentRepository.save(saved);
+        Deployment finalDeployment = transactionTemplate.execute(tx -> deploymentRepository.save(saved));
+        if (finalDeployment == null) {
+            finalDeployment = saved;
+        }
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(new com.cloudship.event.DeploymentStatusChangedEvent(finalDeployment));
+        }
         return DeploymentResponse.fromEntity(finalDeployment);
     }
 
-    @Transactional
     public DeploymentResponse getDeploymentRolloutStatus(Long id) {
         Deployment deployment = deploymentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Deployment", id));
 
         if (deployment.getStatus() == DeploymentStatus.RUNNING || "RUNNING".equalsIgnoreCase(deployment.getRolloutStatus())) {
+            // Kubernetes read executed OUTSIDE any database transaction
             kubernetesDeploymentService.checkRolloutStatus(deployment);
-            deployment = deploymentRepository.save(deployment);
+            final Deployment toPersist = deployment;
+            Deployment saved = transactionTemplate.execute(tx -> deploymentRepository.save(toPersist));
+            if (saved != null) {
+                deployment = saved;
+            }
         }
 
         return DeploymentResponse.fromEntity(deployment);

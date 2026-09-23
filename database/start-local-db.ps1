@@ -38,6 +38,11 @@ $status = & "$PG_BIN\pg_ctl.exe" -D "$PG_DATA" status 2>&1
 if ($status -match "server is running") {
     Write-Host "PostgreSQL server is already running on port $PG_PORT."
 } else {
+    # Clean up stale postmaster.pid if previous process terminated ungracefully
+    if (Test-Path "$PG_DATA\postmaster.pid") {
+        Write-Host "Removing stale postmaster.pid file..."
+        Remove-Item "$PG_DATA\postmaster.pid" -Force -ErrorAction SilentlyContinue
+    }
     Write-Host "Starting PostgreSQL server on port $PG_PORT..."
     & "$PG_BIN\pg_ctl.exe" -D "$PG_DATA" -l "$PG_DATA\server.log" start
     Start-Sleep -Seconds 2

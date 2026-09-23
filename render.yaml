@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: cloudship-backend
+    env: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    plan: free
+    region: ohio
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 8088
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DB_SSL_MODE
+        value: require
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false

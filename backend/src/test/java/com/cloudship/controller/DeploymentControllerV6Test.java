@@ -97,6 +97,22 @@ class DeploymentControllerV6Test {
     }
 
     @Test
+    @DisplayName("POST /api/projects/{projectId}/deployments with unverified image returns 409 CONFLICT")
+    void testTriggerDeploymentInvalidStateReturns409() throws Exception {
+        when(deploymentService.triggerDeployment(any(DeploymentRequest.class)))
+                .thenThrow(new IllegalStateException(
+                        "Cannot deploy build #10: Container image push status is 'FAILED'. Only images verified and pushed to the registry can be deployed."));
+
+        mockMvc.perform(post("/api/projects/2/deployments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Only images verified and pushed")));
+    }
+
+    @Test
     @DisplayName("GET /api/deployments/{id}/status returns rollout status")
     void testGetDeploymentRolloutStatus() throws Exception {
         DeploymentResponse response = new DeploymentResponse(

@@ -152,9 +152,9 @@ public class KubernetesClientProviderImpl implements KubernetesClientProvider {
                 return;
             }
 
-            byte[] adminKubeconfig = cluster.adminKubeconfigContent();
+            byte[] adminKubeconfig = cluster.adminKubeConfigContent();
             if (adminKubeconfig == null || adminKubeconfig.length == 0) {
-                adminKubeconfig = cluster.userKubeconfigContent();
+                adminKubeconfig = cluster.userKubeConfigContent();
             }
 
             if (adminKubeconfig != null && adminKubeconfig.length > 0) {

@@ -28,8 +28,8 @@ public class WebConfig implements WebMvcConfigurer {
 
         registry.addMapping("/api/**")
                 .allowedOrigins(origins)
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("Content-Type", "Authorization", "Accept", "X-Requested-With")
+                .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+                .allowedHeaders("Content-Type", "Authorization", "Accept", "X-Requested-With", "X-CloudShip-CI-Token", "X-Hub-Signature-256", "X-GitHub-Event")
                 .allowCredentials(true)
                 .maxAge(3600);
     }

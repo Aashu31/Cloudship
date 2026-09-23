@@ -34,6 +34,7 @@ public class CIService {
     private final JenkinsClient jenkinsClient;
     private final String defaultJobName;
     private final com.cloudship.config.AzureProperties azureProperties;
+    private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     public CIService(
             CIBuildRepository ciBuildRepository,
@@ -41,7 +42,17 @@ public class CIService {
             GitRepositoryRepository gitRepositoryRepository,
             JenkinsClient jenkinsClient,
             @Value("${cloudship.jenkins.default-job-name:cloudship-ci}") String defaultJobName) {
-        this(ciBuildRepository, projectRepository, gitRepositoryRepository, jenkinsClient, defaultJobName, new com.cloudship.config.AzureProperties());
+        this(ciBuildRepository, projectRepository, gitRepositoryRepository, jenkinsClient, defaultJobName, new com.cloudship.config.AzureProperties(), null);
+    }
+
+    public CIService(
+            CIBuildRepository ciBuildRepository,
+            ProjectRepository projectRepository,
+            GitRepositoryRepository gitRepositoryRepository,
+            JenkinsClient jenkinsClient,
+            @Value("${cloudship.jenkins.default-job-name:cloudship-ci}") String defaultJobName,
+            com.cloudship.config.AzureProperties azureProperties) {
+        this(ciBuildRepository, projectRepository, gitRepositoryRepository, jenkinsClient, defaultJobName, azureProperties, null);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -51,13 +62,15 @@ public class CIService {
             GitRepositoryRepository gitRepositoryRepository,
             JenkinsClient jenkinsClient,
             @Value("${cloudship.jenkins.default-job-name:cloudship-ci}") String defaultJobName,
-            com.cloudship.config.AzureProperties azureProperties) {
+            com.cloudship.config.AzureProperties azureProperties,
+            org.springframework.context.ApplicationEventPublisher eventPublisher) {
         this.ciBuildRepository = ciBuildRepository;
         this.projectRepository = projectRepository;
         this.gitRepositoryRepository = gitRepositoryRepository;
         this.jenkinsClient = jenkinsClient;
         this.defaultJobName = defaultJobName;
         this.azureProperties = azureProperties != null ? azureProperties : new com.cloudship.config.AzureProperties();
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -138,6 +151,9 @@ public class CIService {
         }
 
         saved = ciBuildRepository.save(saved);
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(new com.cloudship.event.CIBuildCreatedEvent(saved));
+        }
         return CIBuildResponse.fromEntity(saved);
     }
 
@@ -232,6 +248,9 @@ public class CIService {
 
         CIBuild saved = ciBuildRepository.save(build);
         log.info("Updated CI Build {} status to {} (pushStatus: {})", id, saved.getStatus(), saved.getPushStatus());
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(new com.cloudship.event.CIBuildStatusChangedEvent(saved));
+        }
         return CIBuildResponse.fromEntity(saved);
     }
 
@@ -315,6 +334,9 @@ public class CIService {
                     }
                     build = ciBuildRepository.save(build);
                     log.info("Reconciled running CI Build {} with Jenkins status: {}", build.getId(), build.getStatus());
+                    if (eventPublisher != null) {
+                        eventPublisher.publishEvent(new com.cloudship.event.CIBuildStatusChangedEvent(build));
+                    }
                 }
             } catch (Exception e) {
                 log.warn("Failed to reconcile CI build {} status from Jenkins: {}", build.getId(), e.getMessage());

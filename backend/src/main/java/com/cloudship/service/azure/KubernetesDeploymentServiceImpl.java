@@ -133,15 +133,57 @@ public class KubernetesDeploymentServiceImpl implements KubernetesDeploymentServ
             deployment.setUpdatedReplicas(updated);
             deployment.setAvailableReplicas(available);
 
-            if (ready >= desired && updated >= desired) {
+            // 1. Inspect Kubernetes Deployment conditions for rollout failures
+            if (status.getConditions() != null) {
+                for (V1DeploymentCondition cond : status.getConditions()) {
+                    if ("Progressing".equals(cond.getType()) && "False".equalsIgnoreCase(cond.getStatus())
+                            && "ProgressDeadlineExceeded".equalsIgnoreCase(cond.getReason())) {
+                        deployment.setRolloutStatus("FAILED");
+                        deployment.setStatus(DeploymentStatus.FAILED);
+                        deployment.setErrorMessage("Kubernetes rollout failed: ProgressDeadlineExceeded - " + cond.getMessage());
+                        if (deployment.getCompletedAt() == null) {
+                            deployment.setCompletedAt(OffsetDateTime.now());
+                        }
+                        log.warn("Deployment '{}/{}' rollout failed with ProgressDeadlineExceeded: {}", namespace, depName, cond.getMessage());
+                        return;
+                    }
+                    if ("ReplicaFailure".equals(cond.getType()) && "True".equalsIgnoreCase(cond.getStatus())) {
+                        deployment.setRolloutStatus("FAILED");
+                        deployment.setStatus(DeploymentStatus.FAILED);
+                        deployment.setErrorMessage("Kubernetes replica failure: " + cond.getMessage());
+                        if (deployment.getCompletedAt() == null) {
+                            deployment.setCompletedAt(OffsetDateTime.now());
+                        }
+                        log.warn("Deployment '{}/{}' replica failure detected: {}", namespace, depName, cond.getMessage());
+                        return;
+                    }
+                }
+            }
+
+            // 2. Check timeout (180 seconds maximum)
+            if (deployment.getStartedAt() != null && java.time.Duration.between(deployment.getStartedAt(), OffsetDateTime.now()).getSeconds() > 180) {
+                deployment.setRolloutStatus("FAILED");
+                deployment.setStatus(DeploymentStatus.FAILED);
+                deployment.setErrorMessage("Kubernetes rollout timed out after 180 seconds waiting for ready replicas");
+                if (deployment.getCompletedAt() == null) {
+                    deployment.setCompletedAt(OffsetDateTime.now());
+                }
+                log.warn("Deployment '{}/{}' rollout timed out after 180 seconds", namespace, depName);
+                return;
+            }
+
+            // 3. Confirm genuine Kubernetes rollout success
+            if (ready >= desired && updated >= desired && available >= desired) {
                 deployment.setRolloutStatus("SUCCESS");
                 deployment.setStatus(DeploymentStatus.SUCCESS);
                 if (deployment.getCompletedAt() == null) {
                     deployment.setCompletedAt(OffsetDateTime.now());
                 }
             } else {
-                deployment.setRolloutStatus("RUNNING");
-                deployment.setStatus(DeploymentStatus.RUNNING);
+                if (deployment.getStatus() != DeploymentStatus.FAILED && !"FAILED".equalsIgnoreCase(deployment.getRolloutStatus())) {
+                    deployment.setRolloutStatus("RUNNING");
+                    deployment.setStatus(DeploymentStatus.RUNNING);
+                }
             }
         } catch (Exception e) {
             log.debug("Could not inspect rollout status for '{}/{}': {}", namespace, depName, e.getMessage());

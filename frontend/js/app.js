@@ -950,113 +950,194 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elements.pipeStepNodes[2] && elements.pipeStepNodes[2].desc) elements.pipeStepNodes[2].desc.textContent = 'All tests passed';
     if (elements.pipeStepNodes[3] && elements.pipeStepNodes[3].desc) elements.pipeStepNodes[3].desc.textContent = 'Docker image created';
     if (elements.pipeStepNodes[4] && elements.pipeStepNodes[4].desc) elements.pipeStepNodes[4].desc.textContent = 'Pushed to ACR';
-    if (elements.pipeStepNodes[5] && elements.pipeStepNodes[5].desc) elements.pipeStepNodes[5].desc.textContent = 'Pending (Phase 6)';
-    if (elements.pipeStepNodes[6] && elements.pipeStepNodes[6].desc) elements.pipeStepNodes[6].desc.textContent = 'Pending (Phase 6)';
-    if (elements.pipeStepNodes[7] && elements.pipeStepNodes[7].desc) elements.pipeStepNodes[7].desc.textContent = 'Pending (Phase 6)';
+    if (elements.pipeStepNodes[5] && elements.pipeStepNodes[5].desc) elements.pipeStepNodes[5].desc.textContent = 'AKS Rolling Update';
+    if (elements.pipeStepNodes[6] && elements.pipeStepNodes[6].desc) elements.pipeStepNodes[6].desc.textContent = 'Pod Readiness & Probes';
+    if (elements.pipeStepNodes[7] && elements.pipeStepNodes[7].desc) elements.pipeStepNodes[7].desc.textContent = 'Workload Active & Routing';
     if (elements.pipelineOverallStatus && elements.pipelineOverallStatusText) {
       elements.pipelineOverallStatus.className = 'status-pill standby';
       elements.pipelineOverallStatusText.textContent = 'Standby';
     }
   }
 
-  function updatePipelineStepper(latestBuild) {
+  function updatePipelineStepper(latestBuild, latestDeployment, latestPipeline) {
     if (!elements.pipeStepNodes) return;
-    if (!latestBuild) {
+    if (!latestBuild && !latestDeployment && !latestPipeline) {
       resetPipelineStepper();
       return;
     }
 
-    const isSuccess = latestBuild.status === 'SUCCESS';
-    const isRunning = latestBuild.status === 'RUNNING' || latestBuild.status === 'QUEUED';
-    const isFailed = latestBuild.status === 'FAILED' || latestBuild.status === 'ABORTED';
-    const pushStatus = latestBuild.pushStatus;
+    const pipe = latestPipeline || state.latestPipeline || null;
+    const dep = latestDeployment || (state.deployments && state.deployments.length > 0 ? state.deployments[0] : null);
+
+    const isSuccess = (pipe && pipe.status === 'SUCCESS') || (!pipe && dep && dep.status === 'SUCCESS') || (latestBuild && latestBuild.status === 'SUCCESS');
+    const isRunning = (pipe && pipe.status && (pipe.status.includes('RUNNING') || pipe.status.includes('DEPLOY') || pipe.status.includes('VERIFY'))) || (latestBuild && (latestBuild.status === 'RUNNING' || latestBuild.status === 'QUEUED'));
+    const isFailed = (pipe && pipe.status && pipe.status.includes('FAILED')) || (latestBuild && (latestBuild.status === 'FAILED' || latestBuild.status === 'ABORTED'));
+    const pushStatus = latestBuild ? latestBuild.pushStatus : (pipe && (pipe.status === 'IMAGE_PUSHED' || pipe.status === 'SUCCESS') ? 'SUCCESS' : null);
 
     // Step 1: Source
     if (elements.pipeStepNodes[0] && elements.pipeStepNodes[0].step) {
       elements.pipeStepNodes[0].step.className = 'pipeline-step completed';
+      if (elements.pipeStepNodes[0].desc) elements.pipeStepNodes[0].desc.textContent = 'Repository fetched';
       if (elements.pipeStepNodes[0].dur) elements.pipeStepNodes[0].dur.textContent = '12s';
     }
 
     // Step 2: Build
     if (elements.pipeStepNodes[1] && elements.pipeStepNodes[1].step) {
-      elements.pipeStepNodes[1].step.className = isSuccess ? 'pipeline-step completed' : (isRunning ? 'pipeline-step active' : (isFailed ? 'pipeline-step failed' : 'pipeline-step pending'));
+      const bRunning = (pipe && pipe.status === 'CI_RUNNING') || (latestBuild && latestBuild.status === 'RUNNING');
+      const bFailed = (pipe && pipe.status === 'CI_FAILED') || (latestBuild && latestBuild.status === 'FAILED');
+      const bSuccess = (pipe && pipe.status !== 'CI_RUNNING' && pipe.status !== 'CI_FAILED' && pipe.status !== 'QUEUED') || (latestBuild && latestBuild.status === 'SUCCESS');
+      elements.pipeStepNodes[1].step.className = bSuccess ? 'pipeline-step completed' : (bRunning ? 'pipeline-step active' : (bFailed ? 'pipeline-step failed' : 'pipeline-step pending'));
+      if (elements.pipeStepNodes[1].desc) elements.pipeStepNodes[1].desc.textContent = bFailed ? 'Compilation failed' : (bRunning ? 'Compiling Maven package...' : 'Maven package compiled');
       if (elements.pipeStepNodes[1].dur) {
-        const dur = latestBuild.durationSeconds || (latestBuild.durationMs ? Math.round(latestBuild.durationMs / 1000) : null);
-        elements.pipeStepNodes[1].dur.textContent = dur ? Math.max(1, Math.round(dur * 0.4)) + 's' : '--';
+        const dur = latestBuild ? (latestBuild.durationSeconds || (latestBuild.durationMs ? Math.round(latestBuild.durationMs / 1000) : null)) : null;
+        elements.pipeStepNodes[1].dur.textContent = dur ? Math.max(1, Math.round(dur * 0.4)) + 's' : (bSuccess ? '45s' : '--');
       }
     }
 
     // Step 3: Test
     if (elements.pipeStepNodes[2] && elements.pipeStepNodes[2].step) {
-      elements.pipeStepNodes[2].step.className = isSuccess ? 'pipeline-step completed' : (isRunning ? 'pipeline-step pending' : (isFailed ? 'pipeline-step failed' : 'pipeline-step pending'));
+      const tSuccess = (pipe && pipe.status !== 'CI_RUNNING' && pipe.status !== 'CI_FAILED' && pipe.status !== 'QUEUED') || (latestBuild && latestBuild.status === 'SUCCESS');
+      const tFailed = (pipe && pipe.status === 'CI_FAILED') || (latestBuild && latestBuild.status === 'FAILED');
+      elements.pipeStepNodes[2].step.className = tSuccess ? 'pipeline-step completed' : (tFailed ? 'pipeline-step failed' : 'pipeline-step pending');
+      if (elements.pipeStepNodes[2].desc) elements.pipeStepNodes[2].desc.textContent = tFailed ? 'Tests failed' : 'All tests passed';
       if (elements.pipeStepNodes[2].dur) {
-        const dur = latestBuild.durationSeconds || (latestBuild.durationMs ? Math.round(latestBuild.durationMs / 1000) : null);
-        elements.pipeStepNodes[2].dur.textContent = dur ? Math.max(1, Math.round(dur * 0.3)) + 's' : '--';
+        const dur = latestBuild ? (latestBuild.durationSeconds || (latestBuild.durationMs ? Math.round(latestBuild.durationMs / 1000) : null)) : null;
+        elements.pipeStepNodes[2].dur.textContent = dur ? Math.max(1, Math.round(dur * 0.3)) + 's' : (tSuccess ? '28s' : '--');
       }
     }
 
     // Step 4: Container
     if (elements.pipeStepNodes[3] && elements.pipeStepNodes[3].step) {
-      const hasImage = Boolean(latestBuild.dockerImageTag) || isSuccess;
+      const hasImage = Boolean(latestBuild && latestBuild.dockerImageTag) || (pipe && pipe.dockerImageTag) || isSuccess;
       elements.pipeStepNodes[3].step.className = hasImage ? 'pipeline-step completed' : (isRunning ? 'pipeline-step active' : (isFailed ? 'pipeline-step failed' : 'pipeline-step pending'));
+      if (elements.pipeStepNodes[3].desc) elements.pipeStepNodes[3].desc.textContent = hasImage ? 'Docker image created' : 'Containerizing...';
       if (elements.pipeStepNodes[3].dur) {
-        const dur = latestBuild.durationSeconds || (latestBuild.durationMs ? Math.round(latestBuild.durationMs / 1000) : null);
-        elements.pipeStepNodes[3].dur.textContent = dur ? Math.max(1, Math.round(dur * 0.3)) + 's' : '--';
+        const dur = latestBuild ? (latestBuild.durationSeconds || (latestBuild.durationMs ? Math.round(latestBuild.durationMs / 1000) : null)) : null;
+        elements.pipeStepNodes[3].dur.textContent = dur ? Math.max(1, Math.round(dur * 0.3)) + 's' : (hasImage ? '35s' : '--');
       }
     }
 
     // Step 5: Registry — Pushed to ACR
     if (elements.pipeStepNodes[4] && elements.pipeStepNodes[4].step) {
-      if (pushStatus === 'SUCCESS') {
+      const regSuccess = pushStatus === 'SUCCESS' || (pipe && ['IMAGE_PUSHED', 'DEPLOYMENT_STARTING', 'DEPLOYING', 'ROLLOUT_VERIFYING', 'SUCCESS'].includes(pipe.status));
+      const regRunning = pushStatus === 'RUNNING' || (pipe && pipe.status === 'IMAGE_PUSHING');
+      const regFailed = pushStatus === 'FAILED' || (pipe && pipe.status === 'IMAGE_PUSH_FAILED');
+
+      if (regSuccess) {
         elements.pipeStepNodes[4].step.className = 'pipeline-step completed';
         if (elements.pipeStepNodes[4].desc) elements.pipeStepNodes[4].desc.textContent = 'Pushed to ACR';
         if (elements.pipeStepNodes[4].dur) {
-          const pushDur = latestBuild.pushDurationMs ? Math.round(latestBuild.pushDurationMs / 1000) : null;
+          const pushDur = latestBuild && latestBuild.pushDurationMs ? Math.round(latestBuild.pushDurationMs / 1000) : null;
           elements.pipeStepNodes[4].dur.textContent = pushDur != null ? `${pushDur}s` : '22s';
         }
-      } else if (pushStatus === 'RUNNING') {
+      } else if (regRunning) {
         elements.pipeStepNodes[4].step.className = 'pipeline-step active';
         if (elements.pipeStepNodes[4].desc) elements.pipeStepNodes[4].desc.textContent = 'Pushing to ACR...';
         if (elements.pipeStepNodes[4].dur) elements.pipeStepNodes[4].dur.textContent = '...';
-      } else if (pushStatus === 'FAILED') {
+      } else if (regFailed) {
         elements.pipeStepNodes[4].step.className = 'pipeline-step failed';
         if (elements.pipeStepNodes[4].desc) elements.pipeStepNodes[4].desc.textContent = 'ACR push failed';
         if (elements.pipeStepNodes[4].dur) elements.pipeStepNodes[4].dur.textContent = 'ERR';
-      } else if (pushStatus === 'SKIPPED') {
-        elements.pipeStepNodes[4].step.className = 'pipeline-step pending';
-        if (elements.pipeStepNodes[4].desc) elements.pipeStepNodes[4].desc.textContent = 'Push skipped';
-        if (elements.pipeStepNodes[4].dur) elements.pipeStepNodes[4].dur.textContent = '--';
       } else {
-        elements.pipeStepNodes[4].step.className = isSuccess ? 'pipeline-step completed' : 'pipeline-step pending';
-        if (elements.pipeStepNodes[4].desc) elements.pipeStepNodes[4].desc.textContent = isSuccess ? 'Pushed to ACR' : 'ACR push standby';
-        if (elements.pipeStepNodes[4].dur) elements.pipeStepNodes[4].dur.textContent = isSuccess ? '22s' : '--';
+        elements.pipeStepNodes[4].step.className = 'pipeline-step pending';
+        if (elements.pipeStepNodes[4].desc) elements.pipeStepNodes[4].desc.textContent = 'ACR push standby';
+        if (elements.pipeStepNodes[4].dur) elements.pipeStepNodes[4].dur.textContent = '--';
       }
     }
 
-    // Step 6: Deploy (Phase 6)
-    if (elements.pipeStepNodes[5] && elements.pipeStepNodes[5].step) elements.pipeStepNodes[5].step.className = 'pipeline-step pending';
-    if (elements.pipeStepNodes[5] && elements.pipeStepNodes[5].desc) elements.pipeStepNodes[5].desc.textContent = 'Pending (Phase 6)';
+    // Step 6: Deploy — AKS Rolling Update
+    if (elements.pipeStepNodes[5] && elements.pipeStepNodes[5].step) {
+      const depSuccess = (pipe && ['ROLLOUT_VERIFYING', 'SUCCESS'].includes(pipe.status)) || (!pipe && dep && dep.status === 'SUCCESS');
+      const depRunning = (pipe && ['DEPLOYMENT_STARTING', 'DEPLOYING'].includes(pipe.status)) || (!pipe && dep && (dep.status === 'RUNNING' || dep.status === 'PENDING'));
+      const depFailed = (pipe && pipe.status === 'DEPLOYMENT_FAILED') || (!pipe && dep && dep.status === 'FAILED');
 
-    // Step 7: Health Check (Phase 6)
-    if (elements.pipeStepNodes[6] && elements.pipeStepNodes[6].step) elements.pipeStepNodes[6].step.className = 'pipeline-step pending';
-    if (elements.pipeStepNodes[6] && elements.pipeStepNodes[6].desc) elements.pipeStepNodes[6].desc.textContent = 'Pending (Phase 6)';
+      if (depSuccess) {
+        elements.pipeStepNodes[5].step.className = 'pipeline-step completed';
+        if (elements.pipeStepNodes[5].desc) elements.pipeStepNodes[5].desc.textContent = 'AKS Rolling Update';
+        if (elements.pipeStepNodes[5].dur) elements.pipeStepNodes[5].dur.textContent = '18s';
+      } else if (depRunning) {
+        elements.pipeStepNodes[5].step.className = 'pipeline-step active';
+        if (elements.pipeStepNodes[5].desc) elements.pipeStepNodes[5].desc.textContent = 'Deploying to AKS...';
+        if (elements.pipeStepNodes[5].dur) elements.pipeStepNodes[5].dur.textContent = '...';
+      } else if (depFailed) {
+        elements.pipeStepNodes[5].step.className = 'pipeline-step failed';
+        if (elements.pipeStepNodes[5].desc) elements.pipeStepNodes[5].desc.textContent = 'AKS deployment failed';
+        if (elements.pipeStepNodes[5].dur) elements.pipeStepNodes[5].dur.textContent = 'ERR';
+      } else {
+        elements.pipeStepNodes[5].step.className = 'pipeline-step pending';
+        if (elements.pipeStepNodes[5].desc) elements.pipeStepNodes[5].desc.textContent = 'AKS Rolling Update';
+        if (elements.pipeStepNodes[5].dur) elements.pipeStepNodes[5].dur.textContent = '--';
+      }
+    }
 
-    // Step 8: Live (Phase 6)
-    if (elements.pipeStepNodes[7] && elements.pipeStepNodes[7].step) elements.pipeStepNodes[7].step.className = 'pipeline-step pending';
-    if (elements.pipeStepNodes[7] && elements.pipeStepNodes[7].desc) elements.pipeStepNodes[7].desc.textContent = 'Pending (Phase 6)';
+    // Step 7: Health Check — Pod Readiness & Probes
+    if (elements.pipeStepNodes[6] && elements.pipeStepNodes[6].step) {
+      const healthSuccess = (pipe && pipe.status === 'SUCCESS') || (!pipe && dep && dep.status === 'SUCCESS');
+      const healthRunning = (pipe && pipe.status === 'ROLLOUT_VERIFYING') || (!pipe && dep && dep.status === 'RUNNING');
+      const healthFailed = (pipe && pipe.status === 'ROLLOUT_FAILED');
+
+      if (healthSuccess) {
+        elements.pipeStepNodes[6].step.className = 'pipeline-step completed';
+        if (elements.pipeStepNodes[6].desc) elements.pipeStepNodes[6].desc.textContent = 'Pod Readiness Verified';
+        if (elements.pipeStepNodes[6].dur) elements.pipeStepNodes[6].dur.textContent = '14s';
+      } else if (healthRunning) {
+        elements.pipeStepNodes[6].step.className = 'pipeline-step active';
+        if (elements.pipeStepNodes[6].desc) elements.pipeStepNodes[6].desc.textContent = 'Verifying pod readiness...';
+        if (elements.pipeStepNodes[6].dur) elements.pipeStepNodes[6].dur.textContent = '...';
+      } else if (healthFailed) {
+        elements.pipeStepNodes[6].step.className = 'pipeline-step failed';
+        if (elements.pipeStepNodes[6].desc) elements.pipeStepNodes[6].desc.textContent = 'Rollout verification failed';
+        if (elements.pipeStepNodes[6].dur) elements.pipeStepNodes[6].dur.textContent = 'ERR';
+      } else {
+        elements.pipeStepNodes[6].step.className = 'pipeline-step pending';
+        if (elements.pipeStepNodes[6].desc) elements.pipeStepNodes[6].desc.textContent = 'Pod Readiness & Probes';
+        if (elements.pipeStepNodes[6].dur) elements.pipeStepNodes[6].dur.textContent = '--';
+      }
+    }
+
+    // Step 8: Live — Workload Active & Routing
+    if (elements.pipeStepNodes[7] && elements.pipeStepNodes[7].step) {
+      const isLive = (pipe && pipe.status === 'SUCCESS') || (!pipe && dep && dep.status === 'SUCCESS');
+      if (isLive) {
+        elements.pipeStepNodes[7].step.className = 'pipeline-step completed';
+        if (elements.pipeStepNodes[7].desc) elements.pipeStepNodes[7].desc.textContent = 'Workload Active & Routing';
+        if (elements.pipeStepNodes[7].dur) elements.pipeStepNodes[7].dur.textContent = 'Live';
+      } else {
+        elements.pipeStepNodes[7].step.className = 'pipeline-step pending';
+        if (elements.pipeStepNodes[7].desc) elements.pipeStepNodes[7].desc.textContent = 'Workload Active & Routing';
+        if (elements.pipeStepNodes[7].dur) elements.pipeStepNodes[7].dur.textContent = '--';
+      }
+    }
 
     // Overall Stepper Header Pill
     if (elements.pipelineOverallStatus && elements.pipelineOverallStatusText) {
-      if (pushStatus === 'SUCCESS') {
+      if (pipe) {
+        if (pipe.status === 'SUCCESS') {
+          elements.pipelineOverallStatus.className = 'status-pill success';
+          elements.pipelineOverallStatusText.textContent = 'Live (Deployed)';
+        } else if (pipe.status.includes('RUNNING') || pipe.status.includes('PUSHING') || pipe.status.includes('DEPLOY') || pipe.status.includes('VERIFY')) {
+          elements.pipelineOverallStatus.className = 'status-pill deploying';
+          elements.pipelineOverallStatusText.textContent = pipe.status.replace(/_/g, ' ');
+        } else if (pipe.status.includes('FAILED') || pipe.status === 'CANCELLED') {
+          elements.pipelineOverallStatus.className = 'status-pill failed';
+          elements.pipelineOverallStatusText.textContent = pipe.status.replace(/_/g, ' ');
+        } else {
+          elements.pipelineOverallStatus.className = 'status-pill standby';
+          elements.pipelineOverallStatusText.textContent = pipe.status;
+        }
+      } else if (dep && dep.status === 'SUCCESS') {
+        elements.pipelineOverallStatus.className = 'status-pill success';
+        elements.pipelineOverallStatusText.textContent = 'Live (Deployed)';
+      } else if (pushStatus === 'SUCCESS') {
         elements.pipelineOverallStatus.className = 'status-pill success';
         elements.pipelineOverallStatusText.textContent = 'Pushed to ACR';
-      } else if (isSuccess) {
+      } else if (latestBuild && latestBuild.status === 'SUCCESS') {
         elements.pipelineOverallStatus.className = 'status-pill success';
         elements.pipelineOverallStatusText.textContent = 'Built';
-      } else if (isRunning || pushStatus === 'RUNNING') {
+      } else if (isRunning) {
         elements.pipelineOverallStatus.className = 'status-pill deploying';
         elements.pipelineOverallStatusText.textContent = 'In Progress';
-      } else if (isFailed || pushStatus === 'FAILED') {
+      } else if (isFailed) {
         elements.pipelineOverallStatus.className = 'status-pill failed';
         elements.pipelineOverallStatusText.textContent = 'Failed';
       } else {
@@ -1080,42 +1161,62 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const builds = await api.getCIBuilds(projectId);
+      const [builds, pipelines] = await Promise.all([
+        api.getCIBuilds(projectId).catch(() => []),
+        api.getProjectPipelines(projectId).catch(() => [])
+      ]);
       state.ciBuilds = builds || [];
       state.latestCIBuild = state.ciBuilds.length > 0 ? state.ciBuilds[0] : null;
+      state.pipelines = pipelines || [];
+      state.latestPipeline = state.pipelines.length > 0 ? state.pipelines[0] : null;
 
       if (elements.ciBuildsCount) {
         elements.ciBuildsCount.textContent = state.ciBuilds.length;
       }
 
-      if (state.latestCIBuild) {
+      if (state.latestPipeline || state.latestCIBuild) {
         const latest = state.latestCIBuild;
+        const pipe = state.latestPipeline;
         let pillClass = 'standby';
-        if (latest.status === 'SUCCESS') pillClass = 'success';
-        else if (latest.status === 'FAILED' || latest.status === 'ABORTED') pillClass = 'failed';
-        else if (latest.status === 'RUNNING') pillClass = 'deploying';
+        let statusText = 'Standby';
+        let bNum = '--';
+        let durSec = null;
 
-        const bNum = latest.jenkinsBuildNumber || latest.buildNumber || latest.id;
-        const durSec = latest.durationMs != null ? Math.round(latest.durationMs / 1000) : latest.durationSeconds;
+        if (pipe) {
+          bNum = pipe.ciBuildId ? `#${pipe.ciBuildId}` : `#${pipe.id}`;
+          statusText = pipe.status.replace(/_/g, ' ');
+          durSec = pipe.durationSeconds;
+          if (pipe.status === 'SUCCESS') pillClass = 'success';
+          else if (pipe.status.includes('FAILED') || pipe.status === 'CANCELLED') pillClass = 'failed';
+          else pillClass = 'deploying';
+        } else if (latest) {
+          bNum = `#${latest.jenkinsBuildNumber || latest.buildNumber || latest.id}`;
+          statusText = latest.status;
+          durSec = latest.durationMs != null ? Math.round(latest.durationMs / 1000) : latest.durationSeconds;
+          if (latest.status === 'SUCCESS') pillClass = 'success';
+          else if (latest.status === 'FAILED' || latest.status === 'ABORTED') pillClass = 'failed';
+          else if (latest.status === 'RUNNING') pillClass = 'deploying';
+        }
 
         if (elements.ciLastBuildStatus) {
           elements.ciLastBuildStatus.innerHTML = `
             <span class="status-pill ${pillClass}" style="font-size: 0.65rem; padding: 0.15rem 0.45rem;">
-              <span class="status-dot"></span>#${bNum} ${latest.status}
+              <span class="status-dot"></span>${bNum} ${statusText}
             </span>
           `;
         }
 
         if (elements.ciDockerTag) {
-          elements.ciDockerTag.textContent = latest.dockerImageTag || `cloudship/backend:${latest.commitSha ? latest.commitSha.substring(0, 7) : 'pending'}`;
+          const tag = (pipe && pipe.dockerImageTag) || (latest && latest.dockerImageTag);
+          elements.ciDockerTag.textContent = tag || `cloudship/backend:${latest && latest.commitSha ? latest.commitSha.substring(0, 7) : 'pending'}`;
         }
 
         if (elements.ciBuildDuration) {
-          elements.ciBuildDuration.textContent = durSec != null ? `${durSec}s` : (latest.status === 'RUNNING' ? 'In progress' : '--');
+          elements.ciBuildDuration.textContent = durSec != null ? `${durSec}s` : (pillClass === 'deploying' ? 'In progress' : '--');
         }
 
-        updatePipelineStepper(latest);
-        updateAcrBuildTelemetry(latest);
+        updatePipelineStepper(latest, null, state.latestPipeline);
+        if (latest) updateAcrBuildTelemetry(latest);
       } else {
         if (elements.ciLastBuildStatus) elements.ciLastBuildStatus.textContent = 'No builds executed';
         if (elements.ciDockerTag) elements.ciDockerTag.textContent = 'cloudship/backend:pending';
@@ -1125,7 +1226,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       renderCIBuilds(state.ciBuilds);
     } catch (err) {
-      console.warn('Failed to load CI builds:', err);
+      console.warn('Failed to load CI builds and pipelines:', err);
     }
   }
 
@@ -1663,16 +1764,25 @@ document.addEventListener('DOMContentLoaded', () => {
       elements.btnTriggerCi.textContent = '⏳ Triggering CI...';
 
       try {
-        const build = await api.triggerCIBuild(state.selectedProjectId, {
-          branch: branch,
-          triggerType: 'MANUAL',
-        });
+        try {
+          const pipe = await api.triggerPipeline(state.selectedProjectId, {
+            branch: branch,
+            triggerType: 'MANUAL'
+          });
+          showToast(`Pipeline #${pipe.id} triggered: ${pipe.status}`, 'success');
+        } catch (pipeErr) {
+          console.warn('Unified pipeline trigger fallback to direct CI:', pipeErr.message);
+          const build = await api.triggerCIBuild(state.selectedProjectId, {
+            branch: branch,
+            triggerType: 'MANUAL',
+          });
+          showToast(`CI Build #${build.buildNumber || build.id} triggered: ${build.status}`, 'success');
+        }
 
-        showToast(`CI Build #${build.buildNumber || build.id} triggered: ${build.status}`, 'success');
         await loadCIBuilds(state.selectedProjectId);
         await loadJenkinsStatus();
       } catch (err) {
-        showToast(`Failed to trigger CI build: ${err.message}`, 'error');
+        showToast(`Failed to trigger pipeline: ${err.message}`, 'error');
       } finally {
         if (elements.btnTriggerCi) {
           elements.btnTriggerCi.disabled = false;

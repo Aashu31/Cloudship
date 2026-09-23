@@ -17,6 +17,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.Optional;
 
@@ -53,13 +56,18 @@ class DeploymentServiceV6Test {
 
     @BeforeEach
     void setUp() {
+        PlatformTransactionManager transactionManager = mock(PlatformTransactionManager.class);
+        lenient().when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+
         deploymentService = new DeploymentService(
                 deploymentRepository,
                 projectRepository,
                 ciBuildRepository,
                 azureClientProvider,
                 acrService,
-                kubernetesDeploymentService
+                kubernetesDeploymentService,
+                transactionTemplate
         );
 
         testProject = new Project("auth-service", "Authentication service", "https://github.com/org/auth-service.git");
@@ -108,6 +116,28 @@ class DeploymentServiceV6Test {
         assertThat(response.getReplicas()).isEqualTo(2);
 
         verify(kubernetesDeploymentService).applyDeployment(any(Deployment.class));
+    }
+
+    @Test
+    @DisplayName("Marks deployment FAILED when Kubernetes apply throws and still persists the record")
+    void testTriggerDeployment_KubernetesFailurePropagates() {
+        DeploymentRequest request = new DeploymentRequest(10L, 101L, 1);
+
+        when(projectRepository.findById(10L)).thenReturn(Optional.of(testProject));
+        when(ciBuildRepository.findByIdAndProjectId(101L, 10L)).thenReturn(Optional.of(successfulBuild));
+        when(azureClientProvider.getAksClusterName()).thenReturn("aks-cloudship-dev");
+        when(azureClientProvider.getK8sNamespace()).thenReturn("default");
+        when(deploymentRepository.save(any(Deployment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(kubernetesDeploymentService.applyDeployment(any(Deployment.class)))
+                .thenThrow(new RuntimeException("Kubernetes cluster offline"));
+
+        DeploymentResponse response = deploymentService.triggerDeployment(request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(DeploymentStatus.FAILED);
+        assertThat(response.getRolloutStatus()).isEqualTo("FAILED");
+        assertThat(response.getErrorMessage()).contains("Kubernetes cluster offline");
+        verify(deploymentRepository, times(2)).save(any(Deployment.class));
     }
 
     @Test

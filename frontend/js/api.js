@@ -2,9 +2,12 @@
  * CloudShip API Client
  * Encapsulates all HTTP communications with the Spring Boot backend REST API.
  */
-const API_BASE_URL = window.location.origin.includes(':8088')
-  ? ''
-  : (window.CLOUDSHIP_API_URL || 'http://localhost:8088');
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_BASE_URL = (typeof window.CLOUDSHIP_API_URL !== 'undefined')
+  ? window.CLOUDSHIP_API_URL
+  : (isLocalhost
+      ? (window.location.origin.includes(':8088') ? '' : 'http://localhost:8088')
+      : ''); // In production (e.g. Vercel), defaults to relative path for reverse proxy or custom domain
 
 const api = {
   /**
@@ -618,6 +621,105 @@ const api = {
       throw new Error(errBody.message || `Failed to fetch rollout status (HTTP ${response.status})`);
     }
     return await response.json();
+  },
+
+  /**
+   * Triggers a unified CI/CD Pipeline execution (Phase 7)
+   */
+  async triggerPipeline(projectId, payload = {}) {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/pipelines`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Pipeline trigger failed (HTTP ${response.status})`);
+    }
+    return await response.json();
+  },
+
+  /**
+   * Fetches pipeline executions for a specific project (Phase 7)
+   */
+  async getProjectPipelines(projectId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/pipelines`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!response.ok) {
+        return [];
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn('Could not fetch project pipelines:', err.message);
+      return [];
+    }
+  },
+
+  /**
+   * Fetches recent pipeline executions across all projects (Phase 7)
+   */
+  async getAllPipelines() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/pipelines`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!response.ok) {
+        return [];
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn('Could not fetch all pipelines:', err.message);
+      return [];
+    }
+  },
+
+  /**
+   * Fetches a specific pipeline execution by ID (Phase 7)
+   */
+  async getPipeline(id) {
+    const response = await fetch(`${API_BASE_URL}/api/pipelines/${id}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Failed to fetch pipeline (HTTP ${response.status})`);
+    }
+    return await response.json();
+  },
+
+  /**
+   * Fetches live execution and stage status of a pipeline (Phase 7)
+   */
+  async getPipelineStatus(id) {
+    const response = await fetch(`${API_BASE_URL}/api/pipelines/${id}/status`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Failed to fetch pipeline status (HTTP ${response.status})`);
+    }
+    return await response.json();
+  },
+
+  /**
+   * Cancels a running pipeline execution (Phase 7)
+   */
+  async cancelPipeline(id) {
+    const response = await fetch(`${API_BASE_URL}/api/pipelines/${id}/cancel`, {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Failed to cancel pipeline (HTTP ${response.status})`);
+    }
+    return await response.json();
   }
 };
+
 
