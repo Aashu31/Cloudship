@@ -485,6 +485,139 @@ const api = {
       throw new Error(errBody.message || `ACR image verification failed (HTTP ${response.status})`);
     }
     return await response.json();
+  },
+
+  /**
+   * Fetches Azure Kubernetes Service (AKS) cluster metadata (Phase 6)
+   */
+  async getAzureAksCluster() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/infrastructure/azure/aks`, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn('AKS cluster probe unreachable:', err.message);
+      return { status: 'NOT_CONNECTED', configured: false, message: err.message };
+    }
+  },
+
+  /**
+   * Probes Azure Kubernetes Service health (Phase 6)
+   */
+  async getAzureAksHealth() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/infrastructure/azure/aks/health`, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn('AKS health probe unreachable:', err.message);
+      return { status: 'ERROR', message: err.message };
+    }
+  },
+
+  /**
+   * Lists active Kubernetes workloads / deployments (Phase 6)
+   */
+  async getKubernetesWorkloads(namespace) {
+    try {
+      const url = namespace
+        ? `${API_BASE_URL}/api/infrastructure/azure/aks/workloads?namespace=${encodeURIComponent(namespace)}`
+        : `${API_BASE_URL}/api/infrastructure/azure/aks/workloads`;
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn('Kubernetes workloads probe unreachable:', err.message);
+      return [];
+    }
+  },
+
+  /**
+   * Lists active Kubernetes pods (Phase 6)
+   */
+  async getKubernetesPods(namespace, deployment) {
+    try {
+      const params = new URLSearchParams();
+      if (namespace) params.set('namespace', namespace);
+      if (deployment) params.set('deployment', deployment);
+      const url = `${API_BASE_URL}/api/infrastructure/azure/aks/pods` + (params.toString() ? `?${params.toString()}` : '');
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn('Kubernetes pods probe unreachable:', err.message);
+      return [];
+    }
+  },
+
+  /**
+   * Lists active Kubernetes services (Phase 6)
+   */
+  async getKubernetesServices(namespace) {
+    try {
+      const url = namespace
+        ? `${API_BASE_URL}/api/infrastructure/azure/aks/services?namespace=${encodeURIComponent(namespace)}`
+        : `${API_BASE_URL}/api/infrastructure/azure/aks/services`;
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn('Kubernetes services probe unreachable:', err.message);
+      return [];
+    }
+  },
+
+  /**
+   * Triggers a rolling Kubernetes deployment (Phase 6)
+   */
+  async triggerDeployment(payload) {
+    const response = await fetch(`${API_BASE_URL}/api/deployments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Deployment failed (HTTP ${response.status})`);
+    }
+    return await response.json();
+  },
+
+  /**
+   * Fetches live rollout status for a deployment (Phase 6)
+   */
+  async getDeploymentRolloutStatus(id) {
+    const response = await fetch(`${API_BASE_URL}/api/deployments/${id}/status`, {
+      headers: { 'Accept': 'application/json' },
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.message || `Failed to fetch rollout status (HTTP ${response.status})`);
+    }
+    return await response.json();
   }
 };
 

@@ -117,4 +117,29 @@ public class AzureClientProviderImpl implements AzureClientProvider {
     public String resolveAcrLoginServer() {
         return properties.resolveAcrLoginServer();
     }
+
+    @Override
+    public String getAksClusterName() {
+        return properties.getAksClusterName();
+    }
+
+    @Override
+    public String getAksNodeResourceGroup() {
+        return properties.getAksNodeResourceGroup();
+    }
+
+    @Override
+    public String getK8sNamespace() {
+        return properties.getK8sNamespace();
+    }
+
+    @Override
+    public String getK8sKubeconfigPath() {
+        return properties.getK8sKubeconfigPath();
+    }
+
+    @Override
+    public String getK8sServiceType() {
+        return properties.getK8sServiceType();
+    }
 }

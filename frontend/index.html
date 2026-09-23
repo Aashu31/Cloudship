@@ -478,7 +478,7 @@
                 <div class="pipeline-step-content">
                   <div class="pipeline-step-text">
                     <span class="pipeline-step-name">Deploy</span>
-                    <span class="pipeline-step-desc" id="pipe-step-desc-6">Pending (Phase 6)</span>
+                    <span class="pipeline-step-desc" id="pipe-step-desc-6">AKS Rolling Update</span>
                   </div>
                   <span class="pipeline-step-duration" id="pipe-step-dur-6">--</span>
                 </div>
@@ -491,7 +491,7 @@
                 <div class="pipeline-step-content">
                   <div class="pipeline-step-text">
                     <span class="pipeline-step-name">Health Check</span>
-                    <span class="pipeline-step-desc" id="pipe-step-desc-7">Pending (Phase 6)</span>
+                    <span class="pipeline-step-desc" id="pipe-step-desc-7">Pod Readiness & Probes</span>
                   </div>
                   <span class="pipeline-step-duration" id="pipe-step-dur-7">--</span>
                 </div>
@@ -499,11 +499,12 @@
 
               <!-- Step 8 -->
               <div class="pipeline-step pending" id="pipe-step-8">
+                <div class="pipeline-line"></div>
                 <div class="pipeline-node">8</div>
                 <div class="pipeline-step-content">
                   <div class="pipeline-step-text">
                     <span class="pipeline-step-name">Live</span>
-                    <span class="pipeline-step-desc" id="pipe-step-desc-8">Pending (Phase 6)</span>
+                    <span class="pipeline-step-desc" id="pipe-step-desc-8">Workload Active & Routing</span>
                   </div>
                   <span class="pipeline-step-duration" id="pipe-step-dur-8">--</span>
                 </div>
@@ -569,12 +570,12 @@
                   <span class="status-pill standby"><span class="status-dot"></span>Standby (Phase 13)</span>
                 </div>
 
-                <div class="infra-service-item">
+                <div class="infra-service-item" id="infra-k8s-item" style="cursor: pointer;" title="Inspect Kubernetes / AKS Workloads">
                   <div class="infra-service-name">
                     <span style="color: #38BDF8;">☸</span>
-                    <span>Kubernetes</span>
+                    <span>Kubernetes (AKS)</span>
                   </div>
-                  <span class="status-pill standby"><span class="status-dot"></span>Standby (Phase 6)</span>
+                  <span id="infra-k8s-pill" class="status-pill standby"><span class="status-dot"></span><span id="infra-k8s-label">Standby</span></span>
                 </div>
 
                 <div class="infra-service-item">
@@ -1032,6 +1033,68 @@
           </button>
         </div>
       </div>
+
+      <!-- Card: Azure Kubernetes Service (AKS) Foundation (Phase 6) -->
+      <div class="drawer-card" id="aks-foundation-card" style="margin-top: var(--space-4);">
+        <div class="drawer-card-header">
+          <div class="drawer-card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span>Azure Kubernetes Service (AKS)</span>
+          </div>
+          <span id="aks-drawer-status-pill" class="status-pill standby">
+            <span class="status-dot"></span>
+            <span id="aks-drawer-status-label">Standby</span>
+          </span>
+        </div>
+
+        <div class="drawer-meta-row">
+          <span class="drawer-meta-label">Cluster Name:</span>
+          <span class="drawer-meta-value" id="aks-name-val">aks-cloudship-dev</span>
+        </div>
+
+        <div class="drawer-meta-row">
+          <span class="drawer-meta-label">Kubernetes Version:</span>
+          <span class="drawer-meta-value" id="aks-version-val">--</span>
+        </div>
+
+        <div class="drawer-meta-row">
+          <span class="drawer-meta-label">Node Count:</span>
+          <span class="drawer-meta-value" id="aks-nodes-val">--</span>
+        </div>
+
+        <div class="drawer-meta-row">
+          <span class="drawer-meta-label">Node Resource Group:</span>
+          <span class="drawer-meta-value" id="aks-node-rg-val" style="font-size: var(--font-micro); max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">--</span>
+        </div>
+
+        <div class="drawer-meta-row">
+          <span class="drawer-meta-label">Target Namespace:</span>
+          <span class="drawer-meta-value" id="aks-namespace-val">default</span>
+        </div>
+
+        <div class="drawer-meta-row">
+          <span class="drawer-meta-label">Active Workloads:</span>
+          <span class="drawer-meta-value" id="aks-workloads-count-val">--</span>
+        </div>
+
+        <div class="drawer-meta-row">
+          <span class="drawer-meta-label">Active Pods:</span>
+          <span class="drawer-meta-value" id="aks-pods-count-val">--</span>
+        </div>
+
+        <div style="display: flex; gap: var(--space-2); margin-top: var(--space-3);">
+          <button type="button" class="btn btn-outline btn-sm" id="btn-inspect-aks" style="flex: 1;">
+            🔍 Inspect Workloads
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-refresh-aks" title="Refresh AKS status">
+            ↻
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1087,6 +1150,99 @@
         <button class="btn btn-ghost btn-sm" id="btn-close-acr-details" type="button" aria-label="Close modal">✕</button>
       </div>
       <div id="acr-details-body" style="display: flex; flex-direction: column; gap: var(--space-3);">
+        <!-- Populated dynamically via app.js -->
+      </div>
+    </div>
+  <!-- ========================================================================
+       8. Launch Rolling Kubernetes Deployment Modal (Phase 6)
+       ======================================================================== -->
+  <div class="modal-backdrop" id="new-deployment-modal-backdrop">
+    <div class="cmd-palette-dialog" role="dialog" aria-labelledby="new-deploy-title" style="max-width: 580px; padding: var(--space-5);">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); border-bottom: 1px solid var(--border-subtle); padding-bottom: var(--space-3);">
+        <div style="display: flex; align-items: center; gap: var(--space-2);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polygon points="12 8 8 12 11 12 11 16 13 16 13 12 16 12 12 8"></polygon>
+          </svg>
+          <h3 id="new-deploy-title" style="font-size: var(--font-subheading); font-weight: 600; color: var(--text-primary); margin: 0;">Launch Rolling Deployment</h3>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btn-close-new-deploy" type="button" aria-label="Close modal">✕</button>
+      </div>
+
+      <form id="new-deployment-form">
+        <div class="form-group" style="margin-bottom: var(--space-3);">
+          <label class="form-label" for="deploy-project-select">Target Project *</label>
+          <select id="deploy-project-select" class="form-input" required>
+            <option value="">-- Select a project --</option>
+          </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-bottom: var(--space-3);">
+          <div class="form-group">
+            <label class="form-label" for="deploy-cluster-input">Target Cluster</label>
+            <input type="text" id="deploy-cluster-input" class="form-input" value="aks-cloudship-dev" readonly style="background: rgba(255,255,255,0.03); color: var(--text-muted);">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="deploy-namespace-input">Namespace</label>
+            <input type="text" id="deploy-namespace-input" class="form-input" value="default">
+          </div>
+        </div>
+
+        <!-- Verified Container Image Display -->
+        <div class="form-group" style="margin-bottom: var(--space-3);">
+          <label class="form-label">Verified Image Reference</label>
+          <div id="deploy-image-preview" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--radius-md); padding: var(--space-3);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+              <span style="font-family: var(--font-mono); font-size: var(--font-caption); color: var(--text-primary);" id="deploy-image-name">cloudshipcr.azurecr.io/cloudship/backend:latest</span>
+              <span class="status-pill success" style="font-size: 10px;" id="deploy-image-status-pill"><span class="status-dot"></span>Verified ACR</span>
+            </div>
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" id="deploy-image-digest">
+              Digest: sha256:...
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-bottom: var(--space-4);">
+          <div class="form-group">
+            <label class="form-label" for="deploy-replicas-input">Desired Replicas</label>
+            <input type="number" id="deploy-replicas-input" class="form-input" value="1" min="1" max="10">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Rollout Strategy</label>
+            <div style="font-family: var(--font-mono); font-size: var(--font-caption); color: var(--text-secondary); padding: 8px 12px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+              RollingUpdate (25%/25%)
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: var(--space-2); justify-content: flex-end;">
+          <button type="button" class="btn btn-ghost" id="btn-cancel-deployment">Cancel</button>
+          <button type="button" class="btn btn-primary" id="btn-submit-deployment">
+            <span>🚀 Deploy to AKS</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       9. Azure Kubernetes Service (AKS) Workloads & Pods Inspector (Phase 6)
+       ======================================================================== -->
+  <div class="modal-backdrop" id="aks-workloads-modal-backdrop">
+    <div class="cmd-palette-dialog" role="dialog" aria-labelledby="aks-workloads-title" style="max-width: 760px; padding: var(--space-5); max-height: 85vh; overflow-y: auto;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); border-bottom: 1px solid var(--border-subtle); padding-bottom: var(--space-3);">
+        <div style="display: flex; align-items: center; gap: var(--space-2);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <h3 id="aks-workloads-title" style="font-size: var(--font-subheading); font-weight: 600; color: var(--text-primary); margin: 0;">Azure Kubernetes Service (AKS) Inspector</h3>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btn-close-aks-details" type="button" aria-label="Close modal">✕</button>
+      </div>
+
+      <div id="aks-workloads-body" style="display: flex; flex-direction: column; gap: var(--space-4);">
         <!-- Populated dynamically via app.js -->
       </div>
     </div>

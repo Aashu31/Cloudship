@@ -20,6 +20,13 @@ public class AzureProperties {
     private String acrLoginServer = "";
     private String acrRepositoryPrefix = "cloudship";
 
+    // Version 6: Azure Kubernetes Service (AKS) / Kubernetes configuration
+    private String aksClusterName = "aks-cloudship-dev";
+    private String aksNodeResourceGroup = "";
+    private String k8sNamespace = "default";
+    private String k8sKubeconfigPath = "";
+    private String k8sServiceType = "ClusterIP";
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -116,6 +123,46 @@ public class AzureProperties {
         this.acrRepositoryPrefix = acrRepositoryPrefix;
     }
 
+    public String getAksClusterName() {
+        return aksClusterName;
+    }
+
+    public void setAksClusterName(String aksClusterName) {
+        this.aksClusterName = aksClusterName;
+    }
+
+    public String getAksNodeResourceGroup() {
+        return aksNodeResourceGroup;
+    }
+
+    public void setAksNodeResourceGroup(String aksNodeResourceGroup) {
+        this.aksNodeResourceGroup = aksNodeResourceGroup;
+    }
+
+    public String getK8sNamespace() {
+        return k8sNamespace;
+    }
+
+    public void setK8sNamespace(String k8sNamespace) {
+        this.k8sNamespace = k8sNamespace;
+    }
+
+    public String getK8sKubeconfigPath() {
+        return k8sKubeconfigPath;
+    }
+
+    public void setK8sKubeconfigPath(String k8sKubeconfigPath) {
+        this.k8sKubeconfigPath = k8sKubeconfigPath;
+    }
+
+    public String getK8sServiceType() {
+        return k8sServiceType;
+    }
+
+    public void setK8sServiceType(String k8sServiceType) {
+        this.k8sServiceType = k8sServiceType;
+    }
+
     public String resolveAcrLoginServer() {
         if (acrLoginServer != null && !acrLoginServer.trim().isEmpty()) {
             return acrLoginServer.trim();
@@ -128,6 +175,10 @@ public class AzureProperties {
 
     public boolean hasCredentials() {
         return isNotBlank(subscriptionId) && isNotBlank(tenantId) && isNotBlank(clientId) && isNotBlank(clientSecret);
+    }
+
+    public boolean hasAksConfigured() {
+        return isNotBlank(aksClusterName);
     }
 
     private boolean isNotBlank(String val) {

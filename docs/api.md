@@ -1,7 +1,7 @@
 # CloudShip — REST API Specification
 
-**Document Version:** 1.2.0  
-**Phase:** Phase 4 (Azure Infrastructure Foundation)  
+**Document Version:** 1.6.0  
+**Phase:** Version 6 (AKS / Kubernetes Deployment Foundation)  
 **Base URL:** `http://localhost:8088/api`  
 
 ---
@@ -528,5 +528,272 @@ Verifies whether a specific image repository, tag, and optional digest exists in
 }
 ```
 
+---
+
+## 8. Deployments API (Version 6 — Kubernetes)
+
+### `POST /api/projects/{projectId}/deployments`
+
+Triggers a rolling Kubernetes deployment for the specified project.  
+Automatically selects the latest verified CI build (push status `SUCCESS`) unless `ciBuildId` is specified.
+
+**Request Body** (optional — all fields optional if project has a verified build):
+```json
+{
+  "ciBuildId": 101,
+  "clusterName": "aks-cloudship-dev",
+  "namespace": "cloudship",
+  "deploymentName": "auth-service",
+  "serviceName": "auth-service-service",
+  "replicas": 2
+}
+```
+
+**Response `201 Created`**:
+```json
+{
+  "id": 50,
+  "projectId": 1,
+  "projectName": "auth-service",
+  "ciBuildId": 101,
+  "version": "a3f9c2d",
+  "status": "RUNNING",
+  "clusterName": "aks-cloudship-dev",
+  "namespace": "cloudship",
+  "deploymentName": "auth-service",
+  "serviceName": "auth-service-service",
+  "imageName": "cloudshipcr.azurecr.io/cloudship/auth-service",
+  "imageTag": "a3f9c2d",
+  "imageDigest": "sha256:4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b553e6363964c10",
+  "replicas": 2,
+  "readyReplicas": 0,
+  "updatedReplicas": 0,
+  "availableReplicas": 0,
+  "rolloutStatus": "RUNNING",
+  "errorMessage": null,
+  "startedAt": "2026-09-23T08:00:00Z",
+  "createdAt": "2026-09-23T08:00:00Z",
+  "completedAt": null
+}
+```
+
+**Error `400 Bad Request`** — No verified image available:
+```json
+{ "error": "VALIDATION_ERROR", "message": "No verified container image found in registry. Trigger a CI build first." }
+```
+
+**Error `400 Bad Request`** — Build not pushed:
+```json
+{ "error": "VALIDATION_ERROR", "message": "Cannot deploy build #101: Container image push status is 'FAILED'. Only images verified and pushed to the registry can be deployed." }
+```
+
+---
+
+### `GET /api/projects/{projectId}/deployments`
+
+Returns all deployments for a project ordered by creation date descending.
+
+**Response `200 OK`**: Array of deployment objects (same schema as above).
+
+---
+
+### `POST /api/deployments`
+
+Alternative endpoint to trigger a deployment (project ID in request body).
+
+**Request Body**:
+```json
+{
+  "projectId": 1,
+  "ciBuildId": 101,
+  "replicas": 2
+}
+```
+
+**Response `201 Created`**: Deployment object.
+
+---
+
+### `GET /api/deployments/{id}`
+
+Returns a specific deployment by ID.
+
+**Response `200 OK`**: Deployment object.
+
+**Error `404 Not Found`**:
+```json
+{ "error": "RESOURCE_NOT_FOUND", "message": "Deployment not found with id: 50" }
+```
+
+---
+
+### `GET /api/deployments/{id}/status`
+
+Polls the current Kubernetes rollout status for an active deployment.  
+If `status = RUNNING`, CloudShip queries the Kubernetes API and updates `readyReplicas` before returning.  
+Stop polling once `status` is `SUCCESS` or `FAILED`.
+
+**Response `200 OK`**: Deployment object with updated `readyReplicas`, `rolloutStatus`, `completedAt`.
+
+---
+
+### `GET /api/deployments`
+
+Returns all deployments across all projects.
+
+**Response `200 OK`**: Array of deployment objects.
+
+---
+
+## 9. AKS / Kubernetes API (Version 6)
+
+### `GET /api/infrastructure/azure/aks`
+
+Returns AKS cluster metadata from Azure Resource Manager.
+
+**Response `200 OK` (configured and reachable)**:
+```json
+{
+  "name": "aks-cloudship-dev",
+  "resourceGroup": "rg-cloudship-dev",
+  "nodeResourceGroup": "MC_rg-cloudship-dev_aks-cloudship-dev_eastus",
+  "location": "eastus",
+  "kubernetesVersion": "1.28.5",
+  "provisioningState": "Succeeded",
+  "powerState": "Running",
+  "agentPoolCount": 1,
+  "totalNodes": 3,
+  "fqdn": "aks-cloudship-dev-dns.hcp.eastus.azmk8s.io",
+  "dnsPrefix": "aks-cloudship-dev-dns",
+  "status": "READY",
+  "configured": true,
+  "message": "AKS cluster is online and reachable."
+}
+```
+
+**Response `200 OK` (not configured)**:
+```json
+{
+  "status": "NOT_CONFIGURED",
+  "configured": false,
+  "message": "Azure Kubernetes Service integration is not configured or disabled."
+}
+```
+
+**Possible `status` values:** `READY`, `NOT_CONFIGURED`, `NOT_CONNECTED`, `NOT_FOUND`, `ERROR`
+
+---
+
+### `GET /api/infrastructure/azure/aks/status`
+
+Alias for `/api/infrastructure/azure/aks`. Returns same response.
+
+---
+
+### `GET /api/infrastructure/azure/aks/health`
+
+Compact health probe for AKS cluster.
+
+**Response `200 OK`**:
+```json
+{
+  "service": "azure-kubernetes-service",
+  "clusterName": "aks-cloudship-dev",
+  "status": "READY",
+  "configured": true,
+  "kubernetesVersion": "1.28.5",
+  "totalNodes": 3,
+  "powerState": "Running",
+  "message": "AKS cluster is online and reachable."
+}
+```
+
+---
+
+### `GET /api/infrastructure/azure/aks/workloads?namespace={namespace}`
+
+Lists all Kubernetes Deployments in the specified namespace.
+
+**Response `200 OK`**:
+```json
+[
+  {
+    "name": "auth-service",
+    "namespace": "cloudship",
+    "desiredReplicas": 2,
+    "readyReplicas": 2,
+    "updatedReplicas": 2,
+    "availableReplicas": 2,
+    "image": "cloudshipcr.azurecr.io/cloudship/auth-service:a3f9c2d",
+    "rolloutStatus": "SUCCESS",
+    "createdAt": "2026-09-23T08:00:00Z"
+  }
+]
+```
+
+Returns `[]` if Kubernetes is not connected.
+
+---
+
+### `GET /api/infrastructure/azure/aks/pods?namespace={namespace}&deployment={name}`
+
+Lists Kubernetes pods, optionally filtered by deployment name.
+
+**Response `200 OK`**:
+```json
+[
+  {
+    "name": "auth-service-7c8b9d-xkzpw",
+    "namespace": "cloudship",
+    "nodeName": "aks-nodepool1-12345678-vmss000000",
+    "phase": "Running",
+    "ready": "1/1",
+    "readyContainers": 1,
+    "totalContainers": 1,
+    "restartCount": 0,
+    "startTime": "2026-09-23T08:01:30Z",
+    "age": "5m",
+    "statusMessage": ""
+  }
+]
+```
+
+Returns `[]` if Kubernetes is not connected.
+
+---
+
+### `GET /api/infrastructure/azure/aks/services?namespace={namespace}`
+
+Lists Kubernetes Services in the specified namespace.
+
+**Response `200 OK`**:
+```json
+[
+  {
+    "name": "auth-service-service",
+    "namespace": "cloudship",
+    "type": "ClusterIP",
+    "clusterIp": "10.0.12.34",
+    "ports": ["8088:8088"],
+    "selector": { "app": "auth-service" }
+  }
+]
+```
+
+Returns `[]` if Kubernetes is not connected.
+
+---
+
+## 10. Deployment Status Reference
+
+| Status | Meaning |
+|---|---|
+| `PENDING` | Deployment record created, not yet submitted |
+| `RUNNING` | Submitted to Kubernetes; waiting for readiness |
+| `SUCCESS` | `readyReplicas >= desiredReplicas` confirmed by Kubernetes |
+| `FAILED` | Error during Kubernetes API call, image pull failure, timeout, or pod crash |
+
+> [!IMPORTANT]
+> `SUCCESS` is **never** set without Kubernetes confirmation. There is no automatic rollback on `FAILED`.
 
 

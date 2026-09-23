@@ -76,6 +76,13 @@
             <version>1.13.2</version>
         </dependency>
 
+        <!-- Kubernetes Java Client (Phase 6) -->
+        <dependency>
+            <groupId>io.kubernetes</groupId>
+            <artifactId>client-java</artifactId>
+            <version>21.0.0</version>
+        </dependency>
+
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

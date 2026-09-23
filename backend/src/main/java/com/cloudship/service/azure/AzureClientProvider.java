@@ -24,4 +24,11 @@ public interface AzureClientProvider {
     String getAcrLoginServer();
     String getAcrRepositoryPrefix();
     String resolveAcrLoginServer();
+
+    // Version 6: AKS & Kubernetes
+    String getAksClusterName();
+    String getAksNodeResourceGroup();
+    String getK8sNamespace();
+    String getK8sKubeconfigPath();
+    String getK8sServiceType();
 }

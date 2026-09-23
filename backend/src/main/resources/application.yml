@@ -50,3 +50,8 @@ cloudship:
     acr-name: ${AZURE_ACR_NAME:cloudshipcr}
     acr-login-server: ${AZURE_ACR_LOGIN_SERVER:}
     acr-repository-prefix: ${AZURE_ACR_REPOSITORY_PREFIX:cloudship}
+    aks-cluster-name: ${AZURE_AKS_CLUSTER_NAME:aks-cloudship-dev}
+    aks-node-resource-group: ${AZURE_AKS_NODE_RESOURCE_GROUP:}
+    k8s-namespace: ${K8S_NAMESPACE:default}
+    k8s-kubeconfig-path: ${K8S_KUBECONFIG_PATH:}
+    k8s-service-type: ${K8S_SERVICE_TYPE:ClusterIP}
