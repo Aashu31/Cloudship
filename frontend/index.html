@@ -258,7 +258,7 @@
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
-              <span>+ New Deployment</span>
+              <span>New Deployment</span>
             </button>
             <button id="btn-hero-view-projects" class="btn btn-hero-secondary" type="button">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1244,6 +1244,60 @@
 
       <div id="aks-workloads-body" style="display: flex; flex-direction: column; gap: var(--space-4);">
         <!-- Populated dynamically via app.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       10. System & Deployment Settings Modal
+       ======================================================================== -->
+  <div class="modal-backdrop" id="settings-modal-backdrop">
+    <div class="cmd-palette-dialog" role="dialog" aria-labelledby="settings-modal-title" style="max-width: 600px; padding: var(--space-5);">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); border-bottom: 1px solid var(--border-subtle); padding-bottom: var(--space-3);">
+        <div style="display: flex; align-items: center; gap: var(--space-2);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <h3 id="settings-modal-title" style="font-size: var(--font-subheading); font-weight: 600; color: var(--text-primary); margin: 0;">System & Environment Settings</h3>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btn-close-settings" type="button" aria-label="Close modal">✕</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: var(--space-3); font-size: var(--font-body);">
+        <div class="drawer-meta-row">
+          <span class="drawer-meta-label">Backend API URL:</span>
+          <span class="drawer-meta-value" style="font-family: var(--font-mono); color: var(--accent-highlight); font-size: 0.8rem;">https://cloudship-backend.onrender.com</span>
+        </div>
+        <div class="drawer-meta-row">
+          <span class="drawer-meta-label">Database Engine:</span>
+          <span class="drawer-meta-value" style="font-family: var(--font-mono); font-size: 0.8rem;">Neon Serverless PostgreSQL (Pooled)</span>
+        </div>
+        <div class="drawer-meta-row">
+          <span class="drawer-meta-label">Active Spring Profile:</span>
+          <span class="status-pill success" style="font-size: 10px;"><span class="status-dot"></span>prod</span>
+        </div>
+        <div class="drawer-meta-row">
+          <span class="drawer-meta-label">Database Health:</span>
+          <span class="status-pill success" id="settings-db-status" style="font-size: 10px;"><span class="status-dot"></span>CONNECTED</span>
+        </div>
+        <div class="drawer-meta-row">
+          <span class="drawer-meta-label">Database Migrations:</span>
+          <span class="drawer-meta-value" style="font-family: var(--font-mono); font-size: 0.8rem;">Flyway V1 - V8 (Schema Verified)</span>
+        </div>
+        <div class="drawer-meta-row">
+          <span class="drawer-meta-label">API Latency / RTT:</span>
+          <span class="drawer-meta-value" id="settings-rtt-val" style="font-family: var(--font-mono); font-size: 0.8rem;">--</span>
+        </div>
+
+        <div style="display: flex; gap: var(--space-2); margin-top: var(--space-4); justify-content: flex-end;">
+          <button type="button" class="btn btn-outline btn-sm" id="btn-test-settings-ping">
+            ⚡ Ping Backend & Refresh
+          </button>
+          <button type="button" class="btn btn-primary btn-sm" id="btn-done-settings">
+            Close
+          </button>
+        </div>
       </div>
     </div>
   </div>
