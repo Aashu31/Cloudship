@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" fill="none">
+  <defs>
+    <linearGradient id="pipe-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0284C7" stop-opacity="0.15"/>
+      <stop offset="50%" stop-color="#10B981" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#34D399" stop-opacity="0.2"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#07090E"/>
+
+  <!-- Pipeline Flow Arteries -->
+  <g opacity="0.3" stroke="url(#pipe-grad)" stroke-width="2">
+    <path d="M 150 480 L 350 480 Q 400 480 430 440 L 520 320 Q 550 280 600 280 L 1400 280 Q 1450 280 1480 320 L 1570 440 Q 1600 480 1650 480 L 1800 480" fill="none"/>
+    <path d="M 150 560 L 350 560 Q 400 560 430 600 L 520 720 Q 550 760 600 760 L 1400 760 Q 1450 760 1480 720 L 1570 600 Q 1600 560 1650 560 L 1800 560" fill="none"/>
+  </g>
+
+  <!-- Flow Gate Nodes -->
+  <g fill="#10B981" opacity="0.4">
+    <circle cx="350" cy="480" r="5"/>
+    <circle cx="600" cy="280" r="5"/>
+    <circle cx="1000" cy="280" r="5"/>
+    <circle cx="1400" cy="280" r="5"/>
+    <circle cx="1650" cy="480" r="6" fill="#34D399"/>
+  </g>
+
+  <g font-family="monospace" font-size="10" fill="#10B981" opacity="0.3">
+    <text x="310" y="515">STAGE 1: VCS</text>
+    <text x="560" y="260">STAGE 3: COMPILE</text>
+    <text x="960" y="260">STAGE 5: CONTAINERIZE</text>
+    <text x="1360" y="260">STAGE 7: ROLLOUT</text>
+    <text x="1610" y="515">STAGE 8: LIVE_HEALTH</text>
+  </g>
+</svg>

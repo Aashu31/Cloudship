@@ -58,6 +58,12 @@ document.addEventListener('DOMContentLoaded', () => {
     pipelineOverallStatus: document.getElementById('pipeline-overall-status'),
     pipelineOverallStatusText: document.getElementById('pipeline-overall-status-text'),
 
+    // Fleet Pillars
+    pillarCards: document.querySelectorAll('.pillar-card'),
+    pillarProjectsCount: document.getElementById('pillar-projects-count'),
+    pillarJenkinsJob: document.getElementById('pillar-jenkins-job'),
+    pillarJenkinsPill: document.getElementById('pillar-jenkins-pill'),
+
     // Sidebar & Navigation
     navLinks: document.querySelectorAll('.nav-link'),
     btnSidebarToggle: document.getElementById('btn-sidebar-toggle'),
@@ -347,6 +353,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (elements.drawerProjectsCount) {
         elements.drawerProjectsCount.textContent = state.projects.length;
       }
+      if (elements.pillarProjectsCount) {
+        elements.pillarProjectsCount.textContent = `${state.projects.length} Services`;
+      }
 
       // Render drawer projects list
       renderDrawerProjects();
@@ -595,11 +604,27 @@ document.addEventListener('DOMContentLoaded', () => {
       if (elements.jenkinsJobName && status && status.jobName) {
         elements.jenkinsJobName.textContent = status.jobName;
       }
+      if (elements.pillarJenkinsJob && status && status.jobName) {
+        elements.pillarJenkinsJob.textContent = status.jobName;
+      }
+      if (elements.pillarJenkinsPill) {
+        if (status && status.available) {
+          elements.pillarJenkinsPill.className = 'status-pill active';
+          elements.pillarJenkinsPill.innerHTML = '<span class="status-dot"></span>Online';
+        } else {
+          elements.pillarJenkinsPill.className = 'status-pill standby';
+          elements.pillarJenkinsPill.innerHTML = '<span class="status-dot"></span>CI Ready';
+        }
+      }
     } catch (err) {
       console.warn('Failed to probe Jenkins status:', err);
       if (elements.jenkinsStatusPill && elements.jenkinsStatusLabel) {
         elements.jenkinsStatusPill.className = 'status-pill standby';
         elements.jenkinsStatusLabel.textContent = 'Offline';
+      }
+      if (elements.pillarJenkinsPill) {
+        elements.pillarJenkinsPill.className = 'status-pill standby';
+        elements.pillarJenkinsPill.innerHTML = '<span class="status-dot"></span>CI Ready';
       }
     }
   }
@@ -1581,15 +1606,17 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   function syncWorkspaceProjectSelect() {
-    if (!elements.workspaceActiveProjectSelect) return;
+    const selects = document.querySelectorAll('.ws-project-select, #workspace-active-project-select');
     if (!state.projects || state.projects.length === 0) {
-      elements.workspaceActiveProjectSelect.innerHTML = '<option value="">No Projects Registered</option>';
+      selects.forEach(s => s.innerHTML = '<option value="">No Projects Registered</option>');
       return;
     }
     const currentId = state.selectedProjectId || state.projects[0].id;
-    elements.workspaceActiveProjectSelect.innerHTML = state.projects.map(p =>
-      `<option value="${p.id}" ${currentId === p.id ? 'selected' : ''}>${escapeHtml(p.name)}</option>`
-    ).join('');
+    selects.forEach(s => {
+      s.innerHTML = state.projects.map(p =>
+        `<option value="${p.id}" ${currentId === p.id ? 'selected' : ''}>${escapeHtml(p.name)}</option>`
+      ).join('');
+    });
   }
 
   async function loadAksStatus() {
@@ -1625,106 +1652,147 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function switchWorkspace(workspaceKey) {
-    if (!workspaceKey) workspaceKey = 'overview';
-    state.activeWorkspace = workspaceKey;
-
-    // 1. Update breadcrumbs
-    if (elements.workspaceBreadcrumbActive) {
-      elements.workspaceBreadcrumbActive.textContent = WORKSPACE_TITLES[workspaceKey] || 'Workspace';
+  /* ==========================================================================
+     Full-Viewport Workspace Hash Router
+     ========================================================================== */
+  function navigateToRoute(route, updateHash = true) {
+    const aliasMap = {
+      'cicd': 'pipeline',
+      'deployments': 'pipeline',
+      'pipelines': 'jenkins',
+      'infrastructure': 'azure',
+      'kubernetes': 'aks',
+      'home': 'overview'
+    };
+    if (aliasMap[route]) {
+      route = aliasMap[route];
     }
 
-    // 2. Update navigation rail buttons
-    document.querySelectorAll('.workspace-nav-btn').forEach(btn => {
-      if (btn.getAttribute('data-workspace') === workspaceKey) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-    });
+    const validRoutes = ['overview', 'projects', 'github', 'docker', 'jenkins', 'azure', 'acr', 'aks', 'pipeline', 'monitoring'];
+    if (!validRoutes.includes(route)) {
+      route = 'overview';
+    }
 
-    // 3. Update dedicated workspace panes
-    document.querySelectorAll('.workspace-pane').forEach(pane => {
-      if (pane.id === `workspace-${workspaceKey}`) {
-        pane.classList.add('active');
-        pane.scrollTop = 0;
-      } else {
-        pane.classList.remove('active');
-      }
-    });
+    state.activeView = route;
+    state.activeWorkspace = route;
 
-    // 4. Feature-aware dynamic telemetry sync
-    if (workspaceKey === 'jenkins') {
+    if (updateHash && window.location.hash !== `#${route}`) {
+      window.location.hash = `#${route}`;
+    }
+
+    const applyDomChanges = () => {
+      // 1. Update route views
+      document.querySelectorAll('.route-view').forEach(view => {
+        const vRoute = view.getAttribute('data-route') || view.id.replace('view-', '');
+        if (vRoute === route) {
+          view.classList.add('active');
+          view.scrollTop = 0;
+        } else {
+          view.classList.remove('active');
+        }
+      });
+
+      // 2. Update sidebar navigation links
+      document.querySelectorAll('.app-sidebar .nav-link').forEach(link => {
+        const href = link.getAttribute('href') || '';
+        const lRoute = link.getAttribute('data-route') || href.replace('#', '');
+        if (lRoute === route || (route === 'overview' && lRoute === 'overview')) {
+          link.classList.add('active');
+        } else {
+          link.classList.remove('active');
+        }
+      });
+
+      // 3. Update mobile bottom bar links
+      document.querySelectorAll('.mobile-bottom-bar .mobile-nav-item').forEach(item => {
+        const href = item.getAttribute('href') || '';
+        const mRoute = item.getAttribute('data-route') || href.replace('#', '');
+        if (mRoute === route) {
+          item.classList.add('active');
+        } else {
+          item.classList.remove('active');
+        }
+      });
+
+      // 4. Close mobile sidebar if open
+      if (elements.appSidebar) {
+        elements.appSidebar.classList.remove('mobile-open');
+      }
+    };
+
+    if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.startViewTransition(applyDomChanges);
+    } else {
+      applyDomChanges();
+    }
+
+    syncWorkspaceProjectSelect();
+
+    // Trigger lazy / feature data loaders
+    if (route === 'overview') {
+      refreshData();
+      loadMonitoringOverview();
+    } else if (route === 'projects') {
+      loadProjects().then(() => renderDrawerProjects());
+    } else if (route === 'github') {
+      loadActiveProjectRepository();
+    } else if (route === 'docker') {
+      loadDockerBuildInfo();
+    } else if (route === 'jenkins') {
       loadJenkinsStatus();
       if (state.selectedProjectId) loadCIBuilds(state.selectedProjectId);
-    } else if (workspaceKey === 'acr') {
-      loadAcrStatus();
-    } else if (workspaceKey === 'aks') {
-      loadAksStatus();
-    } else if (workspaceKey === 'azure') {
+    } else if (route === 'azure') {
       loadAzureStatus();
-    } else if (workspaceKey === 'monitoring') {
+    } else if (route === 'acr') {
+      loadAcrStatus();
+    } else if (route === 'aks') {
+      loadAksStatus();
+    } else if (route === 'pipeline') {
+      refreshData();
+    } else if (route === 'monitoring') {
       loadMonitoringOverview();
       if (elements.wsTelemetryLatency) {
         elements.wsTelemetryLatency.textContent = `~${state.rtt || 12}ms`;
       }
-    } else if (workspaceKey === 'overview') {
-      renderDrawerProjects();
-    } else if (workspaceKey === 'github') {
-      loadActiveProjectRepository();
     }
   }
 
-  function openProjectDrawer(workspaceKey = 'overview') {
-    if (elements.projectDrawer && elements.drawerBackdrop) {
-      elements.projectDrawer.classList.add('active');
-      elements.drawerBackdrop.classList.add('active');
-      syncWorkspaceProjectSelect();
-      switchWorkspace(workspaceKey);
-      if (workspaceKey === 'overview' && elements.projectNameInput) {
-        setTimeout(() => elements.projectNameInput.focus(), 150);
-      }
-    }
+  // Compatibility Wrappers for Legacy Callers
+  function switchWorkspace(workspaceKey) {
+    navigateToRoute(workspaceKey);
+  }
+
+  function openProjectDrawer(workspaceKey = 'projects') {
+    if (workspaceKey === 'overview') workspaceKey = 'projects';
+    navigateToRoute(workspaceKey);
   }
 
   function closeProjectDrawer() {
-    if (elements.projectDrawer && elements.drawerBackdrop) {
-      elements.projectDrawer.classList.remove('active');
-      elements.drawerBackdrop.classList.remove('active');
-    }
+    navigateToRoute('overview');
   }
 
-  // Feature Navigation Button Listeners
-  document.querySelectorAll('.workspace-nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const targetWorkspace = btn.getAttribute('data-workspace');
-      if (targetWorkspace) {
-        switchWorkspace(targetWorkspace);
-      }
-    });
-  });
-
-  // Global Workspace Active Project Select Listener
-  if (elements.workspaceActiveProjectSelect) {
-    elements.workspaceActiveProjectSelect.addEventListener('change', async (e) => {
+  // Workspace Active Project Select Listener (supports all .ws-project-select)
+  document.querySelectorAll('.ws-project-select, #workspace-active-project-select').forEach(sel => {
+    sel.addEventListener('change', async (e) => {
       const id = Number(e.target.value);
       if (!id) return;
       state.selectedProjectId = id;
+      syncWorkspaceProjectSelect();
       if (elements.githubProjectSelect) elements.githubProjectSelect.value = id;
       if (elements.deployProjectSelect) elements.deployProjectSelect.value = id;
       await loadActiveProjectRepository();
       await loadCIBuilds(state.selectedProjectId);
       renderDrawerProjects();
-      const sel = state.projects.find(p => p.id === id);
-      showToast(`Active project context switched to '${sel ? sel.name : id}'`, 'info');
+      const selProj = state.projects.find(p => p.id === id);
+      showToast(`Active project context switched to '${selProj ? selProj.name : id}'`, 'info');
     });
-  }
+  });
 
   // Workspace Sync / Refresh Actions
   if (elements.btnWorkspaceRefreshAll) {
     elements.btnWorkspaceRefreshAll.addEventListener('click', async () => {
       await refreshData();
-      switchWorkspace(state.activeWorkspace || 'overview');
+      navigateToRoute(state.activeView || 'overview');
       showToast('Workspace telemetry refreshed and synchronized with cloud.', 'success');
     });
   }
@@ -1769,18 +1837,18 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.btnEmptyNewDeploy.addEventListener('click', openNewDeploymentModal);
   }
   if (elements.btnHeroViewProjects) {
-    elements.btnHeroViewProjects.addEventListener('click', () => openProjectDrawer('overview'));
+    elements.btnHeroViewProjects.addEventListener('click', () => navigateToRoute('projects'));
   }
   if (elements.linkViewAllDeployments) {
     elements.linkViewAllDeployments.addEventListener('click', (e) => {
       e.preventDefault();
-      openProjectDrawer('cicd');
+      navigateToRoute('pipeline');
     });
   }
   if (elements.navProjectsLink) {
     elements.navProjectsLink.addEventListener('click', (e) => {
       e.preventDefault();
-      openProjectDrawer('overview');
+      navigateToRoute('projects');
     });
   }
 
@@ -2369,21 +2437,19 @@ document.addEventListener('DOMContentLoaded', () => {
      7. Command Palette Modal (Ctrl + K / ⌘K)
      ========================================================================== */
   const commands = [
-    { title: 'Overview', desc: 'Engineering dashboard & control center', action: () => switchView('overview') },
-    { title: '+ Register New Project', desc: 'Open project registration form in workspace', action: () => openProjectDrawer('overview') },
-    { title: 'Deployments', desc: 'Inspect execution timelines and CI/CD delivery', action: () => openProjectDrawer('cicd') },
-    { title: 'Pipelines / CI', desc: 'Continuous Integration build execution & pipeline stepper', action: () => openProjectDrawer('jenkins') },
-    { title: 'Trigger CI Build', desc: 'Execute Jenkins CI pipeline for selected project', action: () => { openProjectDrawer('jenkins'); if (elements.btnTriggerCi) elements.btnTriggerCi.click(); } },
-    { title: 'GitHub Integration', desc: 'Manage repository connection and branch synchronization', action: () => openProjectDrawer('github') },
-    { title: 'Docker Readiness', desc: 'Inspect containerization targets, ports, and build commands', action: () => openProjectDrawer('docker') },
-    { title: 'Azure Infrastructure', desc: 'Inspect Resource Group, VNet, Subnet, and topology', action: () => openProjectDrawer('azure') },
-    { title: 'Azure Container Registry (ACR)', desc: 'Inspect ACR repositories, images, and digests', action: () => openProjectDrawer('acr') },
+    { title: 'Overview', desc: 'Engineering dashboard & control center', action: () => navigateToRoute('overview') },
+    { title: '+ Register New Codebase', desc: 'Open codebase registration form in workspace', action: () => navigateToRoute('projects') },
+    { title: 'CI/CD Pipeline', desc: 'Inspect execution timelines and CI/CD delivery', action: () => navigateToRoute('pipeline') },
+    { title: 'Jenkins CI', desc: 'Continuous Integration build execution & test gates', action: () => navigateToRoute('jenkins') },
+    { title: 'Trigger CI Build', desc: 'Execute Jenkins CI pipeline for selected project', action: () => { navigateToRoute('jenkins'); if (elements.btnTriggerCi) elements.btnTriggerCi.click(); } },
+    { title: 'GitHub Integration', desc: 'Manage repository connection and branch synchronization', action: () => navigateToRoute('github') },
+    { title: 'Docker Readiness', desc: 'Inspect containerization targets, ports, and build commands', action: () => navigateToRoute('docker') },
+    { title: 'Azure Infrastructure', desc: 'Inspect Resource Group, VNet, Subnet, and topology', action: () => navigateToRoute('azure') },
+    { title: 'Azure Container Registry (ACR)', desc: 'Inspect ACR repositories, images, and digests', action: () => navigateToRoute('acr') },
     { title: 'Verify ACR Image', desc: 'Verify container image existence and digest in ACR', action: () => openAcrInspectionModal(true) },
-    { title: 'Kubernetes (AKS)', desc: 'Cluster nodes, namespaces, and workloads', action: () => openProjectDrawer('aks') },
-    { title: 'Monitoring & Observability', desc: 'Real-time telemetry loops and health metrics', action: () => openProjectDrawer('monitoring') },
-    { title: 'Incidents', desc: 'Failure records & post-mortem timelines', action: () => showToast('Zero active incidents recorded. Telemetry nominal.', 'info') },
-    { title: 'Simulations', desc: 'Controlled chaos engineering laboratory', action: () => showToast('Failure simulations: Phase 8 Standby', 'info') },
-    { title: 'Recovery', desc: 'Automated rollback & self-healing engine', action: () => showToast('Automated recovery: Phase 9 Active', 'info') },
+    { title: 'Kubernetes (AKS)', desc: 'Cluster nodes, namespaces, and workloads', action: () => navigateToRoute('aks') },
+    { title: 'Monitoring & Observability', desc: 'Real-time telemetry loops and health metrics', action: () => navigateToRoute('monitoring') },
+    { title: 'System Settings', desc: 'Inspect database connection and cloud configuration', action: () => openSettingsModal() },
     { title: 'Refresh Telemetry & State', desc: 'Instantaneous ping to database and API', action: () => { probeTelemetry(); refreshData(); showToast('Telemetry refreshed', 'info'); } },
   ];
 
@@ -2510,7 +2576,7 @@ document.addEventListener('DOMContentLoaded', () => {
       closeProjectDrawer();
     } else if (e.key === 'n' || e.key === 'N') {
       e.preventDefault();
-      openProjectDrawer();
+      navigateToRoute('projects');
     } else if (e.key === 'r' || e.key === 'R') {
       e.preventDefault();
       probeTelemetry();
@@ -2617,53 +2683,66 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     9. Navigation & Mobile Sidebar
+     9. Navigation & Router Integration
      ========================================================================== */
   function switchView(viewName) {
-    state.activeView = viewName;
-    elements.navLinks.forEach(link => {
-      if (link.getAttribute('data-view') === viewName) {
-        link.classList.add('active');
-      } else {
-        link.classList.remove('active');
-      }
-    });
+    navigateToRoute(viewName);
   }
 
+  // Sidebar Links
   elements.navLinks.forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
-      const view = link.getAttribute('data-view');
-      switchView(view);
-
-      if (view === 'overview') {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (view === 'deployments') {
-        openProjectDrawer('cicd');
-      } else if (view === 'pipelines') {
-        openProjectDrawer('jenkins');
-      } else if (view === 'infrastructure') {
-        openProjectDrawer('azure');
-      } else if (view === 'kubernetes') {
-        openProjectDrawer('aks');
-      } else if (view === 'monitoring') {
-        openProjectDrawer('monitoring');
-      } else if (view === 'incidents') {
-        showToast('0 Active Incidents. All infrastructure telemetry nominal (24h clean).', 'success');
-      } else if (view === 'simulations') {
-        showToast('Chaos Engineering & Fault Injection Simulator (Phase 8): Standby', 'info');
-      } else if (view === 'recovery') {
-        showToast('Automated Rollback & Self-Healing: Active and monitoring.', 'info');
-      } else if (view === 'projects') {
-        openProjectDrawer('overview');
-      } else if (view === 'settings') {
+      const href = link.getAttribute('href') || '';
+      const view = link.getAttribute('data-route') || link.getAttribute('data-view') || href.replace('#', '');
+      if (view === 'settings') {
         openSettingsModal();
+      } else {
+        navigateToRoute(view);
       }
-
       if (elements.appSidebar) {
         elements.appSidebar.classList.remove('mobile-open');
       }
     });
+  });
+
+  // Mobile Bottom Navigation Bar Links
+  document.querySelectorAll('.mobile-bottom-bar .mobile-nav-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const href = item.getAttribute('href') || '';
+      const view = item.getAttribute('data-route') || href.replace('#', '');
+      navigateToRoute(view);
+    });
+  });
+
+  // Fleet Pillar Cards Click Listeners
+  document.querySelectorAll('.pillar-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      e.preventDefault();
+      const href = card.getAttribute('href') || '';
+      const view = card.getAttribute('data-route') || href.replace('#', '');
+      navigateToRoute(view);
+    });
+  });
+
+  // Brand Home Mark
+  const brandHomeLink = document.getElementById('brand-home-link');
+  if (brandHomeLink) {
+    brandHomeLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigateToRoute('overview');
+    });
+  }
+
+  // Global Hashchange Listener for direct links, bookmarking, and history back/forward
+  window.addEventListener('hashchange', () => {
+    const rawHash = window.location.hash.replace('#', '').trim();
+    if (rawHash === 'settings') {
+      openSettingsModal();
+      return;
+    }
+    navigateToRoute(rawHash || 'overview', false);
   });
 
   if (elements.btnSidebarToggle && elements.appSidebar) {
@@ -2684,6 +2763,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initial immediate probe & data fetch
   probeTelemetry();
   refreshData();
+
+  // Read initial hash from URL and route to it immediately
+  const initialHash = window.location.hash.replace('#', '').trim();
+  if (initialHash === 'settings') {
+    navigateToRoute('overview', false);
+    setTimeout(openSettingsModal, 200);
+  } else {
+    navigateToRoute(initialHash || 'overview', false);
+  }
 
   // Polling every 5 seconds for live RTT and database health
   setInterval(probeTelemetry, 5000);

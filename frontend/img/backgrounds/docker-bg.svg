@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" fill="none">
+  <defs>
+    <radialGradient id="dock-glow" cx="80%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#0284C7" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#07090E" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#07090E"/>
+  <rect width="100%" height="100%" fill="url(#dock-glow)"/>
+
+  <!-- Stacked Isometric Container Layers -->
+  <g opacity="0.25" stroke="#38BDF8" stroke-width="1.2" fill="#0D111A" fill-opacity="0.4">
+    <!-- Layer 0 (Base OS) -->
+    <path d="M 1200 700 L 1500 550 L 1800 700 L 1500 850 Z"/>
+    <path d="M 1200 700 L 1200 740 L 1500 890 L 1800 740 L 1800 700"/>
+    <!-- Layer 1 (JRE Alpine) -->
+    <path d="M 1200 580 L 1500 430 L 1800 580 L 1500 730 Z"/>
+    <path d="M 1200 580 L 1200 620 L 1500 770 L 1800 620 L 1800 580"/>
+    <!-- Layer 2 (Application JAR) -->
+    <path d="M 1200 460 L 1500 310 L 1800 460 L 1500 610 Z"/>
+    <path d="M 1200 460 L 1200 500 L 1500 650 L 1800 500 L 1800 460"/>
+    <!-- Layer 3 (Runtime Config) -->
+    <path d="M 1200 340 L 1500 190 L 1800 340 L 1500 490 Z"/>
+    <path d="M 1200 340 L 1200 380 L 1500 530 L 1800 380 L 1800 340"/>
+  </g>
+
+  <!-- Technical Layer Annotations -->
+  <g font-family="monospace" font-size="10" fill="#38BDF8" opacity="0.3">
+    <text x="1020" y="360">LAYER 3 // EXPOSE 8088 / ENV SPRING_PROFILES=prod</text>
+    <text x="1020" y="480">LAYER 2 // COPY target/cloudship-backend.jar app.jar</text>
+    <text x="1020" y="600">LAYER 1 // FROM eclipse-temurin:17-jre-alpine</text>
+    <text x="1020" y="720">LAYER 0 // ROOTFS sha256:4f4fb700ef54461cfa025</text>
+  </g>
+</svg>

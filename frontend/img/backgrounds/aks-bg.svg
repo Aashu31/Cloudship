@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" fill="none">
+  <defs>
+    <radialGradient id="aks-glow" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#326CE5" stop-opacity="0.08"/>
+      <stop offset="50%" stop-color="#8B5CF6" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#07090E" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#07090E"/>
+  <rect width="100%" height="100%" fill="url(#aks-glow)"/>
+
+  <!-- Kubernetes Master & Worker Node Clusters -->
+  <g opacity="0.25" stroke="#326CE5" stroke-width="1.2">
+    <!-- Master Control Plane Ring -->
+    <circle cx="500" cy="500" r="140" fill="#0D111A" stroke-dasharray="6 4"/>
+    <circle cx="500" cy="500" r="40" fill="#326CE5" fill-opacity="0.1"/>
+
+    <!-- Worker Nodes -->
+    <rect x="800" y="320" width="220" height="150" rx="8" fill="#0D111A"/>
+    <rect x="800" y="530" width="220" height="150" rx="8" fill="#0D111A"/>
+    <rect x="1100" y="320" width="220" height="150" rx="8" fill="#0D111A"/>
+    <rect x="1100" y="530" width="220" height="150" rx="8" fill="#0D111A"/>
+
+    <!-- Pod Slots inside Worker Node 1 -->
+    <circle cx="840" cy="380" r="14" fill="#326CE5" fill-opacity="0.2"/>
+    <circle cx="890" cy="380" r="14" fill="#326CE5" fill-opacity="0.2"/>
+    <circle cx="940" cy="380" r="14" fill="#10B981" fill-opacity="0.2"/>
+
+    <!-- Connecting Topology Lines -->
+    <line x1="640" y1="500" x2="800" y2="400"/>
+    <line x1="640" y1="500" x2="800" y2="600"/>
+    <line x1="1020" y1="400" x2="1100" y2="400"/>
+    <line x1="1020" y1="600" x2="1100" y2="600"/>
+  </g>
+
+  <g font-family="monospace" font-size="10" fill="#8B5CF6" opacity="0.35">
+    <text x="440" y="505">KUBE-API-SERVER</text>
+    <text x="815" y="345">NODE: vmss000000</text>
+    <text x="815" y="555">NODE: vmss000001</text>
+    <text x="1115" y="345">POD: cloudship-backend</text>
+    <text x="1115" y="555">POD: cloudship-frontend</text>
+  </g>
+</svg>

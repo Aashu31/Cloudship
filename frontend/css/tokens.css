@@ -60,6 +60,18 @@
   --accent-subtle-bg: rgba(2, 132, 199, 0.12);
   --accent-glow: rgba(56, 189, 248, 0.22);
 
+  /* Feature Workspace Accents (One Specialized Room = One Dedicated Accent) */
+  --accent-main: #38BDF8;
+  --accent-projects: #0284C7;
+  --accent-github: #E2E8F0;
+  --accent-docker: #0EA5E9;
+  --accent-jenkins: #F59E0B;
+  --accent-azure: #0078D4;
+  --accent-acr: #06B6D4;
+  --accent-aks: #818CF8;
+  --accent-pipeline: #10B981;
+  --accent-monitoring: #14B8A6;
+
   /* ----------------------------------------------------------------------------
      Semantic Status Colors (Color + Icon/Shape Dual Indicator)
      ---------------------------------------------------------------------------- */

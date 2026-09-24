@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" fill="none">
+  <defs>
+    <radialGradient id="acr-glow" cx="80%" cy="30%" r="50%">
+      <stop offset="0%" stop-color="#0284C7" stop-opacity="0.09"/>
+      <stop offset="100%" stop-color="#07090E" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#07090E"/>
+  <rect width="100%" height="100%" fill="url(#acr-glow)"/>
+
+  <!-- Warehouse Storage Matrix & Image Digest Slots -->
+  <g opacity="0.22" stroke="#38BDF8" stroke-width="1.2">
+    <!-- Matrix grid of image cells -->
+    <rect x="800" y="240" width="180" height="120" rx="6" fill="#0D111A"/>
+    <rect x="1010" y="240" width="180" height="120" rx="6" fill="#0D111A"/>
+    <rect x="1220" y="240" width="180" height="120" rx="6" fill="#0D111A"/>
+    <rect x="1430" y="240" width="180" height="120" rx="6" fill="#0D111A"/>
+
+    <rect x="800" y="390" width="180" height="120" rx="6" fill="#0D111A"/>
+    <rect x="1010" y="390" width="180" height="120" rx="6" fill="#0D111A"/>
+    <rect x="1220" y="390" width="180" height="120" rx="6" fill="#0D111A"/>
+    <rect x="1430" y="390" width="180" height="120" rx="6" fill="#0D111A"/>
+
+    <rect x="800" y="540" width="180" height="120" rx="6" fill="#0D111A"/>
+    <rect x="1010" y="540" width="180" height="120" rx="6" fill="#0D111A"/>
+    <rect x="1220" y="540" width="180" height="120" rx="6" fill="#0D111A"/>
+    <rect x="1430" y="540" width="180" height="120" rx="6" fill="#0D111A"/>
+  </g>
+
+  <g font-family="monospace" font-size="9" fill="#38BDF8" opacity="0.3">
+    <text x="815" y="270">TAG: :latest</text>
+    <text x="815" y="290">SHA: sha256:7bc94...</text>
+    <text x="1025" y="270">TAG: :v1.4.2</text>
+    <text x="1025" y="290">SHA: sha256:4ae01...</text>
+    <text x="1235" y="270">TAG: :prod-rc</text>
+    <text x="1235" y="290">SHA: sha256:119df...</text>
+  </g>
+</svg>

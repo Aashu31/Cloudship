@@ -1946,3 +1946,325 @@
   text-overflow: ellipsis;
 }
 
+/* ============================================================================
+   21. System A — Command Center & Fleet Cockpit Components
+   ============================================================================ */
+.sidebar-section-title {
+  font-size: var(--font-micro);
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: var(--space-4) var(--space-4) var(--space-1);
+}
+
+.cockpit-hero {
+  position: relative;
+  background: rgba(13, 17, 26, 0.7);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6) var(--space-8);
+  margin-bottom: var(--space-6);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.cockpit-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #0284C7 0%, #38BDF8 50%, transparent 100%);
+}
+
+.cockpit-kicker {
+  font-family: var(--font-mono);
+  font-size: var(--font-micro);
+  font-weight: 700;
+  color: var(--accent-highlight);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-2);
+}
+
+.cockpit-title {
+  font-size: clamp(1.75rem, 3.2vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: #FFFFFF;
+  margin-bottom: var(--space-2);
+}
+
+.cockpit-subtitle {
+  font-size: var(--font-body);
+  color: var(--text-secondary);
+  max-width: 680px;
+  line-height: 1.6;
+  margin-bottom: var(--space-6);
+}
+
+.cockpit-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.cockpit-project-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: rgba(2, 132, 199, 0.12);
+  border: 1px solid rgba(2, 132, 199, 0.35);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+}
+
+.cockpit-project-select {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: var(--font-caption);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+}
+
+.cockpit-project-select option {
+  background: #0D111A;
+  color: var(--text-primary);
+}
+
+/* Fleet Pillars Cockpit Grid */
+.pillars-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-4);
+}
+
+.pillars-title {
+  font-size: var(--font-title-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.pillar-card {
+  background: rgba(19, 24, 36, 0.7);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-decoration: none;
+  color: inherit;
+  transition: all var(--transition-normal);
+  backdrop-filter: blur(8px);
+}
+
+.pillar-card:hover {
+  background: rgba(24, 32, 48, 0.85);
+  border-color: rgba(56, 189, 248, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.pillar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.pillar-title-box {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pillar-icon {
+  font-size: 1.1rem;
+}
+
+.pillar-name {
+  font-size: var(--font-body);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pillar-metric-box {
+  margin-bottom: var(--space-3);
+}
+
+.pillar-metric-val {
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pillar-metric-sub {
+  font-size: var(--font-micro);
+  color: var(--text-muted);
+}
+
+.pillar-footer-link {
+  font-size: var(--font-caption);
+  color: var(--accent-highlight);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ============================================================================
+   22. System B — Feature Workspaces Shell & Topbar
+   ============================================================================ */
+.workspace-view-container {
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.workspace-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.workspace-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.ws-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-body);
+}
+
+.ws-breadcrumb-root {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.ws-breadcrumb-sep {
+  color: var(--text-dim);
+  font-size: var(--font-micro);
+}
+
+.ws-breadcrumb-parent {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.ws-breadcrumb-active {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Feature specific accent breadcrumb colors */
+[data-route="projects"] .ws-breadcrumb-active { color: var(--accent-projects); }
+[data-route="github"] .ws-breadcrumb-active { color: var(--accent-github); }
+[data-route="docker"] .ws-breadcrumb-active { color: var(--accent-docker); }
+[data-route="jenkins"] .ws-breadcrumb-active { color: var(--accent-jenkins); }
+[data-route="azure"] .ws-breadcrumb-active { color: var(--accent-azure); }
+[data-route="acr"] .ws-breadcrumb-active { color: var(--accent-acr); }
+[data-route="aks"] .ws-breadcrumb-active { color: var(--accent-aks); }
+[data-route="pipeline"] .ws-breadcrumb-active { color: var(--accent-pipeline); }
+[data-route="monitoring"] .ws-breadcrumb-active { color: var(--accent-monitoring); }
+
+.ws-project-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  padding: 2px 10px;
+}
+
+.ws-project-select {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: var(--font-caption);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  max-width: 180px;
+}
+
+.ws-project-select option {
+  background: #0D111A;
+  color: var(--text-primary);
+}
+
+.workspace-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Engineering Workspace Panels */
+.ws-dense-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--font-caption);
+}
+
+.ws-dense-table th {
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: var(--font-micro);
+  letter-spacing: 0.05em;
+  padding: var(--space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ws-dense-table td {
+  padding: var(--space-3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+}
+
+.ws-dense-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ws-mono-cell {
+  font-family: var(--font-mono);
+  font-size: var(--font-micro);
+  color: var(--text-secondary);
+}
+
