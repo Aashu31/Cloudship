@@ -24,13 +24,20 @@ public class WebConfig implements WebMvcConfigurer {
                 .filter(s -> !s.isEmpty())
                 .toArray(String[]::new);
 
-        log.info("Configuring development CORS allowed origins: {}", Arrays.toString(origins));
+        log.info("Configuring CORS allowed origins: {}", Arrays.toString(origins));
 
-        registry.addMapping("/api/**")
-                .allowedOrigins(origins)
+        boolean hasWildcard = Arrays.stream(origins).anyMatch(o -> o.contains("*"));
+
+        var registration = registry.addMapping("/api/**")
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("Content-Type", "Authorization", "Accept", "X-Requested-With", "X-CloudShip-CI-Token", "X-Hub-Signature-256", "X-GitHub-Event")
                 .allowCredentials(true)
                 .maxAge(3600);
+
+        if (hasWildcard) {
+            registration.allowedOriginPatterns(origins);
+        } else {
+            registration.allowedOrigins(origins);
+        }
     }
 }
