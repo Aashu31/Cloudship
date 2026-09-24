@@ -30,6 +30,9 @@ class ProjectServiceTest {
     @Mock
     private DeploymentRepository deploymentRepository;
 
+    @Mock
+    private com.cloudship.repository.UserRepository userRepository;
+
     @InjectMocks
     private ProjectService projectService;
 

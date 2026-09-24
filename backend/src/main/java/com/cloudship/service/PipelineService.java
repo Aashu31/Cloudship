@@ -112,6 +112,7 @@ public class PipelineService {
 
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project with ID '" + projectId + "' was not found"));
+        assertProjectAccess(project);
 
         GitRepository repository = gitRepositoryRepository.findByProjectId(projectId)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -381,6 +382,10 @@ public class PipelineService {
         PipelineExecution pipeline = pipelineExecutionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PipelineExecution", id));
 
+        if (pipeline.getProject() != null) {
+            assertProjectAccess(pipeline.getProject());
+        }
+
         if (pipeline.getStatus().isTerminal()) {
             throw new IllegalStateException(String.format(
                     "Cannot cancel pipeline #%d: It has already completed with terminal status '%s'.",
@@ -396,9 +401,10 @@ public class PipelineService {
 
     @Transactional(readOnly = true)
     public List<PipelineExecutionResponse> getProjectPipelines(Long projectId) {
-        if (!projectRepository.existsById(projectId)) {
-            throw new ResourceNotFoundException("Project with ID '" + projectId + "' was not found");
-        }
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project with ID '" + projectId + "' was not found"));
+        assertProjectAccess(project);
+
         return pipelineExecutionRepository.findByProjectIdOrderByCreatedAtDesc(projectId).stream()
                 .map(PipelineExecutionResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -406,7 +412,15 @@ public class PipelineService {
 
     @Transactional(readOnly = true)
     public List<PipelineExecutionResponse> getAllPipelines() {
-        return pipelineExecutionRepository.findAllByOrderByCreatedAtDesc().stream()
+        java.util.Optional<com.cloudship.security.CloudshipPrincipal> principalOpt = com.cloudship.security.SecurityUtils.getCurrentPrincipal();
+        List<PipelineExecution> pipelines = pipelineExecutionRepository.findAllByOrderByCreatedAtDesc();
+        if (principalOpt.isPresent() && !principalOpt.get().isAdmin()) {
+            Long userId = principalOpt.get().getId();
+            pipelines = pipelines.stream()
+                    .filter(p -> p.getProject() != null && p.getProject().getOwner() != null && userId.equals(p.getProject().getOwner().getId()))
+                    .collect(Collectors.toList());
+        }
+        return pipelines.stream()
                 .map(PipelineExecutionResponse::fromEntity)
                 .collect(Collectors.toList());
     }
@@ -415,6 +429,17 @@ public class PipelineService {
     public PipelineExecutionResponse getPipelineById(Long id) {
         PipelineExecution pipeline = pipelineExecutionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PipelineExecution", id));
+        if (pipeline.getProject() != null) {
+            assertProjectAccess(pipeline.getProject());
+        }
         return PipelineExecutionResponse.fromEntity(pipeline);
+    }
+
+    private void assertProjectAccess(Project project) {
+        com.cloudship.security.SecurityUtils.getCurrentPrincipal().ifPresent(principal -> {
+            if (!principal.isAdmin() && (project.getOwner() == null || !project.getOwner().getId().equals(principal.getId()))) {
+                throw new com.cloudship.exception.ForbiddenException("You do not have permission to access project with ID: " + project.getId());
+            }
+        });
     }
 }

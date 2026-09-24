@@ -9,6 +9,7 @@ public class ProjectResponse {
     private String name;
     private String description;
     private String repositoryUrl;
+    private String ownerEmail;
     private long deploymentsCount;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
@@ -18,10 +19,16 @@ public class ProjectResponse {
 
     public ProjectResponse(Long id, String name, String description, String repositoryUrl,
                            long deploymentsCount, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+        this(id, name, description, repositoryUrl, null, deploymentsCount, createdAt, updatedAt);
+    }
+
+    public ProjectResponse(Long id, String name, String description, String repositoryUrl, String ownerEmail,
+                           long deploymentsCount, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.repositoryUrl = repositoryUrl;
+        this.ownerEmail = ownerEmail;
         this.deploymentsCount = deploymentsCount;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -36,6 +43,7 @@ public class ProjectResponse {
                 project.getName(),
                 project.getDescription(),
                 project.getRepositoryUrl(),
+                project.getOwner() != null ? project.getOwner().getEmail() : null,
                 deploymentsCount,
                 project.getCreatedAt(),
                 project.getUpdatedAt()
@@ -72,6 +80,14 @@ public class ProjectResponse {
 
     public void setRepositoryUrl(String repositoryUrl) {
         this.repositoryUrl = repositoryUrl;
+    }
+
+    public String getOwnerEmail() {
+        return ownerEmail;
+    }
+
+    public void setOwnerEmail(String ownerEmail) {
+        this.ownerEmail = ownerEmail;
     }
 
     public long getDeploymentsCount() {

@@ -30,7 +30,7 @@ public class WebConfig implements WebMvcConfigurer {
 
         var registration = registry.addMapping("/api/**")
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-                .allowedHeaders("Content-Type", "Authorization", "Accept", "X-Requested-With", "X-CloudShip-CI-Token", "X-Hub-Signature-256", "X-GitHub-Event")
+                .allowedHeaders("Content-Type", "Authorization", "Accept", "X-Requested-With", "X-CloudShip-CI-Token", "X-Hub-Signature-256", "X-GitHub-Event", "Cf-Access-Jwt-Assertion", "CF-Access-Authenticated-User-Email", "X-Dev-User-Email")
                 .allowCredentials(true)
                 .maxAge(3600);
 

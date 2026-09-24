@@ -69,9 +69,10 @@ public class DeploymentService {
     @Transactional(readOnly = true)
     public List<DeploymentResponse> getDeploymentsByProjectId(Long projectId) {
         log.debug("Fetching deployments for project ID: {}", projectId);
-        if (!projectRepository.existsById(projectId)) {
-            throw new ResourceNotFoundException("Project", projectId);
-        }
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+        assertProjectAccess(project);
+
         return deploymentRepository.findByProjectIdOrderByCreatedAtDesc(projectId).stream()
                 .map(DeploymentResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -82,15 +83,34 @@ public class DeploymentService {
         log.debug("Fetching deployment with ID: {}", id);
         Deployment deployment = deploymentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Deployment", id));
+        if (deployment.getProject() != null) {
+            assertProjectAccess(deployment.getProject());
+        }
         return DeploymentResponse.fromEntity(deployment);
     }
 
     @Transactional(readOnly = true)
     public List<DeploymentResponse> getAllDeployments() {
-        log.debug("Fetching all deployments");
-        return deploymentRepository.findAll().stream()
+        log.debug("Fetching deployments");
+        java.util.Optional<com.cloudship.security.CloudshipPrincipal> principalOpt = com.cloudship.security.SecurityUtils.getCurrentPrincipal();
+        List<Deployment> deployments = deploymentRepository.findAll();
+        if (principalOpt.isPresent() && !principalOpt.get().isAdmin()) {
+            Long userId = principalOpt.get().getId();
+            deployments = deployments.stream()
+                    .filter(d -> d.getProject() != null && d.getProject().getOwner() != null && userId.equals(d.getProject().getOwner().getId()))
+                    .collect(Collectors.toList());
+        }
+        return deployments.stream()
                 .map(DeploymentResponse::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    private void assertProjectAccess(Project project) {
+        com.cloudship.security.SecurityUtils.getCurrentPrincipal().ifPresent(principal -> {
+            if (!principal.isAdmin() && (project.getOwner() == null || !project.getOwner().getId().equals(principal.getId()))) {
+                throw new com.cloudship.exception.ForbiddenException("You do not have permission to access project with ID: " + project.getId());
+            }
+        });
     }
 
     @Transactional(readOnly = true)
@@ -105,6 +125,7 @@ public class DeploymentService {
 
         Project project = projectRepository.findById(request.getProjectId())
                 .orElseThrow(() -> new ResourceNotFoundException("Project", request.getProjectId()));
+        assertProjectAccess(project);
 
         log.info("Triggering rolling Kubernetes deployment for project '{}' (ID: {})", project.getName(), project.getId());
 

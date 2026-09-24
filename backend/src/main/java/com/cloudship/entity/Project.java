@@ -31,6 +31,10 @@ public class Project {
     @OneToOne(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private GitRepository gitRepository;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private User owner;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -44,6 +48,13 @@ public class Project {
         this.name = name;
         this.description = description;
         this.repositoryUrl = repositoryUrl;
+    }
+
+    public Project(String name, String description, String repositoryUrl, User owner) {
+        this.name = name;
+        this.description = description;
+        this.repositoryUrl = repositoryUrl;
+        this.owner = owner;
     }
 
     @PrePersist
@@ -112,6 +123,14 @@ public class Project {
 
     public void setGitRepository(GitRepository gitRepository) {
         this.gitRepository = gitRepository;
+    }
+
+    public User getOwner() {
+        return owner;
+    }
+
+    public void setOwner(User owner) {
+        this.owner = owner;
     }
 
     public OffsetDateTime getCreatedAt() {

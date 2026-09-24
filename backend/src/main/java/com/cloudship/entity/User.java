@@ -17,6 +17,9 @@ public class User {
     @Column(nullable = false, unique = true, length = 255)
     private String email;
 
+    @Column(nullable = false, length = 20)
+    private String role = "USER";
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -29,6 +32,13 @@ public class User {
     public User(String name, String email) {
         this.name = name;
         this.email = email;
+        this.role = "USER";
+    }
+
+    public User(String name, String email, String role) {
+        this.name = name;
+        this.email = email;
+        this.role = role != null ? role : "USER";
     }
 
     @PrePersist
@@ -65,6 +75,14 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public OffsetDateTime getCreatedAt() {

@@ -77,6 +77,7 @@ public class CIService {
     public CIBuildResponse triggerBuild(Long projectId, CITriggerRequest request, CITriggerType triggerType) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project with ID '" + projectId + "' was not found"));
+        assertProjectAccess(project);
 
         GitRepository repository = gitRepositoryRepository.findByProjectId(projectId)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -159,9 +160,10 @@ public class CIService {
 
     @Transactional
     public List<CIBuildResponse> getProjectBuilds(Long projectId) {
-        if (!projectRepository.existsById(projectId)) {
-            throw new ResourceNotFoundException("Project with ID '" + projectId + "' was not found");
-        }
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project with ID '" + projectId + "' was not found"));
+        assertProjectAccess(project);
+
         return ciBuildRepository.findByProjectIdOrderByCreatedAtDesc(projectId).stream()
                 .map(this::reconcileBuildStatusIfRunning)
                 .map(CIBuildResponse::fromEntity)
@@ -170,9 +172,10 @@ public class CIService {
 
     @Transactional
     public CIBuildResponse getProjectBuild(Long projectId, Long buildId) {
-        if (!projectRepository.existsById(projectId)) {
-            throw new ResourceNotFoundException("Project with ID '" + projectId + "' was not found");
-        }
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project with ID '" + projectId + "' was not found"));
+        assertProjectAccess(project);
+
         CIBuild build = ciBuildRepository.findByIdAndProjectId(buildId, projectId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "CI Build with ID '" + buildId + "' not found for project '" + projectId + "'"
@@ -185,8 +188,19 @@ public class CIService {
     public CIBuildResponse getBuild(Long id) {
         CIBuild build = ciBuildRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("CI Build with ID '" + id + "' was not found"));
+        if (build.getProject() != null) {
+            assertProjectAccess(build.getProject());
+        }
         build = reconcileBuildStatusIfRunning(build);
         return CIBuildResponse.fromEntity(build);
+    }
+
+    private void assertProjectAccess(Project project) {
+        com.cloudship.security.SecurityUtils.getCurrentPrincipal().ifPresent(principal -> {
+            if (!principal.isAdmin() && (project.getOwner() == null || !project.getOwner().getId().equals(principal.getId()))) {
+                throw new com.cloudship.exception.ForbiddenException("You do not have permission to access project with ID: " + project.getId());
+            }
+        });
     }
 
     @Transactional

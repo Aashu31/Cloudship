@@ -108,17 +108,88 @@
         <span class="notif-badge-dot"></span>
       </button>
 
-      <!-- User Profile Chip -->
-      <div class="user-profile-chip" id="user-chip">
-        <div class="user-avatar">A</div>
-        <div class="user-info">
-          <span class="user-name">Aashu</span>
-          <span class="user-role">DevOps Lead</span>
+      <!-- User Profile Chip with Dropdown -->
+      <div class="user-profile-chip-container" style="position: relative;">
+        <div class="user-profile-chip" id="user-chip" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" style="cursor: pointer;">
+          <div class="user-avatar" id="user-avatar-initial">U</div>
+          <div class="user-info">
+            <span class="user-name" id="user-display-name">Checking...</span>
+            <span class="user-role" id="user-display-role">Zero-Trust</span>
+          </div>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </div>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+
+        <!-- User Profile Dropdown Menu -->
+        <div class="user-dropdown-menu" id="user-dropdown" style="display: none; position: absolute; right: 0; top: calc(100% + 8px); width: 260px; background: #0f172a; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); padding: 12px; z-index: 1000;">
+          <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 6px;">Zero-Trust Identity</div>
+          <div style="font-size: 13px; font-weight: 600; color: #f8fafc; word-break: break-all;" id="dropdown-user-email">--</div>
+          <div style="display: flex; gap: 6px; align-items: center; margin-top: 6px; margin-bottom: 12px;">
+            <span class="badge" style="background: rgba(14, 165, 233, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); font-size: 10px; padding: 2px 6px; border-radius: 4px;" id="dropdown-user-role">USER</span>
+            <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); font-size: 10px; padding: 2px 6px; border-radius: 4px;">Cloudflare Access</span>
+          </div>
+          <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 8px 0;">
+          <button id="btn-sign-out" type="button" style="width: 100%; display: flex; align-items: center; gap: 8px; background: transparent; border: none; color: #f87171; padding: 8px 6px; font-size: 12px; font-weight: 500; cursor: pointer; border-radius: 4px; text-align: left;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            Sign Out / Switch Identity
+          </button>
+        </div>
       </div>
     </div>
   </header>
+
+  <!-- ========================================================================
+       Zero-Trust Access Gate Screen (Displayed when unauthenticated)
+       ======================================================================== -->
+  <div id="zero-trust-gate" class="zero-trust-gate-screen" style="display: none;">
+    <div class="zero-trust-card">
+      <div class="zero-trust-shield-icon">
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <path d="M9 12l2 2 4-4"></path>
+        </svg>
+      </div>
+      <div class="zero-trust-badge">CLOUDFLARE ACCESS ZERO-TRUST</div>
+      <h1 class="zero-trust-title">Identity Verification Required</h1>
+      <p class="zero-trust-description">
+        CloudShip is an enterprise DevOps control platform protecting repositories, CI/CD pipelines, container registries, and production Kubernetes clusters. Access requires a verified identity assertion issued by Cloudflare Access.
+      </p>
+
+      <div class="zero-trust-status-box">
+        <div class="zero-trust-status-row">
+          <span class="zt-label">Edge Gateway:</span>
+          <span class="zt-val" style="color: #38bdf8;">Cloudflare Access Proxy</span>
+        </div>
+        <div class="zero-trust-status-row">
+          <span class="zt-label">Verification Type:</span>
+          <span class="zt-val">RS256 JWT Assertion (JWKS / AUD Verified)</span>
+        </div>
+        <div class="zero-trust-status-row">
+          <span class="zt-label">Current State:</span>
+          <span class="zt-val" style="color: #f87171;">Unauthenticated (HTTP 401)</span>
+        </div>
+      </div>
+
+      <div class="zero-trust-actions">
+        <button id="btn-zt-login" class="btn-primary-glow" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+          Authenticate via Cloudflare Access
+        </button>
+      </div>
+
+      <div class="zero-trust-dev-toggle" style="margin-top: 18px; font-size: 11px; color: #64748b;">
+        <span>Running locally in development? </span>
+        <a href="javascript:void(0)" id="link-dev-mode" style="color: #38bdf8; text-decoration: underline;">Configure Local Dev Identity</a>
+      </div>
+
+      <div id="dev-mode-panel" style="display: none; margin-top: 14px; padding: 12px; background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.15); border-radius: 6px; text-align: left;">
+        <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 6px;">Simulated Local Dev User Email:</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="email" id="dev-email-input" value="dev@cloudship.local" style="flex: 1; background: #0f172a; border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 6px 10px; font-size: 12px; border-radius: 4px; font-family: monospace;">
+          <button id="btn-save-dev-identity" type="button" style="background: #0284c7; color: white; border: none; padding: 6px 12px; font-size: 12px; border-radius: 4px; cursor: pointer;">Save & Retry</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ========================================================================
        2. Application Shell Layout (Sidebar + Workspace Stage)

@@ -143,7 +143,13 @@ public class GitRepositoryService {
     }
 
     private Project getProjectOrThrow(Long projectId) {
-        return projectRepository.findById(projectId)
+        Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project with ID '" + projectId + "' was not found"));
+        com.cloudship.security.SecurityUtils.getCurrentPrincipal().ifPresent(principal -> {
+            if (!principal.isAdmin() && (project.getOwner() == null || !project.getOwner().getId().equals(principal.getId()))) {
+                throw new com.cloudship.exception.ForbiddenException("You do not have permission to access project with ID: " + projectId);
+            }
+        });
+        return project;
     }
 }

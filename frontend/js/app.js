@@ -2758,24 +2758,131 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     10. Lifecycle Initialization
+     10. Lifecycle Initialization & Zero-Trust Route Guarding
      ========================================================================== */
-  // Initial immediate probe & data fetch
-  probeTelemetry();
-  refreshData();
+  const userChip = document.getElementById('user-chip');
+  const userDropdown = document.getElementById('user-dropdown');
+  const userAvatarInitial = document.getElementById('user-avatar-initial');
+  const userDisplayName = document.getElementById('user-display-name');
+  const userDisplayRole = document.getElementById('user-display-role');
+  const dropdownUserEmail = document.getElementById('dropdown-user-email');
+  const dropdownUserRole = document.getElementById('dropdown-user-role');
+  const btnSignOut = document.getElementById('btn-sign-out');
+  const zeroTrustGate = document.getElementById('zero-trust-gate');
+  const btnZtLogin = document.getElementById('btn-zt-login');
+  const linkDevMode = document.getElementById('link-dev-mode');
+  const devModePanel = document.getElementById('dev-mode-panel');
+  const devEmailInput = document.getElementById('dev-email-input');
+  const btnSaveDevIdentity = document.getElementById('btn-save-dev-identity');
 
-  // Read initial hash from URL and route to it immediately
-  const initialHash = window.location.hash.replace('#', '').trim();
-  if (initialHash === 'settings') {
-    navigateToRoute('overview', false);
-    setTimeout(openSettingsModal, 200);
-  } else {
-    navigateToRoute(initialHash || 'overview', false);
+  // Wire User dropdown toggle
+  if (userChip && userDropdown) {
+    userChip.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isVisible = userDropdown.style.display === 'block';
+      userDropdown.style.display = isVisible ? 'none' : 'block';
+      userChip.setAttribute('aria-expanded', !isVisible);
+    });
+
+    document.addEventListener('click', () => {
+      userDropdown.style.display = 'none';
+      userChip.setAttribute('aria-expanded', 'false');
+    });
+
+    userDropdown.addEventListener('click', (e) => e.stopPropagation());
   }
 
-  // Polling every 5 seconds for live RTT and database health
-  setInterval(probeTelemetry, 5000);
+  // Wire Sign Out
+  if (btnSignOut) {
+    btnSignOut.addEventListener('click', () => {
+      api.logout();
+    });
+  }
 
-  // Polling every 15 seconds for live observability overview
-  setInterval(loadMonitoringOverview, 15000);
+  // Wire Dev Mode Identity Simulation in Access Gate
+  if (linkDevMode && devModePanel) {
+    linkDevMode.addEventListener('click', () => {
+      devModePanel.style.display = devModePanel.style.display === 'none' ? 'block' : 'none';
+    });
+  }
+
+  if (btnSaveDevIdentity && devEmailInput) {
+    const saved = window.sessionStorage.getItem('cloudship_dev_user');
+    if (saved) devEmailInput.value = saved;
+
+    btnSaveDevIdentity.addEventListener('click', () => {
+      const email = devEmailInput.value.trim();
+      if (email) {
+        window.sessionStorage.setItem('cloudship_dev_user', email);
+        window.location.reload();
+      }
+    });
+  }
+
+  if (btnZtLogin) {
+    btnZtLogin.addEventListener('click', () => {
+      window.location.reload();
+    });
+  }
+
+  // Listen for unauthorized events dispatched by API client
+  window.addEventListener('cloudship:auth_required', () => {
+    showZeroTrustGate();
+  });
+
+  function showZeroTrustGate() {
+    if (zeroTrustGate) {
+      zeroTrustGate.style.display = 'flex';
+    }
+  }
+
+  function hideZeroTrustGate() {
+    if (zeroTrustGate) {
+      zeroTrustGate.style.display = 'none';
+    }
+  }
+
+  async function checkAuthAndBootstrap() {
+    try {
+      const auth = await api.getAuthMe();
+      if (auth && auth.authenticated && auth.user) {
+        state.currentUser = auth.user;
+        hideZeroTrustGate();
+
+        // Populate user UI
+        const name = auth.user.name || auth.user.email || 'CloudShip User';
+        const initial = (name[0] || 'U').toUpperCase();
+        if (userAvatarInitial) userAvatarInitial.textContent = initial;
+        if (userDisplayName) userDisplayName.textContent = name;
+        if (userDisplayRole) userDisplayRole.textContent = auth.user.role || 'USER';
+        if (dropdownUserEmail) dropdownUserEmail.textContent = auth.user.email;
+        if (dropdownUserRole) dropdownUserRole.textContent = auth.user.role || 'USER';
+
+        // Proceed to bootstrap workspace
+        probeTelemetry();
+        refreshData();
+
+        const initialHash = window.location.hash.replace('#', '').trim();
+        if (initialHash === 'settings') {
+          navigateToRoute('overview', false);
+          setTimeout(openSettingsModal, 200);
+        } else {
+          navigateToRoute(initialHash || 'overview', false);
+        }
+
+        setInterval(probeTelemetry, 5000);
+        setInterval(loadMonitoringOverview, 15000);
+
+      } else {
+        // Unauthenticated -> display Zero-Trust Gate immediately with NO flash of data
+        showZeroTrustGate();
+        probeTelemetry(); // keep telemetry indicator updating health
+      }
+    } catch (e) {
+      console.warn('Auth bootstrap failed:', e);
+      showZeroTrustGate();
+    }
+  }
+
+  checkAuthAndBootstrap();
 });

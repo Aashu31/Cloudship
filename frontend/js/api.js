@@ -10,7 +10,72 @@ const API_BASE_URL = (typeof window.CLOUDSHIP_API_URL !== 'undefined')
       ? (window.location.origin.includes(':8088') ? '' : 'http://localhost:8088')
       : (isVercel ? '' : 'https://cloudship-backend.onrender.com'));
 
+// Global fetch interceptor: ensures credentials ('include') and auth events
+const _originalFetch = window.fetch;
+window.fetch = async function (input, init = {}) {
+  const options = { ...init };
+  options.credentials = options.credentials || 'include';
+
+  // Support local dev identity simulation
+  const devEmail = window.sessionStorage.getItem('cloudship_dev_user');
+  if (devEmail && isLocalhost) {
+    options.headers = options.headers || {};
+    if (options.headers instanceof Headers) {
+      if (!options.headers.has('X-Dev-User-Email')) {
+        options.headers.set('X-Dev-User-Email', devEmail);
+      }
+    } else if (Array.isArray(options.headers)) {
+      options.headers.push(['X-Dev-User-Email', devEmail]);
+    } else {
+      options.headers['X-Dev-User-Email'] = devEmail;
+    }
+  }
+
+  const response = await _originalFetch(input, options);
+
+  if (response.status === 401) {
+    window.dispatchEvent(new CustomEvent('cloudship:auth_required', {
+      detail: { status: 401, url: input }
+    }));
+  } else if (response.status === 403) {
+    window.dispatchEvent(new CustomEvent('cloudship:access_denied', {
+      detail: { status: 403, url: input }
+    }));
+  }
+
+  return response;
+};
+
 const api = {
+  /**
+   * Retrieves current authenticated user session status from Zero-Trust gateway
+   */
+  async getAuthMe() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) {
+        return { authenticated: false, user: null, status: response.status };
+      }
+      return await response.json();
+    } catch (err) {
+      console.warn('Auth check error:', err.message);
+      return { authenticated: false, user: null, error: err.message };
+    }
+  },
+
+  /**
+   * Clears local session or redirects to Cloudflare Access logout
+   */
+  logout() {
+    window.sessionStorage.removeItem('cloudship_dev_user');
+    if (window.CLOUDFLARE_LOGOUT_URL) {
+      window.location.href = window.CLOUDFLARE_LOGOUT_URL;
+    } else {
+      window.location.reload();
+    }
+  },
   /**
    * Probes backend and database health status
    */
