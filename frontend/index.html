@@ -697,403 +697,679 @@
        4. Slide-Over Project Management & Registration Drawer
        ======================================================================== -->
   <div class="drawer-backdrop" id="drawer-backdrop"></div>
-  <div class="drawer" id="project-drawer" role="dialog" aria-labelledby="drawer-title">
-    <div class="drawer-header">
-      <h3 class="drawer-title" id="drawer-title">Project Management</h3>
-      <button class="btn btn-ghost btn-sm" id="btn-close-drawer" type="button" aria-label="Close drawer">✕</button>
-    </div>
-    <div class="drawer-body">
-      <!-- Create Project Section -->
-      <div id="drawer-create-section">
-        <h4 style="font-size: var(--font-body); font-weight: 600; margin-bottom: var(--space-3); color: var(--text-primary);">Register New Service Codebase</h4>
-        <form id="create-project-form">
-          <div class="form-group">
-            <label class="form-label" for="project-name">Project Identifier *</label>
-            <input type="text" id="project-name" class="form-input" placeholder="e.g. auth-service" required pattern="^[a-zA-Z0-9_-]{2,100}$">
-            <span class="field-hint" style="font-size: var(--font-micro); color: var(--text-dim); margin-top: 4px;">2-100 characters: letters, numbers, hyphens, underscores</span>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="project-description">System Purpose / Description</label>
-            <textarea id="project-description" class="form-textarea" rows="2" placeholder="Primary user identity & JWT authorization service"></textarea>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="project-repo">Repository URL</label>
-            <input type="url" id="project-repo" class="form-input" placeholder="https://github.com/org/service.git">
-          </div>
-
-          <button type="submit" class="btn btn-primary" id="btn-submit-project" style="width: 100%;">
-            <span>Persist Project to Database</span>
-          </button>
-        </form>
-      </div>
-
-      <hr style="border: none; border-top: 1px solid var(--border-subtle); margin: var(--space-6) 0;">
-
-      <!-- Existing Registered Projects List -->
-      <div style="margin-bottom: var(--space-6);">
-        <h4 style="font-size: var(--font-body); font-weight: 600; margin-bottom: var(--space-3); color: var(--text-primary);">Managed Repositories (<span id="drawer-projects-count">0</span>)</h4>
-        <div id="drawer-projects-list" style="display: flex; flex-direction: column; gap: var(--space-2);">
-          <!-- Populated dynamically via app.js -->
+  <div class="drawer project-workspace-drawer" id="project-drawer" role="dialog" aria-labelledby="drawer-title">
+    <!-- 1. Workspace Header with Breadcrumb, Active Project Selector, and Controls -->
+    <header class="workspace-header">
+      <div class="workspace-header-left">
+        <div class="workspace-breadcrumbs">
+          <span class="breadcrumb-root">CloudShip</span>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-parent" id="drawer-title">Project Management</span>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-active" id="workspace-breadcrumb-active">Overview</span>
+        </div>
+        <div class="workspace-project-badge">
+          <span class="project-badge-dot"></span>
+          <select id="workspace-active-project-select" class="workspace-project-select" title="Active Project Context">
+            <option value="">Loading Projects...</option>
+          </select>
         </div>
       </div>
-
-      <hr style="border: none; border-top: 1px solid var(--border-subtle); margin: var(--space-6) 0;">
-
-      <!-- Phase 2: GitHub Repository Connection Card -->
-      <div class="drawer-card" id="github-connection-card">
-        <div class="drawer-card-header">
-          <div class="drawer-card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
-            </svg>
-            <span>GitHub Integration</span>
-          </div>
-          <span id="github-status-pill" class="status-pill standby">
-            <span class="status-dot"></span>
-            <span id="github-status-label">Not Connected</span>
-          </span>
-        </div>
-
-        <form id="github-connect-form">
-          <div class="form-group">
-            <label class="form-label" for="github-project-select">Target Project</label>
-            <select id="github-project-select" class="form-input">
-              <option value="">-- Select a project --</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="github-repo-url">Repository URL (HTTPS or SSH)</label>
-            <input type="text" id="github-repo-url" class="form-input" placeholder="https://github.com/org/repo">
-            <span class="field-hint" style="font-size: var(--font-micro); color: var(--text-dim); margin-top: 4px;">Public repositories verified instantly via GitHub REST API</span>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="github-branch">Default Branch</label>
-            <input type="text" id="github-branch" class="form-input" value="main" placeholder="main">
-          </div>
-
-          <div class="drawer-meta-row" style="margin-bottom: var(--space-3);">
-            <span class="drawer-meta-label">Last Sync / Verification:</span>
-            <span class="drawer-meta-value" id="github-last-sync">Never synced</span>
-          </div>
-
-          <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
-            <button type="button" class="btn btn-primary btn-sm" id="btn-github-connect">Connect Repository</button>
-            <button type="button" class="btn btn-outline btn-sm" id="btn-github-verify">Verify Connection</button>
-            <button type="button" class="btn btn-danger btn-sm" id="btn-github-disconnect">Disconnect</button>
-          </div>
-        </form>
+      <div class="workspace-header-right">
+        <button class="btn btn-ghost btn-sm" id="btn-workspace-refresh-all" type="button" title="Refresh Workspace Telemetry">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          <span class="btn-text-desktop">Sync</span>
+        </button>
+        <button class="btn btn-ghost btn-sm" id="btn-close-drawer" type="button" aria-label="Close Project Workspace">✕</button>
       </div>
+    </header>
 
-      <!-- Phase 2: Docker Container Readiness Card -->
-      <div class="drawer-card" id="docker-readiness-card">
-        <div class="drawer-card-header">
-          <div class="drawer-card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M4.222 14.889h2.444v-2.444H4.222v2.444zm3.056 0h2.444v-2.444H7.278v2.444zm3.055 0h2.445v-2.444h-2.445v2.444zm3.056 0h2.444v-2.444h-2.444v2.444zm-9.167-3.056h2.444V9.389H4.222v2.444zm3.056 0h2.444V9.389H7.278v2.444zm3.055 0h2.445V9.389h-2.445v2.444zm3.056 0h2.444V9.389h-2.444v2.444zm3.055 0h2.445V9.389h-2.445v2.444zm2.445 1.528c-.464-.325-1.222-.44-1.834-.333-.217-.923-.746-1.722-1.488-2.277L20.2 10.3c.094-.078.22-.095.33-.044.823.383 1.761.547 2.659.458.118-.012.23.04.288.143.433.774.654 1.637.654 2.532 0 .15-.008.3-.024.448-.016.143-.11.264-.25.295-.694.152-1.399.117-2.023-.115zM23.943 14.4c-.067-.09-.176-.134-.286-.118-.553.08-1.127.053-1.688-.08a3.29 3.29 0 01-.645-.246c-.053-.029-.115-.044-.176-.044H.5c-.276 0-.5.224-.5.5 0 2.22 1.042 4.238 2.828 5.518C4.542 21.17 6.643 21.8 8.847 21.8c6.647 0 12.447-4.14 14.653-10.155.034-.092.017-.194-.044-.27-.06-.075-.157-.118-.256-.118h-.197c.367-.61.64-1.269.81-1.956.036-.145-.03-.298-.16-.369-.13-.07-.291-.044-.393.064-.428.455-.95.81-1.533 1.039-.12.047-.19.167-.174.296.077.625.032 1.258-.13 1.854a.434.434 0 01-.137.215z"/>
-            </svg>
-            <span>Docker Readiness</span>
+    <!-- 2. Adaptive Workspace Shell Body: Navigation Rail + Viewport -->
+    <div class="workspace-shell-body">
+      <!-- Adaptive Feature Navigation (Left rail on wide screens, horizontal scroll on compact) -->
+      <nav class="workspace-nav" id="workspace-feature-nav" aria-label="Feature Workspaces">
+        <button type="button" class="workspace-nav-btn active" data-workspace="overview">
+          <span class="ws-nav-icon">📊</span>
+          <span class="ws-nav-label">Overview</span>
+          <span class="ws-nav-indicator"></span>
+        </button>
+        <button type="button" class="workspace-nav-btn" data-workspace="github">
+          <span class="ws-nav-icon">🐙</span>
+          <span class="ws-nav-label">GitHub</span>
+          <span class="ws-nav-indicator" id="nav-indicator-github"></span>
+        </button>
+        <button type="button" class="workspace-nav-btn" data-workspace="docker">
+          <span class="ws-nav-icon">🐳</span>
+          <span class="ws-nav-label">Docker</span>
+          <span class="ws-nav-indicator" id="nav-indicator-docker"></span>
+        </button>
+        <button type="button" class="workspace-nav-btn" data-workspace="jenkins">
+          <span class="ws-nav-icon">⚙️</span>
+          <span class="ws-nav-label">Jenkins CI</span>
+          <span class="ws-nav-indicator" id="nav-indicator-jenkins"></span>
+        </button>
+        <button type="button" class="workspace-nav-btn" data-workspace="azure">
+          <span class="ws-nav-icon">☁️</span>
+          <span class="ws-nav-label">Azure Infra</span>
+          <span class="ws-nav-indicator" id="nav-indicator-azure"></span>
+        </button>
+        <button type="button" class="workspace-nav-btn" data-workspace="acr">
+          <span class="ws-nav-icon">📦</span>
+          <span class="ws-nav-label">ACR Registry</span>
+          <span class="ws-nav-indicator" id="nav-indicator-acr"></span>
+        </button>
+        <button type="button" class="workspace-nav-btn" data-workspace="aks">
+          <span class="ws-nav-icon">☸️</span>
+          <span class="ws-nav-label">AKS Cluster</span>
+          <span class="ws-nav-indicator" id="nav-indicator-aks"></span>
+        </button>
+        <button type="button" class="workspace-nav-btn" data-workspace="cicd">
+          <span class="ws-nav-icon">🚀</span>
+          <span class="ws-nav-label">CI/CD Pipeline</span>
+          <span class="ws-nav-indicator" id="nav-indicator-cicd"></span>
+        </button>
+        <button type="button" class="workspace-nav-btn" data-workspace="monitoring">
+          <span class="ws-nav-icon">📈</span>
+          <span class="ws-nav-label">Monitoring</span>
+          <span class="ws-nav-indicator" id="nav-indicator-monitoring"></span>
+        </button>
+      </nav>
+
+      <!-- 3. Dedicated Viewport: Only the Selected Feature Workspace is Active -->
+      <div class="workspace-viewport">
+        <!-- WORKSPACE 1: OVERVIEW -->
+        <section class="workspace-pane active" id="workspace-overview" role="tabpanel" aria-labelledby="ws-tab-overview">
+          <div class="workspace-pane-inner">
+            <div class="workspace-section-header">
+              <div>
+                <h3 class="workspace-pane-title">Service Registrations & Managed Repositories</h3>
+                <p class="workspace-pane-desc">Register new service codebases, configure endpoints, and manage repository state across your deployment fleet.</p>
+              </div>
+            </div>
+
+            <div class="workspace-grid-2col">
+              <!-- Left Column: Registration Form -->
+              <div class="workspace-card" id="drawer-create-section">
+                <div class="workspace-card-header">
+                  <h4 class="workspace-card-title">Register New Service Codebase</h4>
+                  <span class="status-pill active"><span class="status-dot"></span>Ready</span>
+                </div>
+                <form id="create-project-form">
+                  <div class="form-group">
+                    <label class="form-label" for="project-name">Project Identifier *</label>
+                    <input type="text" id="project-name" class="form-input" placeholder="e.g. auth-service" required pattern="^[a-zA-Z0-9_-]{2,100}$">
+                    <span class="field-hint" style="font-size: var(--font-micro); color: var(--text-dim); margin-top: 4px;">2-100 characters: letters, numbers, hyphens, underscores</span>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="project-description">System Purpose / Description</label>
+                    <textarea id="project-description" class="form-textarea" rows="3" placeholder="Primary user identity & JWT authorization service"></textarea>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="project-repo">Repository URL</label>
+                    <input type="url" id="project-repo" class="form-input" placeholder="https://github.com/org/service.git">
+                  </div>
+
+                  <button type="submit" class="btn btn-primary" id="btn-submit-project" style="width: 100%; margin-top: var(--space-2);">
+                    <span>Persist Project to Database</span>
+                  </button>
+                </form>
+              </div>
+
+              <!-- Right Column: Managed Repositories List -->
+              <div class="workspace-card">
+                <div class="workspace-card-header">
+                  <h4 class="workspace-card-title">Managed Repositories (<span id="drawer-projects-count">0</span>)</h4>
+                  <button type="button" class="btn btn-ghost btn-sm" id="btn-refresh-projects-list" title="Reload repository catalog">↻</button>
+                </div>
+                <div id="drawer-projects-list" class="workspace-project-list" style="display: flex; flex-direction: column; gap: var(--space-2); max-height: 400px; overflow-y: auto;">
+                  <!-- Populated dynamically via app.js -->
+                </div>
+              </div>
+            </div>
           </div>
-          <span id="docker-status-pill" class="status-pill standby">
-            <span class="status-dot"></span>
-            <span id="docker-status-label">Not Built</span>
-          </span>
-        </div>
+        </section>
 
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Base Image:</span>
-          <span class="drawer-meta-value" id="docker-base-image">eclipse-temurin:17-jre-alpine</span>
-        </div>
+        <!-- WORKSPACE 2: GITHUB -->
+        <section class="workspace-pane" id="workspace-github" role="tabpanel" aria-labelledby="ws-tab-github">
+          <div class="workspace-pane-inner">
+            <div class="workspace-section-header">
+              <div>
+                <h3 class="workspace-pane-title">GitHub Integration & GitOps Synchronization</h3>
+                <p class="workspace-pane-desc">Link remote VCS repositories, configure branch triggers, and verify pull permissions via the GitHub REST API.</p>
+              </div>
+            </div>
 
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Exposed Port:</span>
-          <span class="drawer-meta-value" id="docker-exposed-port">8088</span>
-        </div>
+            <div class="workspace-card" id="github-connection-card">
+              <div class="drawer-card-header">
+                <div class="drawer-card-title">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                  </svg>
+                  <span>Repository Connection & Webhook State</span>
+                </div>
+                <span id="github-status-pill" class="status-pill standby">
+                  <span class="status-dot"></span>
+                  <span id="github-status-label">Not Connected</span>
+                </span>
+              </div>
 
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Container State:</span>
-          <span class="drawer-meta-value" id="docker-container-status">Dockerfile Ready</span>
-        </div>
+              <form id="github-connect-form">
+                <div class="form-group">
+                  <label class="form-label" for="github-project-select">Target Project</label>
+                  <select id="github-project-select" class="form-input">
+                    <option value="">-- Select a project --</option>
+                  </select>
+                </div>
 
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Dockerfile Target:</span>
-          <span class="drawer-meta-value">backend/Dockerfile</span>
-        </div>
+                <div class="form-group">
+                  <label class="form-label" for="github-repo-url">Repository URL (HTTPS or SSH)</label>
+                  <input type="text" id="github-repo-url" class="form-input" placeholder="https://github.com/org/repo">
+                  <span class="field-hint" style="font-size: var(--font-micro); color: var(--text-dim); margin-top: 4px;">Public repositories verified instantly via GitHub REST API</span>
+                </div>
 
-        <div style="margin-top: var(--space-3);">
-          <span style="font-size: var(--font-micro); font-family: var(--font-mono); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Build Command</span>
-          <div class="code-snippet-box">
-            <span class="code-snippet-text" id="snippet-build-cmd">docker build -t cloudship-backend:latest ./backend</span>
-            <button type="button" class="btn btn-ghost btn-sm btn-icon" id="btn-copy-build-cmd" title="Copy build command">
-              📋
-            </button>
+                <div class="form-group">
+                  <label class="form-label" for="github-branch">Default Branch</label>
+                  <input type="text" id="github-branch" class="form-input" value="main" placeholder="main">
+                </div>
+
+                <div class="drawer-meta-row" style="margin-bottom: var(--space-4);">
+                  <span class="drawer-meta-label">Last Sync / Verification:</span>
+                  <span class="drawer-meta-value" id="github-last-sync">Never synced</span>
+                </div>
+
+                <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
+                  <button type="button" class="btn btn-primary" id="btn-github-connect">Connect Repository</button>
+                  <button type="button" class="btn btn-outline" id="btn-github-verify">Verify Connection</button>
+                  <button type="button" class="btn btn-danger" id="btn-github-disconnect">Disconnect</button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div style="margin-top: var(--space-2);">
-          <span style="font-size: var(--font-micro); font-family: var(--font-mono); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Compose Stack Command</span>
-          <div class="code-snippet-box">
-            <span class="code-snippet-text" id="snippet-compose-cmd">docker compose up -d</span>
-            <button type="button" class="btn btn-ghost btn-sm btn-icon" id="btn-copy-compose-cmd" title="Copy compose command">
-              📋
-            </button>
+        <!-- WORKSPACE 3: DOCKER -->
+        <section class="workspace-pane" id="workspace-docker" role="tabpanel" aria-labelledby="ws-tab-docker">
+          <div class="workspace-pane-inner">
+            <div class="workspace-section-header">
+              <div>
+                <h3 class="workspace-pane-title">Docker Readiness & Containerization Specifications</h3>
+                <p class="workspace-pane-desc">Inspect Dockerfile definitions, exposed ports, multi-stage build scripts, and local container execution targets.</p>
+              </div>
+            </div>
+
+            <div class="workspace-card" id="docker-readiness-card">
+              <div class="drawer-card-header">
+                <div class="drawer-card-title">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M4.222 14.889h2.444v-2.444H4.222v2.444zm3.056 0h2.444v-2.444H7.278v2.444zm3.055 0h2.445v-2.444h-2.445v2.444zm3.056 0h2.444v-2.444h-2.444v2.444zm-9.167-3.056h2.444V9.389H4.222v2.444zm3.056 0h2.444V9.389H7.278v2.444zm3.055 0h2.445V9.389h-2.445v2.444zm3.056 0h2.444V9.389h-2.444v2.444zm3.055 0h2.445V9.389h-2.445v2.444zm2.445 1.528c-.464-.325-1.222-.44-1.834-.333-.217-.923-.746-1.722-1.488-2.277L20.2 10.3c.094-.078.22-.095.33-.044.823.383 1.761.547 2.659.458.118-.012.23.04.288.143.433.774.654 1.637.654 2.532 0 .15-.008.3-.024.448-.016.143-.11.264-.25.295-.694.152-1.399.117-2.023-.115zM23.943 14.4c-.067-.09-.176-.134-.286-.118-.553.08-1.127.053-1.688-.08a3.29 3.29 0 01-.645-.246c-.053-.029-.115-.044-.176-.044H.5c-.276 0-.5.224-.5.5 0 2.22 1.042 4.238 2.828 5.518C4.542 21.17 6.643 21.8 8.847 21.8c6.647 0 12.447-4.14 14.653-10.155.034-.092.017-.194-.044-.27-.06-.075-.157-.118-.256-.118h-.197c.367-.61.64-1.269.81-1.956.036-.145-.03-.298-.16-.369-.13-.07-.291-.044-.393.064-.428.455-.95.81-1.533 1.039-.12.047-.19.167-.174.296.077.625.032 1.258-.13 1.854a.434.434 0 01-.137.215z"/>
+                  </svg>
+                  <span>Container Runtime Specification</span>
+                </div>
+                <span id="docker-status-pill" class="status-pill standby">
+                  <span class="status-dot"></span>
+                  <span id="docker-status-label">Not Built</span>
+                </span>
+              </div>
+
+              <div class="workspace-grid-2col">
+                <div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Base Image:</span>
+                    <span class="drawer-meta-value" id="docker-base-image">eclipse-temurin:17-jre-alpine</span>
+                  </div>
+
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Exposed Port:</span>
+                    <span class="drawer-meta-value" id="docker-exposed-port">8088</span>
+                  </div>
+
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Container State:</span>
+                    <span class="drawer-meta-value" id="docker-container-status">Dockerfile Ready</span>
+                  </div>
+
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Dockerfile Target:</span>
+                    <span class="drawer-meta-value">backend/Dockerfile</span>
+                  </div>
+                </div>
+
+                <div>
+                  <div style="margin-bottom: var(--space-3);">
+                    <span style="font-size: var(--font-micro); font-family: var(--font-mono); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Build Command</span>
+                    <div class="code-snippet-box">
+                      <span class="code-snippet-text" id="snippet-build-cmd">docker build -t cloudship-backend:latest ./backend</span>
+                      <button type="button" class="btn btn-ghost btn-sm btn-icon" id="btn-copy-build-cmd" title="Copy build command">📋</button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span style="font-size: var(--font-micro); font-family: var(--font-mono); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Compose Stack Command</span>
+                    <div class="code-snippet-box">
+                      <span class="code-snippet-text" id="snippet-compose-cmd">docker compose up -d</span>
+                      <button type="button" class="btn btn-ghost btn-sm btn-icon" id="btn-copy-compose-cmd" title="Copy compose command">📋</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <!-- Card: Jenkins Continuous Integration (Phase 3) -->
-      <div class="drawer-card" id="jenkins-ci-card">
-        <div class="drawer-card-header">
-          <div class="drawer-card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-              <line x1="8" y1="21" x2="16" y2="21"></line>
-              <line x1="12" y1="17" x2="12" y2="21"></line>
-            </svg>
-            <span>Jenkins CI Pipeline</span>
+        <!-- WORKSPACE 4: JENKINS -->
+        <section class="workspace-pane" id="workspace-jenkins" role="tabpanel" aria-labelledby="ws-tab-jenkins">
+          <div class="workspace-pane-inner">
+            <div class="workspace-section-header">
+              <div>
+                <h3 class="workspace-pane-title">Jenkins CI Pipeline & Automated Build Control</h3>
+                <p class="workspace-pane-desc">Trigger continuous integration builds, inspect build artifacts, and view live build history logs.</p>
+              </div>
+            </div>
+
+            <div class="workspace-card" id="jenkins-ci-card">
+              <div class="drawer-card-header">
+                <div class="drawer-card-title">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                  </svg>
+                  <span>Jenkins CI Pipeline</span>
+                </div>
+                <span id="jenkins-status-pill" class="status-pill standby">
+                  <span class="status-dot"></span>
+                  <span id="jenkins-status-label">Checking...</span>
+                </span>
+              </div>
+
+              <div class="workspace-grid-2col">
+                <div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Pipeline Job:</span>
+                    <span class="drawer-meta-value" id="jenkins-job-name">cloudship-ci</span>
+                  </div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Latest CI Build:</span>
+                    <span class="drawer-meta-value" id="ci-last-build-status">No builds executed</span>
+                  </div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Docker Artifact:</span>
+                    <span class="drawer-meta-value" id="ci-docker-tag">cloudship/backend:pending</span>
+                  </div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Build Duration:</span>
+                    <span class="drawer-meta-value" id="ci-build-duration">--</span>
+                  </div>
+                  <div style="display: flex; gap: var(--space-2); margin-top: var(--space-4);">
+                    <button type="button" class="btn btn-primary" id="btn-trigger-ci" style="flex: 1;">
+                      ▶ Trigger CI Build
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="btn-refresh-ci" title="Refresh CI status">
+                      ↻
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
+                    <span style="font-size: var(--font-caption); font-weight: 600; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em;">Recent CI Builds (<span id="ci-builds-count">0</span>)</span>
+                  </div>
+                  <div id="ci-builds-list" style="display: flex; flex-direction: column; gap: var(--space-2); max-height: 280px; overflow-y: auto;">
+                    <div style="font-size: var(--font-caption); color: var(--text-dim); text-align: center; padding: var(--space-4);">No CI builds recorded yet.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <span id="jenkins-status-pill" class="status-pill standby">
-            <span class="status-dot"></span>
-            <span id="jenkins-status-label">Checking...</span>
-          </span>
-        </div>
+        </section>
 
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Pipeline Job:</span>
-          <span class="drawer-meta-value" id="jenkins-job-name">cloudship-ci</span>
-        </div>
+        <!-- WORKSPACE 5: AZURE INFRASTRUCTURE -->
+        <section class="workspace-pane" id="workspace-azure" role="tabpanel" aria-labelledby="ws-tab-azure">
+          <div class="workspace-pane-inner">
+            <div class="workspace-section-header">
+              <div>
+                <h3 class="workspace-pane-title">Azure Infrastructure Foundation</h3>
+                <p class="workspace-pane-desc">Enterprise cloud topology including Resource Groups, Virtual Networks, Subnet allocations, and ACR registries.</p>
+              </div>
+            </div>
 
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Latest CI Build:</span>
-          <span class="drawer-meta-value" id="ci-last-build-status">No builds executed</span>
-        </div>
+            <div class="workspace-card" id="azure-infra-card">
+              <div class="drawer-card-header">
+                <div class="drawer-card-title">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                    <path d="M2 17l10 5 10-5"></path>
+                    <path d="M2 12l10 5 10-5"></path>
+                  </svg>
+                  <span>Cloud Resource Architecture</span>
+                </div>
+                <span id="azure-drawer-status-pill" class="status-pill standby">
+                  <span class="status-dot"></span>
+                  <span id="azure-drawer-status-label">Checking...</span>
+                </span>
+              </div>
 
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Docker Artifact:</span>
-          <span class="drawer-meta-value" id="ci-docker-tag">cloudship/backend:pending</span>
-        </div>
-
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Build Duration:</span>
-          <span class="drawer-meta-value" id="ci-build-duration">--</span>
-        </div>
-
-        <div style="display: flex; gap: var(--space-2); margin-top: var(--space-3);">
-          <button type="button" class="btn btn-primary btn-sm" id="btn-trigger-ci" style="flex: 1;">
-            ▶ Trigger CI Build
-          </button>
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-refresh-ci" title="Refresh CI status">
-            ↻
-          </button>
-        </div>
-
-        <!-- Recent CI Builds Section -->
-        <div style="margin-top: var(--space-4);">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
-            <span style="font-size: var(--font-caption); font-weight: 600; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em;">Recent CI Builds (<span id="ci-builds-count">0</span>)</span>
+              <div class="workspace-grid-2col">
+                <div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Resource Group:</span>
+                    <span class="drawer-meta-value" id="azure-rg-val">rg-cloudship-dev</span>
+                  </div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Region / Location:</span>
+                    <span class="drawer-meta-value" id="azure-location-val">eastus</span>
+                  </div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Virtual Network:</span>
+                    <span class="drawer-meta-value" id="azure-vnet-val">vnet-cloudship</span>
+                  </div>
+                </div>
+                <div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Subnet:</span>
+                    <span class="drawer-meta-value" id="azure-subnet-val">snet-cloudship</span>
+                  </div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Container Registry:</span>
+                    <span class="drawer-meta-value" id="azure-acr-val">cloudshipcr</span>
+                  </div>
+                  <div style="display: flex; gap: var(--space-2); margin-top: var(--space-3);">
+                    <button type="button" class="btn btn-outline" id="btn-inspect-azure" style="flex: 1;">
+                      🔍 Inspect Infrastructure
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="btn-refresh-azure" title="Refresh Azure status">
+                      ↻
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div id="ci-builds-list" style="display: flex; flex-direction: column; gap: var(--space-2); max-height: 220px; overflow-y: auto;">
-            <div style="font-size: var(--font-caption); color: var(--text-dim); text-align: center; padding: var(--space-3);">No CI builds recorded yet.</div>
+        </section>
+
+        <!-- WORKSPACE 6: AZURE CONTAINER REGISTRY (ACR) -->
+        <section class="workspace-pane" id="workspace-acr" role="tabpanel" aria-labelledby="ws-tab-acr">
+          <div class="workspace-pane-inner">
+            <div class="workspace-section-header">
+              <div>
+                <h3 class="workspace-pane-title">Azure Container Registry (ACR) Control Center</h3>
+                <p class="workspace-pane-desc">Manage container images, inspect cryptographic SHA256 digests, and verify image availability for deployment.</p>
+              </div>
+            </div>
+
+            <div class="workspace-card" id="acr-registry-card">
+              <div class="drawer-card-header">
+                <div class="drawer-card-title">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                    <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                    <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                    <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                  </svg>
+                  <span>ACR Registry Overview & Image Digest</span>
+                </div>
+                <span id="acr-drawer-status-pill" class="status-pill standby">
+                  <span class="status-dot"></span>
+                  <span id="acr-drawer-status-label">Standby</span>
+                </span>
+              </div>
+
+              <div class="workspace-grid-2col">
+                <div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Registry Name:</span>
+                    <span class="drawer-meta-value" id="acr-name-val">cloudshipcr</span>
+                  </div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Login Server:</span>
+                    <span class="drawer-meta-value" id="acr-login-server-val">--</span>
+                  </div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Resource Group:</span>
+                    <span class="drawer-meta-value" id="acr-rg-val">--</span>
+                  </div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Region / Location:</span>
+                    <span class="drawer-meta-value" id="acr-location-val">--</span>
+                  </div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">SKU / State:</span>
+                    <span class="drawer-meta-value" id="acr-sku-val">--</span>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Repositories:</span>
+                    <span class="drawer-meta-value" id="acr-repo-count-val">--</span>
+                  </div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Image Count:</span>
+                    <span class="drawer-meta-value" id="acr-image-count-val">--</span>
+                  </div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Last Push Status:</span>
+                    <span class="drawer-meta-value" id="acr-last-push-val">--</span>
+                  </div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Latest Image / Tag:</span>
+                    <span class="drawer-meta-value" id="acr-latest-image-val">--</span>
+                  </div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Image Digest:</span>
+                    <span class="drawer-meta-value" id="acr-latest-digest-val">--</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: var(--space-2); margin-top: var(--space-4);">
+                <button type="button" class="btn btn-outline" id="btn-inspect-acr" style="flex: 1;">
+                  🔍 Inspect Registry
+                </button>
+                <button type="button" class="btn btn-secondary" id="btn-verify-acr-modal" title="Verify Image in ACR">
+                  ✓ Verify
+                </button>
+                <button type="button" class="btn btn-secondary" id="btn-refresh-acr" title="Refresh ACR status">
+                  ↻
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <!-- Card: Azure Infrastructure Foundation (Phase 4) -->
-      <div class="drawer-card" id="azure-infra-card" style="margin-top: var(--space-4);">
-        <div class="drawer-card-header">
-          <div class="drawer-card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-              <path d="M2 17l10 5 10-5"></path>
-              <path d="M2 12l10 5 10-5"></path>
-            </svg>
-            <span>Azure Infrastructure Foundation</span>
+        <!-- WORKSPACE 7: AZURE KUBERNETES SERVICE (AKS) -->
+        <section class="workspace-pane" id="workspace-aks" role="tabpanel" aria-labelledby="ws-tab-aks">
+          <div class="workspace-pane-inner">
+            <div class="workspace-section-header">
+              <div>
+                <h3 class="workspace-pane-title">Azure Kubernetes Service (AKS) Foundation</h3>
+                <p class="workspace-pane-desc">Manage cluster topology, monitor nodes, pods, and deployments across target Kubernetes namespaces.</p>
+              </div>
+            </div>
+
+            <div class="workspace-card" id="aks-foundation-card">
+              <div class="drawer-card-header">
+                <div class="drawer-card-title">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                  </svg>
+                  <span>AKS Cluster Foundation</span>
+                </div>
+                <span id="aks-drawer-status-pill" class="status-pill standby">
+                  <span class="status-dot"></span>
+                  <span id="aks-drawer-status-label">Standby</span>
+                </span>
+              </div>
+
+              <div class="workspace-grid-2col">
+                <div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Cluster Name:</span>
+                    <span class="drawer-meta-value" id="aks-name-val">aks-cloudship-dev</span>
+                  </div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Kubernetes Version:</span>
+                    <span class="drawer-meta-value" id="aks-version-val">--</span>
+                  </div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Node Count:</span>
+                    <span class="drawer-meta-value" id="aks-nodes-val">--</span>
+                  </div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Node Resource Group:</span>
+                    <span class="drawer-meta-value" id="aks-node-rg-val">--</span>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Target Namespace:</span>
+                    <span class="drawer-meta-value" id="aks-namespace-val">default</span>
+                  </div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Active Workloads:</span>
+                    <span class="drawer-meta-value" id="aks-workloads-count-val">--</span>
+                  </div>
+                  <div class="drawer-meta-row">
+                    <span class="drawer-meta-label">Active Pods:</span>
+                    <span class="drawer-meta-value" id="aks-pods-count-val">--</span>
+                  </div>
+                  <div style="display: flex; gap: var(--space-2); margin-top: var(--space-4);">
+                    <button type="button" class="btn btn-primary" id="btn-inspect-aks" style="flex: 1;">
+                      🔍 Inspect Workloads & Pods
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="btn-refresh-aks" title="Refresh AKS status">
+                      ↻
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <span id="azure-drawer-status-pill" class="status-pill standby">
-            <span class="status-dot"></span>
-            <span id="azure-drawer-status-label">Checking...</span>
-          </span>
-        </div>
+        </section>
 
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Resource Group:</span>
-          <span class="drawer-meta-value" id="azure-rg-val">rg-cloudship-dev</span>
-        </div>
+        <!-- WORKSPACE 8: CI/CD PIPELINE & DEPLOYMENTS -->
+        <section class="workspace-pane" id="workspace-cicd" role="tabpanel" aria-labelledby="ws-tab-cicd">
+          <div class="workspace-pane-inner">
+            <div class="workspace-section-header">
+              <div>
+                <h3 class="workspace-pane-title">End-to-End CI/CD Pipeline & Orchestration</h3>
+                <p class="workspace-pane-desc">Automated delivery pipeline from commit to Kubernetes production rollout with stage gating and verification.</p>
+              </div>
+            </div>
 
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Region / Location:</span>
-          <span class="drawer-meta-value" id="azure-location-val">eastus</span>
-        </div>
+            <div class="workspace-card">
+              <div class="drawer-card-header">
+                <div class="drawer-card-title">
+                  <span>Pipeline Execution Stepper</span>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-workspace-trigger-deploy">🚀 Launch Deployment</button>
+              </div>
 
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Virtual Network:</span>
-          <span class="drawer-meta-value" id="azure-vnet-val">vnet-cloudship</span>
-        </div>
+              <!-- 8-Stage Pipeline Graphic -->
+              <div class="workspace-pipeline-stepper">
+                <div class="ws-step done"><div class="ws-step-num">1</div><div class="ws-step-label">Source</div></div>
+                <div class="ws-step-line done"></div>
+                <div class="ws-step done"><div class="ws-step-num">2</div><div class="ws-step-label">Build</div></div>
+                <div class="ws-step-line done"></div>
+                <div class="ws-step done"><div class="ws-step-num">3</div><div class="ws-step-label">Test</div></div>
+                <div class="ws-step-line done"></div>
+                <div class="ws-step done"><div class="ws-step-num">4</div><div class="ws-step-label">Container</div></div>
+                <div class="ws-step-line done"></div>
+                <div class="ws-step done"><div class="ws-step-num">5</div><div class="ws-step-label">Registry</div></div>
+                <div class="ws-step-line active"></div>
+                <div class="ws-step active"><div class="ws-step-num">6</div><div class="ws-step-label">Deploy</div></div>
+                <div class="ws-step-line pending"></div>
+                <div class="ws-step pending"><div class="ws-step-num">7</div><div class="ws-step-label">Health</div></div>
+                <div class="ws-step-line pending"></div>
+                <div class="ws-step pending"><div class="ws-step-num">8</div><div class="ws-step-label">Live</div></div>
+              </div>
 
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Subnet:</span>
-          <span class="drawer-meta-value" id="azure-subnet-val">snet-cloudship</span>
-        </div>
-
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Container Registry:</span>
-          <span class="drawer-meta-value" id="azure-acr-val">cloudshipcr</span>
-        </div>
-
-        <div style="display: flex; gap: var(--space-2); margin-top: var(--space-3);">
-          <button type="button" class="btn btn-outline btn-sm" id="btn-inspect-azure" style="flex: 1;">
-            🔍 Inspect Infrastructure
-          </button>
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-refresh-azure" title="Refresh Azure status">
-            ↻
-          </button>
-        </div>
-      </div>
-
-      <!-- Card: Azure Container Registry (ACR) Control Center (Phase 5) -->
-      <div class="drawer-card" id="acr-registry-card" style="margin-top: var(--space-4);">
-        <div class="drawer-card-header">
-          <div class="drawer-card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
-              <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-              <line x1="6" y1="6" x2="6.01" y2="6"></line>
-              <line x1="6" y1="18" x2="6.01" y2="18"></line>
-            </svg>
-            <span>Azure Container Registry</span>
+              <div class="workspace-meta-grid" style="margin-top: var(--space-4);">
+                <div class="drawer-meta-row">
+                  <span class="drawer-meta-label">Active Release Strategy:</span>
+                  <span class="drawer-meta-value">Rolling Update (Zero-Downtime)</span>
+                </div>
+                <div class="drawer-meta-row">
+                  <span class="drawer-meta-label">Target Cluster:</span>
+                  <span class="drawer-meta-value">aks-cloudship-dev / default</span>
+                </div>
+                <div class="drawer-meta-row">
+                  <span class="drawer-meta-label">Artifact Delivery:</span>
+                  <span class="drawer-meta-value">cloudshipcr.azurecr.io</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <span id="acr-drawer-status-pill" class="status-pill standby">
-            <span class="status-dot"></span>
-            <span id="acr-drawer-status-label">Standby</span>
-          </span>
-        </div>
+        </section>
 
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Registry Name:</span>
-          <span class="drawer-meta-value" id="acr-name-val">cloudshipcr</span>
-        </div>
+        <!-- WORKSPACE 9: MONITORING & OBSERVABILITY -->
+        <section class="workspace-pane" id="workspace-monitoring" role="tabpanel" aria-labelledby="ws-tab-monitoring">
+          <div class="workspace-pane-inner">
+            <div class="workspace-section-header">
+              <div>
+                <h3 class="workspace-pane-title">Real-Time Observability & Health Telemetry</h3>
+                <p class="workspace-pane-desc">Continuous telemetry signals from Spring Boot 3 backend, Neon PostgreSQL, ACR, and AKS workloads.</p>
+              </div>
+            </div>
 
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Login Server:</span>
-          <span class="drawer-meta-value" id="acr-login-server-val" style="font-size: var(--font-micro);">--</span>
-        </div>
+            <div class="workspace-grid-2col">
+              <div class="workspace-card">
+                <div class="workspace-card-header">
+                  <h4 class="workspace-card-title">System Health Matrix</h4>
+                  <span class="status-pill active"><span class="status-dot"></span>Operational</span>
+                </div>
+                <div class="drawer-meta-row">
+                  <span class="drawer-meta-label">Backend Service (Render):</span>
+                  <span class="drawer-meta-value" style="color: var(--color-success);">200 OK (Healthy)</span>
+                </div>
+                <div class="drawer-meta-row">
+                  <span class="drawer-meta-label">Neon PostgreSQL:</span>
+                  <span class="drawer-meta-value" style="color: var(--color-success);">CONNECTED</span>
+                </div>
+                <div class="drawer-meta-row">
+                  <span class="drawer-meta-label">Flyway Migrations:</span>
+                  <span class="drawer-meta-value" style="color: var(--color-success);">V1..V8 Applied</span>
+                </div>
+                <div class="drawer-meta-row">
+                  <span class="drawer-meta-label">ACR Registry:</span>
+                  <span class="drawer-meta-value" style="color: var(--color-success);">ONLINE</span>
+                </div>
+                <div class="drawer-meta-row">
+                  <span class="drawer-meta-label">AKS Control Plane:</span>
+                  <span class="drawer-meta-value" style="color: var(--color-success);">ACTIVE</span>
+                </div>
+              </div>
 
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Resource Group:</span>
-          <span class="drawer-meta-value" id="acr-rg-val">--</span>
-        </div>
-
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Region / Location:</span>
-          <span class="drawer-meta-value" id="acr-location-val">--</span>
-        </div>
-
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">SKU / State:</span>
-          <span class="drawer-meta-value" id="acr-sku-val">--</span>
-        </div>
-
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Repositories:</span>
-          <span class="drawer-meta-value" id="acr-repo-count-val">--</span>
-        </div>
-
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Image Count:</span>
-          <span class="drawer-meta-value" id="acr-image-count-val">--</span>
-        </div>
-
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Last Push Status:</span>
-          <span class="drawer-meta-value" id="acr-last-push-val">--</span>
-        </div>
-
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Latest Image / Tag:</span>
-          <span class="drawer-meta-value" id="acr-latest-image-val" style="font-size: var(--font-micro); max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">--</span>
-        </div>
-
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Image Digest:</span>
-          <span class="drawer-meta-value" id="acr-latest-digest-val" style="font-size: 10px; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">--</span>
-        </div>
-
-        <div style="display: flex; gap: var(--space-2); margin-top: var(--space-3);">
-          <button type="button" class="btn btn-outline btn-sm" id="btn-inspect-acr" style="flex: 1;">
-            🔍 Inspect Registry
-          </button>
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-verify-acr-modal" title="Verify Image in ACR">
-            ✓ Verify
-          </button>
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-refresh-acr" title="Refresh ACR status">
-            ↻
-          </button>
-        </div>
-      </div>
-
-      <!-- Card: Azure Kubernetes Service (AKS) Foundation (Phase 6) -->
-      <div class="drawer-card" id="aks-foundation-card" style="margin-top: var(--space-4);">
-        <div class="drawer-card-header">
-          <div class="drawer-card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-            <span>Azure Kubernetes Service (AKS)</span>
+              <div class="workspace-card">
+                <div class="workspace-card-header">
+                  <h4 class="workspace-card-title">Live Telemetry Loop</h4>
+                  <button type="button" class="btn btn-ghost btn-sm" id="btn-ping-telemetry" title="Send live probe">⚡ Ping Probe</button>
+                </div>
+                <div class="drawer-meta-row">
+                  <span class="drawer-meta-label">P99 Latency:</span>
+                  <span class="drawer-meta-value" id="ws-telemetry-latency">~12ms</span>
+                </div>
+                <div class="drawer-meta-row">
+                  <span class="drawer-meta-label">Error Rate (24h):</span>
+                  <span class="drawer-meta-value" style="color: var(--color-success);">0.00%</span>
+                </div>
+                <div class="drawer-meta-row">
+                  <span class="drawer-meta-label">Active Incidents:</span>
+                  <span class="drawer-meta-value" style="color: var(--color-success);">0 Open</span>
+                </div>
+                <div class="drawer-meta-row">
+                  <span class="drawer-meta-label">Telemetry Interval:</span>
+                  <span class="drawer-meta-value">15s Polling Active</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <span id="aks-drawer-status-pill" class="status-pill standby">
-            <span class="status-dot"></span>
-            <span id="aks-drawer-status-label">Standby</span>
-          </span>
-        </div>
-
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Cluster Name:</span>
-          <span class="drawer-meta-value" id="aks-name-val">aks-cloudship-dev</span>
-        </div>
-
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Kubernetes Version:</span>
-          <span class="drawer-meta-value" id="aks-version-val">--</span>
-        </div>
-
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Node Count:</span>
-          <span class="drawer-meta-value" id="aks-nodes-val">--</span>
-        </div>
-
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Node Resource Group:</span>
-          <span class="drawer-meta-value" id="aks-node-rg-val" style="font-size: var(--font-micro); max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">--</span>
-        </div>
-
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Target Namespace:</span>
-          <span class="drawer-meta-value" id="aks-namespace-val">default</span>
-        </div>
-
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Active Workloads:</span>
-          <span class="drawer-meta-value" id="aks-workloads-count-val">--</span>
-        </div>
-
-        <div class="drawer-meta-row">
-          <span class="drawer-meta-label">Active Pods:</span>
-          <span class="drawer-meta-value" id="aks-pods-count-val">--</span>
-        </div>
-
-        <div style="display: flex; gap: var(--space-2); margin-top: var(--space-3);">
-          <button type="button" class="btn btn-outline btn-sm" id="btn-inspect-aks" style="flex: 1;">
-            🔍 Inspect Workloads
-          </button>
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-refresh-aks" title="Refresh AKS status">
-            ↻
-          </button>
-        </div>
+        </section>
       </div>
     </div>
   </div>
