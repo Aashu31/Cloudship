@@ -32,31 +32,34 @@
 }
 
 .btn-primary {
-  background: var(--accent-primary);
+  background: var(--accent-active, #F59E0B);
   color: #FFFFFF;
-  border-color: rgba(56, 189, 248, 0.4);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border-color: var(--accent-active-border, rgba(245, 158, 11, 0.4));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 12px -2px var(--accent-active-glow, rgba(245, 158, 11, 0.25));
 }
 
 .btn-primary:hover {
-  background: var(--accent-primary-hover);
-  border-color: var(--accent-highlight);
+  background: var(--accent-active-hover, #D97706);
+  border-color: var(--accent-active, #F59E0B);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 16px 0 var(--accent-active-glow, rgba(245, 158, 11, 0.4));
 }
 
 .btn-hero-primary {
-  background: #0084FF;
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
   color: #FFFFFF;
   font-weight: 600;
   font-size: var(--font-body);
   padding: 0.625rem 1.25rem;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  box-shadow: 0 2px 8px rgba(0, 132, 255, 0.35);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35);
+  transition: all var(--transition-fast);
 }
 
 .btn-hero-primary:hover {
-  background: #0070D8;
-  box-shadow: 0 4px 12px rgba(0, 132, 255, 0.5);
+  background: linear-gradient(135deg, #FBBF24 0%, #D97706 100%);
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.55);
+  transform: translateY(-1px);
 }
 
 .btn-hero-secondary {
@@ -512,15 +515,97 @@
 }
 
 .nav-link.active {
-  background: rgba(2, 132, 199, 0.12);
-  color: var(--text-accent);
-  border-color: rgba(2, 132, 199, 0.25);
+  background: var(--accent-active-subtle, rgba(245, 158, 11, 0.12));
+  color: var(--accent-active, #F59E0B);
+  border-color: var(--accent-active-border, rgba(245, 158, 11, 0.35));
+  box-shadow: inset 3px 0 0 0 var(--accent-active, #F59E0B), 0 0 12px -2px var(--accent-active-glow, rgba(245, 158, 11, 0.2));
   font-weight: 600;
 }
 
 .nav-link.active svg {
-  color: var(--accent-highlight);
+  color: var(--accent-active, #F59E0B);
 }
+
+.nav-link[data-route="overview"].active {
+  background: rgba(245, 158, 11, 0.14);
+  color: #F59E0B;
+  border-color: rgba(245, 158, 11, 0.35);
+  box-shadow: inset 3px 0 0 0 #F59E0B;
+}
+.nav-link[data-route="overview"].active svg { color: #F59E0B; }
+
+.nav-link[data-route="projects"].active {
+  background: rgba(251, 146, 60, 0.14);
+  color: #FB923C;
+  border-color: rgba(251, 146, 60, 0.35);
+  box-shadow: inset 3px 0 0 0 #FB923C;
+}
+.nav-link[data-route="projects"].active svg { color: #FB923C; }
+
+.nav-link[data-route="github"].active {
+  background: rgba(239, 68, 68, 0.14);
+  color: #EF4444;
+  border-color: rgba(239, 68, 68, 0.35);
+  box-shadow: inset 3px 0 0 0 #EF4444;
+}
+.nav-link[data-route="github"].active svg { color: #EF4444; }
+
+.nav-link[data-route="docker"].active {
+  background: rgba(6, 182, 212, 0.14);
+  color: #06B6D4;
+  border-color: rgba(6, 182, 212, 0.35);
+  box-shadow: inset 3px 0 0 0 #06B6D4;
+}
+.nav-link[data-route="docker"].active svg { color: #06B6D4; }
+
+.nav-link[data-route="jenkins"].active {
+  background: rgba(245, 158, 11, 0.14);
+  color: #F59E0B;
+  border-color: rgba(245, 158, 11, 0.35);
+  box-shadow: inset 3px 0 0 0 #F59E0B;
+}
+.nav-link[data-route="jenkins"].active svg { color: #F59E0B; }
+
+.nav-link[data-route="azure"].active {
+  background: rgba(129, 140, 248, 0.14);
+  color: #818CF8;
+  border-color: rgba(129, 140, 248, 0.35);
+  box-shadow: inset 3px 0 0 0 #818CF8;
+}
+.nav-link[data-route="azure"].active svg { color: #818CF8; }
+
+.nav-link[data-route="acr"].active {
+  background: rgba(234, 88, 12, 0.14);
+  color: #EA580C;
+  border-color: rgba(234, 88, 12, 0.35);
+  box-shadow: inset 3px 0 0 0 #EA580C;
+}
+.nav-link[data-route="acr"].active svg { color: #EA580C; }
+
+.nav-link[data-route="aks"].active {
+  background: rgba(192, 132, 252, 0.14);
+  color: #C084FC;
+  border-color: rgba(192, 132, 252, 0.35);
+  box-shadow: inset 3px 0 0 0 #C084FC;
+}
+.nav-link[data-route="aks"].active svg { color: #C084FC; }
+
+.nav-link[data-route="pipeline"].active {
+  background: rgba(16, 185, 129, 0.14);
+  color: #10B981;
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: inset 3px 0 0 0 #10B981;
+}
+.nav-link[data-route="pipeline"].active svg { color: #10B981; }
+
+.nav-link[data-route="monitoring"].active {
+  background: rgba(20, 184, 166, 0.14);
+  color: #14B8A6;
+  border-color: rgba(20, 184, 166, 0.35);
+  box-shadow: inset 3px 0 0 0 #14B8A6;
+}
+.nav-link[data-route="monitoring"].active svg { color: #14B8A6; }
+
 
 .sidebar-footer {
   margin-top: var(--space-6);
@@ -2267,4 +2352,461 @@
   font-size: var(--font-micro);
   color: var(--text-secondary);
 }
+
+/* ============================================================================
+   Specialized Engineering Workspaces Layout Components
+   ============================================================================ */
+
+/* 1. Glassmorphic Workspace Cards with Dynamic Ambient Glow */
+.workspace-card {
+  background: rgba(13, 17, 26, 0.78);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+}
+
+.workspace-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-active, #F59E0B), transparent);
+  opacity: 0.6;
+}
+
+.workspace-card:hover {
+  border-color: var(--accent-active-border, rgba(245, 158, 11, 0.35));
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 20px -5px var(--accent-active-glow, rgba(245, 158, 11, 0.15));
+}
+
+/* 2. GitHub Visual Commit Graph & Branch Lanes */
+.git-graph-stream {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.git-commit-node {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+.git-commit-node:hover {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.git-node-marker {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #EF4444;
+  box-shadow: 0 0 8px #EF4444;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.git-node-marker.develop {
+  background: #F97316;
+  box-shadow: 0 0 8px #F97316;
+}
+
+.git-node-marker.hotfix {
+  background: #EAB308;
+  box-shadow: 0 0 8px #EAB308;
+}
+
+.git-commit-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.git-commit-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: 2px;
+}
+
+.git-branch-tag {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.git-branch-tag.main {
+  background: rgba(239, 68, 68, 0.15);
+  color: #F87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.git-branch-tag.develop {
+  background: rgba(249, 115, 22, 0.15);
+  color: #FB923C;
+  border: 1px solid rgba(249, 115, 22, 0.35);
+}
+
+.git-sha-pill {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  background: rgba(0, 0, 0, 0.35);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.git-commit-msg {
+  font-size: var(--font-caption);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* 3. Docker 3D Modular Container Layer Stack */
+.docker-layer-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.docker-layer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: rgba(6, 182, 212, 0.04);
+  border: 1px solid rgba(6, 182, 212, 0.15);
+  border-left: 3px solid #06B6D4;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.docker-layer-item:hover {
+  background: rgba(6, 182, 212, 0.08);
+  border-color: rgba(6, 182, 212, 0.35);
+  transform: translateX(2px);
+}
+
+.docker-layer-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.docker-layer-num {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #06B6D4;
+  font-weight: 700;
+  padding: 2px 6px;
+  background: rgba(6, 182, 212, 0.15);
+  border-radius: 3px;
+}
+
+.docker-layer-name {
+  font-size: var(--font-caption);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.docker-layer-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* 4. Jenkins Industrial Conveyor Pipeline */
+.jenkins-conveyor-track {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding: var(--space-4) var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.jenkins-gate-node {
+  flex: 1;
+  min-width: 130px;
+  background: rgba(245, 158, 11, 0.05);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-1);
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+.jenkins-gate-node.passed {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.06);
+}
+
+.jenkins-gate-node.passed .jenkins-gate-icon {
+  color: #34D399;
+}
+
+.jenkins-gate-node.active-build {
+  border-color: rgba(245, 158, 11, 0.6);
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
+  animation: pulseConveyor 2s infinite ease-in-out;
+}
+
+@keyframes pulseConveyor {
+  0%, 100% { border-color: rgba(245, 158, 11, 0.4); }
+  50% { border-color: rgba(245, 158, 11, 0.9); box-shadow: 0 0 20px rgba(245, 158, 11, 0.4); }
+}
+
+.jenkins-gate-name {
+  font-size: var(--font-caption);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.jenkins-gate-time {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.jenkins-conveyor-arrow {
+  color: rgba(255, 255, 255, 0.2);
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+/* 5. Azure Cloud Topology Map & Hierarchy */
+.azure-topology-diagram {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.azure-resource-node {
+  background: rgba(99, 102, 241, 0.05);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all var(--transition-fast);
+}
+
+.azure-resource-node:hover {
+  border-color: rgba(129, 140, 248, 0.5);
+  background: rgba(99, 102, 241, 0.1);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.15);
+}
+
+.azure-node-type {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  color: #818CF8;
+  letter-spacing: 0.05em;
+}
+
+.azure-node-title {
+  font-size: var(--font-body);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.azure-node-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* 6. ACR Warehouse Shelves & Manifest Matrix */
+.acr-shelf-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.acr-shelf-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: rgba(234, 88, 12, 0.04);
+  border: 1px solid rgba(234, 88, 12, 0.2);
+  border-left: 3px solid #EA580C;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.acr-shelf-item:hover {
+  background: rgba(234, 88, 12, 0.08);
+  border-color: rgba(234, 88, 12, 0.4);
+}
+
+.acr-tag-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: rgba(234, 88, 12, 0.15);
+  color: #FB923C;
+  border: 1px solid rgba(234, 88, 12, 0.35);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* 7. AKS Cluster Nodes & Pod Matrix */
+.aks-topology-matrix {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.aks-node-card {
+  background: rgba(192, 132, 252, 0.05);
+  border: 1px solid rgba(192, 132, 252, 0.2);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.aks-node-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.aks-node-name {
+  font-size: var(--font-body);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.aks-pod-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: var(--space-2);
+}
+
+.aks-pod-cell {
+  height: 24px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: #34D399;
+}
+
+/* 8. CI/CD Flow Artery & DORA Metrics */
+.cicd-stream-canvas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.dora-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+}
+
+.dora-card {
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dora-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dora-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #34D399;
+  font-family: var(--font-mono);
+}
+
+/* 9. Telemetry Waves & Incident Radar */
+.telemetry-radar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.telemetry-gauge-card {
+  background: rgba(20, 184, 166, 0.05);
+  border: 1px solid rgba(20, 184, 166, 0.2);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.telemetry-gauge-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.telemetry-gauge-title {
+  font-size: var(--font-caption);
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #2DD4BF;
+  letter-spacing: 0.05em;
+}
+
+.telemetry-gauge-val {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
 

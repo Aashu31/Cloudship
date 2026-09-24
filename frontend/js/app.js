@@ -1681,6 +1681,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const applyDomChanges = () => {
+      // 0. Update workspace data attributes for dynamic theming
+      document.body.dataset.workspace = route;
+      document.documentElement.dataset.workspace = route;
+
+      const titles = {
+        overview: 'CloudShip — Command Center',
+        projects: 'CloudShip — Managed Codebases',
+        github: 'CloudShip — GitHub VCS',
+        docker: 'CloudShip — Docker Engine',
+        jenkins: 'CloudShip — Jenkins CI',
+        azure: 'CloudShip — Azure Infrastructure',
+        acr: 'CloudShip — ACR Registry',
+        aks: 'CloudShip — AKS Cluster',
+        pipeline: 'CloudShip — CI/CD Pipeline',
+        monitoring: 'CloudShip — Observability & Telemetry'
+      };
+      if (titles[route]) {
+        document.title = titles[route];
+      }
+
       // 1. Update route views
       document.querySelectorAll('.route-view').forEach(view => {
         const vRoute = view.getAttribute('data-route') || view.id.replace('view-', '');
