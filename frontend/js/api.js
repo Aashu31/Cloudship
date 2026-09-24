@@ -3,11 +3,12 @@
  * Encapsulates all HTTP communications with the Spring Boot backend REST API.
  */
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const isVercel = window.location.hostname.endsWith('.vercel.app');
 const API_BASE_URL = (typeof window.CLOUDSHIP_API_URL !== 'undefined')
   ? window.CLOUDSHIP_API_URL
   : (isLocalhost
       ? (window.location.origin.includes(':8088') ? '' : 'http://localhost:8088')
-      : ''); // In production (e.g. Vercel), defaults to relative path for reverse proxy or custom domain
+      : (isVercel ? '' : 'https://cloudship-backend.onrender.com'));
 
 const api = {
   /**
