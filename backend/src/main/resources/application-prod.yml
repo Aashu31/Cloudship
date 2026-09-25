@@ -33,3 +33,9 @@ logging:
     com.cloudship: ${LOG_LEVEL_CLOUDSHIP:INFO}
     org.springframework.web: WARN
     org.hibernate: WARN
+
+cloudship:
+  security:
+    headers:
+      hsts:
+        enabled: ${SECURITY_HEADERS_HSTS_ENABLED:true}

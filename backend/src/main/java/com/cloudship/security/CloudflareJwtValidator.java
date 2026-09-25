@@ -23,6 +23,9 @@ public class CloudflareJwtValidator {
 
     private static final Logger log = LoggerFactory.getLogger(CloudflareJwtValidator.class);
 
+    private static final String EXPECTED_ALGORITHM = "RS256";
+    private static final int DEFAULT_CLOCK_SKEW_SECONDS = 30;
+
     private final CloudflareSecurityProperties properties;
     private final ConcurrentMap<String, JwkProvider> jwkProviderCache = new ConcurrentHashMap<>();
 
@@ -42,20 +45,28 @@ public class CloudflareJwtValidator {
      */
     public VerifiedToken validateToken(String token) {
         if (token == null || token.isBlank()) {
+            log.warn("JWT validation failed: token is null or empty");
             throw new JWTVerificationException("Token is null or empty");
         }
 
-        DecodedJWT decodedHeader = JWT.decode(token);
+        DecodedJWT decodedHeader;
+        try {
+            decodedHeader = JWT.decode(token);
+        } catch (Exception e) {
+            log.warn("JWT validation failed: malformed token");
+            throw new JWTVerificationException("Malformed JWT token", e);
+        }
+
         String keyId = decodedHeader.getKeyId();
         String algorithm = decodedHeader.getAlgorithm();
 
-        if (!"RS256".equalsIgnoreCase(algorithm)) {
-            log.warn("Invalid JWT algorithm: expected RS256, got {}", algorithm);
-            throw new JWTVerificationException("Unsupported algorithm: " + algorithm);
+        if (!EXPECTED_ALGORITHM.equalsIgnoreCase(algorithm)) {
+            log.warn("JWT validation failed: invalid algorithm '{}', expected '{}'", algorithm, EXPECTED_ALGORITHM);
+            throw new JWTVerificationException("Unsupported algorithm: " + algorithm + ". Expected: " + EXPECTED_ALGORITHM);
         }
 
         if (keyId == null || keyId.isBlank()) {
-            log.warn("JWT is missing Key ID (kid) header");
+            log.warn("JWT validation failed: missing Key ID (kid) header");
             throw new JWTVerificationException("Missing Key ID (kid) in token header");
         }
 
@@ -68,12 +79,17 @@ public class CloudflareJwtValidator {
         try {
             JwkProvider jwkProvider = getOrCreateJwkProvider(jwksUrl);
             Jwk jwk = jwkProvider.get(keyId);
+            if (jwk == null) {
+                log.warn("JWT validation failed: JWK not found for kid '{}'", keyId);
+                throw new JWTVerificationException("Invalid key ID: no matching JWK found");
+            }
+
             RSAPublicKey publicKey = (RSAPublicKey) jwk.getPublicKey();
 
             Algorithm rsaAlgorithm = Algorithm.RSA256(publicKey, null);
 
             var verifierBuilder = JWT.require(rsaAlgorithm)
-                    .acceptLeeway(30); // 30 seconds leeway for clock skew
+                    .acceptLeeway(DEFAULT_CLOCK_SKEW_SECONDS);
 
             if (properties.getAud() != null && !properties.getAud().isBlank()) {
                 verifierBuilder.withAudience(properties.getAud().trim());
@@ -92,6 +108,7 @@ public class CloudflareJwtValidator {
                 email = verifiedJwt.getClaim("sub").asString();
             }
             if (email == null || email.isBlank()) {
+                log.warn("JWT validation failed: token does not contain an email or identity claim");
                 throw new JWTVerificationException("Token does not contain an email or identity claim");
             }
 
@@ -100,13 +117,14 @@ public class CloudflareJwtValidator {
                 name = email.split("@")[0];
             }
 
+            log.debug("JWT validation successful for user: {}", email.trim().toLowerCase());
             return new VerifiedToken(email.trim().toLowerCase(), verifiedJwt.getSubject(), name);
 
         } catch (JwkException e) {
-            log.error("Failed to retrieve JWK for kid '{}' from JWKS '{}': {}", keyId, jwksUrl, e.getMessage());
+            log.error("JWT validation failed: Failed to retrieve JWK for kid '{}' from JWKS '{}': {}", keyId, jwksUrl, e.getMessage());
             throw new JWTVerificationException("Invalid key ID or unable to fetch public key: " + e.getMessage(), e);
         } catch (MalformedURLException e) {
-            log.error("Malformed JWKS URL: {}", jwksUrl, e);
+            log.error("JWT validation failed: Malformed JWKS URL: {}", jwksUrl, e);
             throw new IllegalStateException("Malformed JWKS URL: " + jwksUrl, e);
         }
     }

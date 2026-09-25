@@ -2912,13 +2912,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Listen for unauthorized events dispatched by API client
   window.addEventListener('cloudship:auth_required', () => {
-    showZeroTrustGate();
+    showZeroTrustGate('AUTHENTICATION_REQUIRED');
   });
 
-  function showZeroTrustGate() {
+  // Listen for access denied events (403)
+  window.addEventListener('cloudship:access_denied', (event) => {
+    showAccessDenied(event.detail);
+  });
+
+  function showZeroTrustGate(reason = 'AUTHENTICATION_REQUIRED') {
     if (zeroTrustGate) {
       zeroTrustGate.style.display = 'flex';
+      // Update gate message based on reason
+      const gateTitle = zeroTrustGate.querySelector('.zero-trust-title');
+      const gateDesc = zeroTrustGate.querySelector('.zero-trust-description');
+      const gateStatus = zeroTrustGate.querySelector('.zt-val[style*="color: #f87171"]');
+      if (gateTitle && gateDesc && gateStatus) {
+        switch (reason) {
+          case 'AUTHENTICATION_REQUIRED':
+            gateTitle.textContent = 'Identity Verification Required';
+            gateDesc.textContent = 'CloudShip is an enterprise DevOps control platform protecting repositories, CI/CD pipelines, container registries, and production Kubernetes clusters. Access requires a verified identity assertion issued by Cloudflare Access.';
+            gateStatus.textContent = 'Unauthenticated (HTTP 401)';
+            break;
+          case 'ACCESS_DENIED':
+            gateTitle.textContent = 'Access Denied';
+            gateDesc.textContent = 'Your identity has been verified, but you do not have sufficient privileges to access this resource. Contact your administrator if you believe this is an error.';
+            gateStatus.textContent = 'Access Denied (HTTP 403)';
+            break;
+          case 'API_UNAVAILABLE':
+            gateTitle.textContent = 'API Unavailable';
+            gateDesc.textContent = 'Unable to reach the CloudShip API. This may be a temporary network issue or the backend service may be down. Please try again later.';
+            gateStatus.textContent = 'API Unreachable';
+            break;
+          case 'SERVER_ERROR':
+            gateTitle.textContent = 'Server Error';
+            gateDesc.textContent = 'An unexpected server error occurred. Please try again later or contact support.';
+            gateStatus.textContent = 'Server Error (HTTP 500)';
+            break;
+        }
+      }
     }
+  }
+
+  function showAccessDenied(detail) {
+    // Show a toast notification for access denied
+    showToast('Access denied: Insufficient privileges for this resource', 'error');
+    // Optionally show the zero-trust gate with access denied message
+    showZeroTrustGate('ACCESS_DENIED');
   }
 
   function hideZeroTrustGate() {
@@ -2960,12 +3000,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
       } else {
         // Unauthenticated -> display Zero-Trust Gate immediately with NO flash of data
-        showZeroTrustGate();
+        const auth = await api.getAuthMe();
+        if (auth.status === 403) {
+          showZeroTrustGate('ACCESS_DENIED');
+        } else if (auth.status >= 500) {
+          showZeroTrustGate('SERVER_ERROR');
+        } else if (auth.error) {
+          showZeroTrustGate('API_UNAVAILABLE');
+        } else {
+          showZeroTrustGate('AUTHENTICATION_REQUIRED');
+        }
         probeTelemetry(); // keep telemetry indicator updating health
       }
     } catch (e) {
       console.warn('Auth bootstrap failed:', e);
-      showZeroTrustGate();
+      showZeroTrustGate('API_UNAVAILABLE');
     }
   }
 

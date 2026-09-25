@@ -4,8 +4,8 @@
  * Run 'npm run version:sync' or 'node scripts/sync-version.js' to update.
  */
 window.__CLOUDSHIP_VERSION__ = {
-  version: "8.0.0",
-  displayVersion: "v8.0.0",
+  version: "9.0.0",
+  displayVersion: "v9.0.0",
   name: "CloudShip",
-  phase: "Version 8 — Observability, Monitoring & Zero-Trust Control"
+  phase: "Version 9 — Observability, Monitoring & Zero-Trust Control"
 };

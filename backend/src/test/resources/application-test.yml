@@ -13,6 +13,22 @@ spring:
   flyway:
     enabled: false
 
+cloudship:
+  security:
+    cloudflare:
+      enabled: false
+      team-domain: ""
+      aud: ""
+      jwks-url: ""
+      logout-url: ""
+      dev-user-email: "dev@cloudship.local"
+      dev-user-name: "CloudShip Dev Admin"
+    headers:
+      hsts:
+        enabled: false
+  auth:
+    logout-url: ""
+
 logging:
   level:
     root: INFO

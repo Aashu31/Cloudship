@@ -1,11 +1,11 @@
 # CloudShip — Intelligent DevOps Deployment & Recovery Platform
 
 <!-- CLOUDSHIP_CURRENT_VERSION_START -->
-[![CloudShip Version](https://img.shields.io/badge/Version-v8.0.0-amber.svg)](VERSION)
-[![Phase](https://img.shields.io/badge/Phase-Version%208%20(Observability%20%26%20Zero--Trust)-success.svg)](docs/observability.md)
+[![CloudShip Version](https://img.shields.io/badge/Version-v9.0.0-amber.svg)](VERSION)
+[![Phase](https://img.shields.io/badge/Phase-Version%209%20(Observability%20%26%20Zero--Trust)-success.svg)](docs/observability.md)
 [![Status](https://img.shields.io/badge/Status-Operational-brightgreen.svg)](https://cloudship-ten.vercel.app/)
 
-**Current Version:** `v8.0.0` (Version 8 — Observability, Monitoring & Zero-Trust Control)
+**Current Version:** `v9.0.0` (Version 9 — Observability, Monitoring & Zero-Trust Control)
 <!-- CLOUDSHIP_CURRENT_VERSION_END -->
 
 

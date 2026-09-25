@@ -28,14 +28,17 @@ public class CloudflareAuthenticationFilter extends OncePerRequestFilter {
     private final CloudflareSecurityProperties properties;
     private final CloudflareJwtValidator jwtValidator;
     private final UserRepository userRepository;
+    private final SecurityAuditLogger auditLogger;
 
     public CloudflareAuthenticationFilter(
             CloudflareSecurityProperties properties,
             CloudflareJwtValidator jwtValidator,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            SecurityAuditLogger auditLogger) {
         this.properties = properties;
         this.jwtValidator = jwtValidator;
         this.userRepository = userRepository;
+        this.auditLogger = auditLogger;
     }
 
     @Override
@@ -44,15 +47,18 @@ public class CloudflareAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         String token = extractToken(request);
+        String requestPath = request.getRequestURI();
 
         if (token != null && !token.isBlank()) {
             try {
                 CloudflareJwtValidator.VerifiedToken verified = jwtValidator.validateToken(token);
                 User user = getOrCreateUser(verified.email(), verified.name());
                 setAuthenticatedUser(user, request);
+                auditLogger.logLoginSuccess(user, requestPath);
                 log.debug("Authenticated user via Cloudflare Access JWT: {}", user.getEmail());
             } catch (JWTVerificationException | IllegalStateException e) {
-                log.warn("Cloudflare Access JWT validation failed for request {}: {}", request.getRequestURI(), e.getMessage());
+                log.warn("Cloudflare Access JWT validation failed for request {}: {}", requestPath, e.getMessage());
+                auditLogger.logInvalidJwt(requestPath, e.getMessage());
                 // Invalidate security context on invalid token
                 SecurityContextHolder.clearContext();
             }
@@ -67,6 +73,7 @@ public class CloudflareAuthenticationFilter extends OncePerRequestFilter {
 
             User user = getOrCreateDevUser(devEmail, properties.getDevUserName());
             setAuthenticatedUser(user, request);
+            auditLogger.logLoginSuccess(user, requestPath);
             log.trace("Local development mode: authenticated as dev user {}", user.getEmail());
         }
 
@@ -118,12 +125,10 @@ public class CloudflareAuthenticationFilter extends OncePerRequestFilter {
 
     private synchronized User getOrCreateUser(String email, String name) {
         return userRepository.findByEmail(email).orElseGet(() -> {
-            boolean isFirst = userRepository.count() == 0;
-            String role = isFirst ? "ADMIN" : "USER";
             User newUser = new User(
                     name != null && !name.isBlank() ? name : email.split("@")[0],
                     email,
-                    role
+                    "USER"
             );
             return userRepository.save(newUser);
         });

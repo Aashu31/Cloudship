@@ -11,9 +11,11 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -36,6 +38,9 @@ public class SecurityConfig {
     @Value("${cloudship.cors.allowed-origins:http://localhost:3000,http://localhost:5500,http://127.0.0.1:5500,http://localhost:8080,http://127.0.0.1:8080}")
     private String allowedOrigins;
 
+    @Value("${cloudship.security.headers.hsts.enabled:false}")
+    private boolean hstsEnabled;
+
     public SecurityConfig(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
@@ -49,8 +54,9 @@ public class SecurityConfig {
     public CloudflareAuthenticationFilter cloudflareAuthenticationFilter(
             CloudflareSecurityProperties properties,
             CloudflareJwtValidator jwtValidator,
-            UserRepository userRepository) {
-        return new CloudflareAuthenticationFilter(properties, jwtValidator, userRepository);
+            UserRepository userRepository,
+            SecurityAuditLogger auditLogger) {
+        return new CloudflareAuthenticationFilter(properties, jwtValidator, userRepository, auditLogger);
     }
 
     @Bean
@@ -59,6 +65,32 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .headers(headers -> {
+                        // Content-Type-Options and Frame-Options are enabled by default in Spring Security
+                        // headers.contentTypeOptions() and headers.frameOptions() use secure defaults
+                        headers.httpStrictTransportSecurity(hsts -> {
+                            if (hstsEnabled) {
+                                hsts.includeSubDomains(true).maxAgeInSeconds(31536000).preload(true);
+                            } else {
+                                hsts.disable();
+                            }
+                        });
+                        headers.referrerPolicy(referrerPolicy -> referrerPolicy.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN));
+                        headers.addHeaderWriter((request, response) ->
+                                response.setHeader("Permissions-Policy",
+                                        "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"));
+                        headers.addHeaderWriter((request, response) ->
+                                response.setHeader("Content-Security-Policy",
+                                        "default-src 'self'; " +
+                                        "script-src 'self'; " +
+                                        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                                        "font-src 'self' https://fonts.gstatic.com; " +
+                                        "img-src 'self' data: https:; " +
+                                        "connect-src 'self'; " +
+                                        "frame-ancestors 'none'; " +
+                                        "base-uri 'self'; " +
+                                        "form-action 'self'"));
+                    })
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, authException) -> {
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -92,6 +124,9 @@ public class SecurityConfig {
 
                         // Auth status endpoint (returns authenticated: false when unauthenticated)
                         .requestMatchers("/api/auth/me").permitAll()
+
+                        // Auth logout config (public endpoint for frontend logout flow)
+                        .requestMatchers("/api/auth/logout-config").permitAll()
 
                         // Webhook endpoints (validated via HMAC signatures or CI tokens)
                         .requestMatchers("/api/webhooks/**").permitAll()
@@ -136,7 +171,6 @@ public class SecurityConfig {
                 "X-Hub-Signature-256",
                 "X-GitHub-Event",
                 "Cf-Access-Jwt-Assertion",
-                "CF-Access-Authenticated-User-Email",
                 "X-Dev-User-Email"
         ));
         configuration.setAllowCredentials(true);

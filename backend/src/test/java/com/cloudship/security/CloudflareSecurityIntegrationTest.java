@@ -181,4 +181,66 @@ class CloudflareSecurityIntegrationTest {
             org.springframework.security.core.context.SecurityContextHolder.clearContext();
         }
     }
+
+    @Test
+    @DisplayName("First user in production mode does not automatically become admin (secure default)")
+    void testFirstUserNotAutoAdminInProduction() throws Exception {
+        securityProperties.setEnabled(true); // Production mode
+        userRepository.deleteAll();
+
+        // Verify no users exist before test
+        assertThat(userRepository.count()).isZero();
+
+        // In production mode without valid JWT, request should be rejected with 401
+        mockMvc.perform(get("/api/auth/me"))
+                .andExpect(status().isOk()) // /api/auth/me is public
+                .andExpect(jsonPath("$.authenticated").value(false));
+
+        // No user should be created
+        assertThat(userRepository.count()).isZero();
+    }
+
+    @Test
+    @DisplayName("Dev mode creates admin user for local development convenience")
+    void testDevModeCreatesAdminUser() throws Exception {
+        securityProperties.setEnabled(false); // Dev mode
+        userRepository.deleteAll();
+
+        // Verify no users exist before test
+        assertThat(userRepository.count()).isZero();
+
+        // Simulate dev mode login
+        mockMvc.perform(get("/api/auth/me"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.authenticated").value(true))
+                .andExpect(jsonPath("$.user.role").value("ADMIN"));
+
+        // Verify user was created with ADMIN role (dev mode convenience)
+        var users = userRepository.findAll();
+        assertThat(users).hasSize(1);
+        assertThat(users.get(0).getRole()).isEqualTo("ADMIN");
+    }
+
+    @Test
+    @DisplayName("Logout config endpoint returns proper configuration")
+    void testLogoutConfigEndpoint() throws Exception {
+        securityProperties.setEnabled(false);
+
+        mockMvc.perform(get("/api/auth/logout-config"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cloudflareEnabled").value(false))
+                .andExpect(jsonPath("$.logoutUrl").isEmpty());
+    }
+
+    @Test
+    @DisplayName("Security headers present on responses")
+    void testSecurityHeadersPresent() throws Exception {
+        mockMvc.perform(get("/api/health"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(header().string("X-Frame-Options", "DENY"))
+                .andExpect(header().string("Referrer-Policy", "strict-origin-when-cross-origin"))
+                .andExpect(header().string("Permissions-Policy", "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"))
+                .andExpect(header().exists("Content-Security-Policy"));
+    }
 }

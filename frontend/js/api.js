@@ -66,15 +66,26 @@ const api = {
   },
 
   /**
-   * Clears local session or redirects to Cloudflare Access logout
+   * Clears local session and redirects to Cloudflare Access logout (secure, validated URL)
    */
-  logout() {
+  async logout() {
     window.sessionStorage.removeItem('cloudship_dev_user');
-    if (window.CLOUDFLARE_LOGOUT_URL) {
-      window.location.href = window.CLOUDFLARE_LOGOUT_URL;
-    } else {
-      window.location.reload();
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/logout-config`, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (response.ok) {
+        const config = await response.json();
+        if (config.logoutUrl && config.cloudflareEnabled) {
+          window.location.href = config.logoutUrl;
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch logout config:', err.message);
     }
+    // Fallback: reload page (will trigger re-authentication via Cloudflare Access)
+    window.location.reload();
   },
   /**
    * Fetches centralized canonical version metadata
