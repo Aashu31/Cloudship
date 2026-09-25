@@ -18,8 +18,8 @@ WORKDIR /app
 RUN addgroup -S cloudship && adduser -S cloudship -G cloudship
 USER cloudship
 
-# Copy built jar from build stage
-COPY --from=build --chown=cloudship:cloudship /app/target/cloudship-backend-1.0.0-SNAPSHOT.jar app.jar
+# Copy built jar from build stage (version-agnostic wildcard)
+COPY --from=build --chown=cloudship:cloudship /app/target/*.jar app.jar
 
 ENV PORT=8088
 EXPOSE 8088

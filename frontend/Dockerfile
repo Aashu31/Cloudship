@@ -8,6 +8,7 @@ RUN rm -rf /usr/share/nginx/html/*
 
 # Copy CloudShip frontend static distribution
 COPY index.html /usr/share/nginx/html/
+COPY version.json /usr/share/nginx/html/
 COPY css/ /usr/share/nginx/html/css/
 COPY js/ /usr/share/nginx/html/js/
 COPY img/ /usr/share/nginx/html/img/
