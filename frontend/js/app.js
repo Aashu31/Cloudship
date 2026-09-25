@@ -226,7 +226,72 @@ document.addEventListener('DOMContentLoaded', () => {
     btnWorkspaceTriggerDeploy: document.getElementById('btn-workspace-trigger-deploy'),
     btnPingTelemetry: document.getElementById('btn-ping-telemetry'),
     wsTelemetryLatency: document.getElementById('ws-telemetry-latency'),
+
+    // Version Targets (Single Source of Truth)
+    sidebarVersionBadge: document.getElementById('sidebar-version-badge'),
+    cockpitKickerVersion: document.getElementById('cockpit-kicker-version'),
+    settingsProductVersion: document.getElementById('settings-product-version'),
   };
+
+  /* ==========================================================================
+     0. Canonical Version Management (Single Source of Truth)
+     ========================================================================== */
+  async function initVersionDisplay() {
+    let versionInfo = null;
+
+    // Step 1: Check window.__CLOUDSHIP_VERSION__ (preloaded via js/version.js)
+    if (window.__CLOUDSHIP_VERSION__ && window.__CLOUDSHIP_VERSION__.version) {
+      versionInfo = window.__CLOUDSHIP_VERSION__;
+    } else {
+      // Step 2: Asynchronous fallback fetch to version.json
+      try {
+        const res = await fetch('version.json', { cache: 'no-store' });
+        if (res.ok) {
+          versionInfo = await res.json();
+        }
+      } catch (e) {
+        console.warn('Could not load version.json:', e);
+      }
+    }
+
+    const FALLBACK_VERSION = 'Version unavailable';
+    const displayVersion = (versionInfo && versionInfo.displayVersion)
+      ? versionInfo.displayVersion
+      : (versionInfo && versionInfo.version ? `v${versionInfo.version}` : FALLBACK_VERSION);
+    const rawVersion = (versionInfo && versionInfo.version) ? versionInfo.version : FALLBACK_VERSION;
+
+    state.version = versionInfo;
+
+    // Direct element binding
+    if (elements.sidebarVersionBadge) {
+      elements.sidebarVersionBadge.textContent = displayVersion;
+    }
+    if (elements.cockpitKickerVersion) {
+      elements.cockpitKickerVersion.textContent = displayVersion;
+    }
+    if (elements.settingsProductVersion) {
+      elements.settingsProductVersion.innerHTML = `<span class="status-dot"></span>${escapeHtml(displayVersion)}`;
+    }
+
+    // Generic declarative data-cloudship-version attribute binding
+    document.querySelectorAll('[data-cloudship-version]').forEach(el => {
+      const mode = el.getAttribute('data-cloudship-version');
+      if (mode === 'raw') {
+        el.textContent = rawVersion;
+      } else {
+        if (el.querySelector('.status-dot')) {
+          el.innerHTML = `<span class="status-dot"></span>${escapeHtml(displayVersion)}`;
+        } else {
+          el.textContent = displayVersion;
+        }
+      }
+    });
+
+    // Global helper for diagnostic/testing inspection
+    window.getCloudShipVersion = function() {
+      return state.version ? state.version.version : FALLBACK_VERSION;
+    };
+  }
 
   /* ==========================================================================
      1. Toast Notification System
@@ -2903,6 +2968,9 @@ document.addEventListener('DOMContentLoaded', () => {
       showZeroTrustGate();
     }
   }
+
+  // Canonical Single Source of Truth version initialization
+  initVersionDisplay();
 
   checkAuthAndBootstrap();
 });

@@ -77,6 +77,22 @@ const api = {
     }
   },
   /**
+   * Fetches centralized canonical version metadata
+   */
+  async getVersion() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/version`, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (err) {
+      console.warn('Version check error:', err.message);
+      return null;
+    }
+  },
+
+  /**
    * Probes backend and database health status
    */
   async getHealth() {

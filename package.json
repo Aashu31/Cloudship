@@ -1,0 +1,11 @@
+{
+  "name": "cloudship",
+  "version": "8.0.0",
+  "description": "CloudShip — Intelligent DevOps Deployment & Recovery Platform",
+  "private": true,
+  "scripts": {
+    "version:sync": "node scripts/sync-version.js",
+    "version:check": "node scripts/sync-version.js --check",
+    "build": "node scripts/sync-version.js"
+  }
+}

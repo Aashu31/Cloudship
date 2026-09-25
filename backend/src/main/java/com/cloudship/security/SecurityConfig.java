@@ -87,8 +87,8 @@ public class SecurityConfig {
                         // Pre-flight CORS OPTIONS requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // Health and probes
-                        .requestMatchers("/api/health", "/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+                        // Health, version, and probes
+                        .requestMatchers("/api/health", "/api/version", "/api/build-info", "/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
 
                         // Auth status endpoint (returns authenticated: false when unauthenticated)
                         .requestMatchers("/api/auth/me").permitAll()

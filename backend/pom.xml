@@ -14,7 +14,7 @@
 
     <groupId>com.cloudship</groupId>
     <artifactId>cloudship-backend</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>8.0.0</version>
     <name>cloudship-backend</name>
     <description>CloudShip — DevOps Deployment &amp; Recovery Platform (Backend API)</description>
 

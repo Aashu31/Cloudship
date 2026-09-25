@@ -1,10 +1,17 @@
 # CloudShip — Intelligent DevOps Deployment & Recovery Platform
 
+<!-- CLOUDSHIP_CURRENT_VERSION_START -->
+[![CloudShip Version](https://img.shields.io/badge/Version-v8.0.0-amber.svg)](VERSION)
+[![Phase](https://img.shields.io/badge/Phase-Version%208%20(Observability%20%26%20Zero--Trust)-success.svg)](docs/observability.md)
+[![Status](https://img.shields.io/badge/Status-Operational-brightgreen.svg)](https://cloudship-ten.vercel.app/)
+
+**Current Version:** `v8.0.0` (Version 8 — Observability, Monitoring & Zero-Trust Control)
+<!-- CLOUDSHIP_CURRENT_VERSION_END -->
+
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Primary Cloud: Azure](https://img.shields.io/badge/Primary%20Cloud-Microsoft%20Azure-0078D4.svg)](docs/cloud-strategy.md)
 [![Future Cloud: AWS](https://img.shields.io/badge/Future%20Cloud-AWS%20(Phase%2013)-FF9900.svg)](docs/cloud-strategy.md)
-[![Phase](https://img.shields.io/badge/Phase-5%20(Azure%20Container%20Registry)-success.svg)](docs/azure-acr.md)
-[![Status](https://img.shields.io/badge/Status-Phase%205%20Complete-brightgreen.svg)](docs/roadmap.md)
 
 **CloudShip** is an intelligent DevOps deployment and recovery platform designed to demonstrate real-world continuous delivery, container orchestration, real-time health observability, and automated site reliability engineering (SRE) recovery.
 

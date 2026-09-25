@@ -3,6 +3,7 @@ package com.cloudship.controller;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -15,26 +16,26 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class BuildInfoControllerTest {
+class VersionControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @org.springframework.beans.factory.annotation.Value("${cloudship.version:8.0.0}")
+    @Value("${cloudship.version:8.0.0}")
     private String expectedVersion;
 
     @Test
-    @DisplayName("GET /api/build-info should return truthful build information")
-    void shouldReturnBuildInfo() throws Exception {
-        mockMvc.perform(get("/api/build-info")
+    @DisplayName("GET /api/version should return canonical version payload")
+    void shouldReturnVersion() throws Exception {
+        mockMvc.perform(get("/api/version")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.application").value("cloudship-backend"))
+                .andExpect(jsonPath("$.name").value("CloudShip"))
                 .andExpect(jsonPath("$.version").value(expectedVersion))
-                .andExpect(jsonPath("$.containerStatus").value("READY"))
-                .andExpect(jsonPath("$.dockerImage").value("cloudship/backend:" + expectedVersion))
-                .andExpect(jsonPath("$.javaVersion").isNotEmpty())
+                .andExpect(jsonPath("$.displayVersion").value("v" + expectedVersion))
+                .andExpect(jsonPath("$.phase").isNotEmpty())
+                .andExpect(jsonPath("$.status").value("UP"))
                 .andExpect(jsonPath("$.timestamp").isNotEmpty());
     }
 }

@@ -297,7 +297,7 @@
           <div class="sidebar-teaser-content">
             <span class="sidebar-teaser-title">Engineering<br>Reliable Tomorrow</span>
             <div class="sidebar-teaser-meta">
-              <span>v1.0.0</span>
+              <span id="sidebar-version-badge" data-cloudship-version="display">v8.0.0</span>
               <span>→</span>
             </div>
           </div>
@@ -316,7 +316,7 @@
         <!-- Cockpit Hero -->
         <div class="cockpit-hero">
           <div class="cockpit-hero-left">
-            <div class="cockpit-kicker">ENGINEERING CONTROL ENVIRONMENT // OS v1.0</div>
+            <div class="cockpit-kicker">ENGINEERING CONTROL ENVIRONMENT // OS <span id="cockpit-kicker-version" data-cloudship-version="display">v8.0.0</span></div>
             <h1 class="cockpit-title">Ship infrastructure.<br>Not just code.</h1>
             <p class="cockpit-desc">
               Unified DevOps command center orchestrating source repositories, automated CI pipelines, container registries, and zero-downtime Kubernetes deployments across live enterprise cloud topology.
@@ -2193,6 +2193,10 @@
 
       <div style="display: flex; flex-direction: column; gap: var(--space-3); font-size: var(--font-body);">
         <div class="drawer-meta-row">
+          <span class="drawer-meta-label">Product Version:</span>
+          <span class="status-pill info" id="settings-product-version" data-cloudship-version="display" style="font-size: 11px; font-family: var(--font-mono);"><span class="status-dot"></span>v8.0.0</span>
+        </div>
+        <div class="drawer-meta-row">
           <span class="drawer-meta-label">Backend API URL:</span>
           <span class="drawer-meta-value" style="font-family: var(--font-mono); color: var(--accent-highlight); font-size: 0.8rem;">https://cloudship-backend.onrender.com</span>
         </div>
@@ -2233,6 +2237,7 @@
   <div class="toast-container" id="toast-container" role="status" aria-live="polite"></div>
 
   <!-- Script Modules -->
+  <script src="js/version.js"></script>
   <script src="js/api.js"></script>
   <script src="js/app.js"></script>
 </body>

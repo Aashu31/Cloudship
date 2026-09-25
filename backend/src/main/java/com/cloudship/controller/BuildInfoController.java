@@ -14,13 +14,13 @@ public class BuildInfoController {
     @Value("${spring.application.name:cloudship-backend}")
     private String applicationName;
 
-    @Value("${cloudship.version:1.0.0}")
+    @Value("${cloudship.version:8.0.0}")
     private String version;
 
     @Value("${cloudship.environment:Local Dev}")
     private String environment;
 
-    @Value("${cloudship.docker.image:cloudship/backend:1.0.0}")
+    @Value("${cloudship.docker.image:cloudship/backend:${cloudship.version:8.0.0}}")
     private String dockerImage;
 
     @GetMapping
